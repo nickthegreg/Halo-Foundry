@@ -1,4 +1,4 @@
-import {TECH,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
 (()=>{
 'use strict';
@@ -23,7 +23,7 @@ const PARTS=[];
 let hover=null, tapFx=null;
 
 function fresh(seed){
-  return {v:1,seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,res:{done:{},cur:null,p:{}},charge:0,up:{belt:0,vein:0},pulses:[],pq:[],grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
+  return {v:1,seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,res:{done:{},cur:null,p:{},lv:{}},charge:0,up:{belt:0,vein:0,night:0,haul:0},pulses:[],pq:[],grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
 }
 
 // ================= helpers =================
@@ -39,9 +39,13 @@ function costOf(t,n){const c=Object.assign({},B[t].cost||{});if(c.ember){let a=c
 // Upgrade costs: hand-set early levels, then each further level costs the last one times `grow`
 function tierCost(T,grow,L){if(L<T.length)return T[L];const c={},m=Math.pow(grow,L-T.length+1),last=T[T.length-1];for(const k in last)c[k]=Math.round(last[k]*m/10)*10;return c}
 const BELT_COST=[{ember:5},{ember:50},{ember:500},{ember:5000},{aether:1000},{aether:4000,ember:20000},{aether:20000,ember:80000,servo:2000}];
-const VEIN_COST=[{iron:150,copper:150},{iron:1500,copper:1500},{circuit:5000,glass:3000},{motor:5000,lens:3000,steel:4000},{processor:3000,prism:4000,frame:5000},{servo:4000,aether:2000,lens:20000}];
+const VEIN_COST=[{iron:150,copper:150},{iron:1500,copper:1500},{circuit:5000,glass:3000},{motor:5000,lens:3000,steel:4000},{wire:1000000},{servo:4000,aether:2000,lens:20000,photonic:2000}];
+const NIGHT_COST=[{circuit:500,glass:500},{motor:300,lens:300,steel:500},{processor:200,film:500,frame:200},{photonic:200,composite:300,coil:500},{lattice:50,servo:200,wafer:1000},{aether:500,lattice:150},{lattice:400,photonic:2000},{lattice:1000,aether:3000}];
+const HAUL_COST=[{steel:500,copper:1000},{frame:300,coil:200},{servo:100,composite:200},{photonic:300,film:1000},{lattice:100,aether:200}];
 const UPG={
   belt:{n:'Conveyor speed',d:'Conveyors and Crossings move items 20% faster per level.',cost:L=>tierCost(BELT_COST,6,L),eff:L=>`+${L*20}% now, +${(L+1)*20}% next`},
+  night:{n:'Night shift',max:8,d:'Your factory earns more while you’re away: +10% offline output per level, up to 100%.',cost:L=>NIGHT_COST[Math.min(L,NIGHT_COST.length-1)],eff:L=>`${Math.min(100,20+L*10)}% now${L<8?`, ${20+(L+1)*10}% next`:''}`},
+  haul:{n:'Long haul',max:10,d:'Offline time counts longer: +4 hours per level, from 8 hours up to 48.',cost:L=>tierCost(HAUL_COST,4,L),eff:L=>`${8+4*L} h now${L<10?`, ${12+4*L} h next`:''}`},
   vein:{n:'Deep veins',d:'Drills pull more from every tile, so patches last 1.5× longer per level.',cost:L=>tierCost(VEIN_COST,7,L),eff:L=>`×${Math.pow(1.5,L).toFixed(2)} now, ×${Math.pow(1.5,L+1).toFixed(2)} next`}
 };
 function veinMul(){return Math.pow(1.5,(S.up&&S.up.vein)||0)}
@@ -217,7 +221,7 @@ function sim(dt){
     else if(b.t==='filmarray')base+=160*(.2+.8*day);
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)){cap+=B[b.t].gen;comb.push(b)}
   }
-  const gridOn=S.ms>=MS.length;
+  const gridOn=S.ms>=MS.length,gmul=1+.1*repLv('harmonics');base*=gmul;cap*=gmul;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
   const sat0=demand>0?Math.min(1,gen/demand):1;
   PW={gen,demand,sat:sat0,cap:base+cap,day};
@@ -320,7 +324,7 @@ function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
 function uplinkRate(b){return 4/(1+Math.max(0,coreDist(b)-3)/8)}
 function uplinkPw(b){return Math.round(60+3*coreDist(b))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)}
-function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return 1+0.1*n}
+function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -948,7 +952,7 @@ function hudTick(force){
     $('#goalReqs').innerHTML=Object.keys(m.req).map(k=>{const h=Math.min(S.prog[k]||0,m.req[k]);return `<span class="req${h>=m.req[k]?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${h}/${m.req[k]}<i style="width:${h/m.req[k]*100}%"></i></span>`}).join('');
   }else{
     const g=rung(S.gt),f=Math.min(1,S.gavg/g.kw),cur=S.res.cur,tf=cur?techFrac(cur):0;
-    $('#goalEyebrow').textContent=cur?'Researching':'Research';$('#goalName').textContent=cur?TECH[cur].n:'Tap to choose';
+    $('#goalEyebrow').textContent=cur?'Researching':'Research';$('#goalName').textContent=cur?techName(cur):'Tap to choose';
     $('#goalReqs').innerHTML=(cur?`<span class="req">${Math.floor(tf*100)}%<i style="width:${tf*100}%"></i></span>`:'')+`<span class="req">${BOLT}${fmtW(S.gavg)} / ${fmtW(g.kw)}<i style="width:${f*100}%"></i></span>`;
   }
   // power
@@ -1098,8 +1102,8 @@ function showMilestones(){
 let resetArm=0;
 function showMenu(){
   openModal(`<div class="card-head"><h3>Menu</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
-  <div class="sec-label">Upgrades</div><div class="ms-list">${Object.keys(UPG).map(k=>{const u=UPG[k],L=S.up[k]||0,c=u.cost(L),ok=canAfford(c);
-    return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${u.eff(L)}</span></div><div class="ms-unl">${u.d}</div><div class="actions" style="align-items:center"><div class="ms-req" style="flex:1">${Object.keys(c).map(i=>`<span class="req${(S.inv[i]||0)>=c[i]?' done':''}"><img src="${ICON[i]}" alt="${ITEMS[i].n}">${(S.inv[i]||0).toLocaleString()}/${c[i].toLocaleString()}</span>`).join('')}</div><button class="btn${ok?' primary':''}" style="flex:none;padding:0 18px" data-up="${k}">Upgrade</button></div></div>`}).join('')}</div>
+  <div class="sec-label">Upgrades</div><div class="ms-list">${Object.keys(UPG).map(k=>{const u=UPG[k],L=S.up[k]||0,mx=u.max&&L>=u.max,c=mx?{}:u.cost(L),ok=!mx&&canAfford(c);
+    return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${u.eff(L)}</span></div><div class="ms-unl">${u.d}</div><div class="actions" style="align-items:center"><div class="ms-req" style="flex:1">${Object.keys(c).map(i=>`<span class="req${(S.inv[i]||0)>=c[i]?' done':''}"><img src="${ICON[i]}" alt="${ITEMS[i].n}">${(S.inv[i]||0).toLocaleString()}/${c[i].toLocaleString()}</span>`).join('')}</div>${mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 18px" data-up="${k}">Upgrade</button>`}</div></div>`}).join('')}</div>
   <div class="sec-label">Sound</div>
   <label class="slider" for="musicVol"><span>Music</span><input id="musicVol" type="range" min="0" max="100" value="${Math.round(AU.mv*100)}"></label>
   <label class="slider" for="sfxVol"><span>Effects</span><input id="sfxVol" type="range" min="0" max="100" value="${Math.round(AU.sv*100)}"></label>
@@ -1123,7 +1127,7 @@ elCard.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.hasAttribute('data-close'))closeModal();
   else if(b.dataset.speed){if(!testerOK())return;speed=+b.dataset.speed;S.speed=speed;showMenu()}
-  else if(b.dataset.up){const k=b.dataset.up,c=UPG[k].cost(S.up[k]||0);if(!canAfford(c)){showToast('Need '+missing(c)+' more');return}pay(c,-1);S.up[k]=(S.up[k]||0)+1;save();showMenu();showToast(UPG[k].n+' is now level '+S.up[k])}
+  else if(b.dataset.up){const k=b.dataset.up;if(UPG[k].max&&(S.up[k]||0)>=UPG[k].max)return;const c=UPG[k].cost(S.up[k]||0);if(!canAfford(c)){showToast('Need '+missing(c)+' more');return}pay(c,-1);S.up[k]=(S.up[k]||0)+1;save();showMenu();showToast(UPG[k].n+' is now level '+S.up[k])}
   else if(b.dataset.tech){const id=b.dataset.tech;S.res.cur=S.res.cur===id?null:id;sfx('tick');showResearch();hudTick(true)}
   else if(b.hasAttribute('data-stats'))showStats();
   else if(b.hasAttribute('data-savecode'))showSaveCode();
@@ -1131,7 +1135,7 @@ elCard.addEventListener('click',e=>{
   else if(b.hasAttribute('data-copycode')){const o=$('#codeOut'),v=o.value;if(!v.startsWith('HF'))return;const sel=()=>{o.focus();o.select();showToast('Code selected. Copy it from here.')};try{navigator.clipboard.writeText(v).then(()=>showToast('Save code copied'),sel)}catch(_){sel()}}
   else if(b.hasAttribute('data-loadcode')){const v=$('#codeIn').value.trim(),m=$('#codeMsg');if(!v){m.textContent='Paste a save code first.';return}
     if(Date.now()-(b._arm||0)>4000){b._arm=Date.now();b.textContent='Tap again to replace this game';return}
-    decodeSave(v).then(d=>{if(!d||!d.v||d.seed==null)throw 0;start(d);save();closeModal();showToast('Game loaded')}).catch(()=>{m.textContent='That code could not be read. Check that it was copied in full.';b.textContent='Load this game';b._arm=0})}
+    decodeSave(v).then(d=>{if(!d||!d.v||d.seed==null)throw 0;d.fromCode=1;start(d);save();closeModal();showToast('Game loaded')}).catch(()=>{m.textContent='That code could not be read. Check that it was copied in full.';b.textContent='Load this game';b._arm=0})}
   else if(b.hasAttribute('data-bpclip'))startPaste(CLIP);
   else if(b.dataset.bpuse!=null){const x=loadBPS()[+b.dataset.bpuse];if(x)startPaste(x.L)}
   else if(b.dataset.bpdel!=null){if(Date.now()-(b._arm||0)<3000){const a=loadBPS();a.splice(+b.dataset.bpdel,1);storeBPS(a);showBlueprints()}else{b._arm=Date.now();b.textContent='Tap again'}}
@@ -1437,42 +1441,60 @@ function eraseTo(sx,sy){
 }
 // ================= research =================
 // Spare power fills a Charge bank (MJ). Research draws Charge and items from storage together; it finishes when both are paid.
+// Ongoing research ("rep:<id>") can be done again and again; each level costs more and it keeps going on its own.
 let RES_OPEN=false,resN=0;
 function chargeCap(){let c=200;for(const b of S.bs.values())if(b.t==='capacitor'&&!b.bp)c+=B.capacitor.cap;return c}
+function repLv(k){return (S.res&&S.res.lv&&S.res.lv[k])||0}
+function isRep(id){return id.startsWith('rep:')}
+function techName(id){if(isRep(id)){const k=id.slice(4);return `${REPEAT[k].n} ${repLv(k)+1}`}return TECH[id].n}
+function techCost(id){
+  if(!isRep(id))return{mj:TECH[id].mj,items:TECH[id].items};
+  const k=id.slice(4),R=REPEAT[k],n=repLv(k),set=R.sets[n%R.sets.length],m=Math.pow(R.igrow,n),items={};
+  for(const i in set)items[i]=Math.max(1,Math.round(set[i]*m));
+  return{mj:Math.round(R.mj*Math.pow(R.grow,n)),items};
+}
 function techOpen(N){return S.ms>=MS.length&&S.gt>=N.t-1}
-function techReady(id){const N=TECH[id];return !S.res.done[id]&&techOpen(N)&&(N.req||[]).every(r=>S.res.done[r])}
+function techReady(id){if(isRep(id))return S.ms>=MS.length&&!!REPEAT[id.slice(4)];const N=TECH[id];return !S.res.done[id]&&techOpen(N)&&(N.req||[]).every(r=>S.res.done[r])}
 function techProg(id){return S.res.p[id]||(S.res.p[id]={c:0,it:{}})}
-function techFrac(id){const N=TECH[id],p=S.res.p[id]||{c:0,it:{}};let f=Math.min(1,p.c/N.mj),n=1;for(const k in N.items){f+=Math.min(1,(p.it[k]||0)/N.items[k]);n++}return f/n}
+function techFrac(id){const C=techCost(id),p=S.res.p[id]||{c:0,it:{}};let f=Math.min(1,p.c/C.mj),n=1;for(const k in C.items){f+=Math.min(1,(p.it[k]||0)/C.items[k]);n++}return f/n}
 function researchTick(){
-  const id=S.res.cur;if(!id)return;const N=TECH[id];if(!N||!techReady(id)){S.res.cur=null;return}
-  const p=techProg(id);
-  if(p.c<N.mj){const pay=Math.min(N.mj-p.c,S.charge||0);S.charge-=pay;p.c+=pay}
-  const f=Math.min(1,p.c/N.mj);let done=p.c>=N.mj-1e-6;
-  for(const k in N.items){const need=N.items[k],want=Math.min(need,Math.ceil(need*f))-(p.it[k]||0);if(want>0){const take=Math.min(want,Math.floor(S.inv[k]||0));if(take>0){S.inv[k]-=take;p.it[k]=(p.it[k]||0)+take}}if((p.it[k]||0)<need)done=false}
+  const id=S.res.cur;if(!id)return;if(!(isRep(id)?REPEAT[id.slice(4)]:TECH[id])||!techReady(id)){S.res.cur=null;return}
+  const C=techCost(id),p=techProg(id);
+  if(p.c<C.mj){const pay=Math.min(C.mj-p.c,S.charge||0);S.charge-=pay;p.c+=pay}
+  const f=Math.min(1,p.c/C.mj);let done=p.c>=C.mj-1e-6;
+  for(const k in C.items){const need=C.items[k],want=Math.min(need,Math.ceil(need*f))-(p.it[k]||0);if(want>0){const take=Math.min(want,Math.floor(S.inv[k]||0));if(take>0){S.inv[k]-=take;p.it[k]=(p.it[k]||0)+take}}if((p.it[k]||0)<need)done=false}
   if(done)completeTech(id);
 }
 function grantTech(id){const N=TECH[id];S.res.done[id]=1;(N.unl||[]).forEach(t=>{if(!S.unl.includes(t)){S.unl.push(t);S.newT.push(t)}});(N.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-function completeTech(id){const N=TECH[id];grantTech(id);S.res.cur=null;delete S.res.p[id];burst(CX,CY,'#7ff0d0',40);sfx('fanfare');showBanner('Research complete · '+N.n,N.d+' Pick the next one from the top bar.');buildDock();save();if(RES_OPEN&&!elModal.hidden)showResearch()}
+function completeTech(id){
+  if(isRep(id)){const k=id.slice(4);delete S.res.p[id];S.res.lv[k]=repLv(k)+1;sfx('build');showToast(`${REPEAT[k].n} reached level ${S.res.lv[k]}. Level ${S.res.lv[k]+1} has started.`);if(RES_OPEN&&!elModal.hidden)showResearch();return}
+  const N=TECH[id];grantTech(id);S.res.cur=null;delete S.res.p[id];burst(CX,CY,'#7ff0d0',40);sfx('fanfare');showBanner('Research complete · '+N.n,N.d+' Pick the next one from the top bar.');buildDock();save();if(RES_OPEN&&!elModal.hidden)showResearch();
+}
 function techCostChips(id){
-  const N=TECH[id],p=S.res.p[id]||{c:0,it:{}};
-  return `<span class="req${p.c>=N.mj?' done':''}">${BOLT}${Math.floor(p.c).toLocaleString()}/${N.mj.toLocaleString()} MJ<i style="width:${Math.min(100,p.c/N.mj*100)}%"></i></span>`+
-    Object.keys(N.items).map(k=>{const h=p.it[k]||0,n=N.items[k],inv=Math.floor(S.inv[k]||0);return `<span class="req${h>=n?' done':''}" title="${inv.toLocaleString()} in storage"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${h.toLocaleString()}/${n.toLocaleString()}<i style="width:${h/n*100}%"></i></span>`}).join('');
+  const C=techCost(id),p=S.res.p[id]||{c:0,it:{}};
+  return `<span class="req${p.c>=C.mj?' done':''}">${BOLT}${Math.floor(p.c).toLocaleString()}/${C.mj.toLocaleString()} MJ<i style="width:${Math.min(100,p.c/C.mj*100)}%"></i></span>`+
+    Object.keys(C.items).map(k=>{const h=p.it[k]||0,n=C.items[k];return `<span class="req${h>=n?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${h.toLocaleString()}/${n.toLocaleString()}<i style="width:${h/n*100}%"></i></span>`}).join('');
+}
+function techCard(id,title,desc,status,cls,canGo){
+  const cur=S.res.cur===id,started=!!S.res.p[id];
+  return `<div class="ms ${cls}"><div class="ms-top"><h4>${title}</h4><span class="st">${status}</span></div><div class="ms-unl">${desc}</div>`+
+    (cls==='done'?'':`<div class="ms-req" id="tq-${id.replace(':','_')}">${techCostChips(id)}</div>`)+
+    (canGo?`<button class="btn${cur?'':' primary'}" data-tech="${id}">${cur?'Pause':started?'Resume':'Research'}</button>`:'')+`</div>`;
 }
 function showResearch(){
-  const tiers=[...new Set(Object.values(TECH).map(N=>N.t))].sort((a,b)=>a-b);
+  const tiers=[...new Set(Object.values(TECH).map(N=>N.t))].sort((a,b)=>a-b),open=S.ms>=MS.length;
   let h=`<div class="card-head"><h3>Research</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
   <div class="ms cur"><div class="ms-top"><h4>Charge</h4><span class="st" id="rsRate"></span></div><div class="meter"><b id="rsBar"></b></div><div class="ms-unl" id="rsCharge"></div></div>
   <p>Research spends stored Charge and items from storage. Spare power refills Charge, so a bigger grid researches faster. Progress is kept if you switch.</p><div class="ms-list">`;
-  if(S.ms<MS.length)h+='<p><strong>Research opens with the Grid Charter milestone.</strong></p>';
+  if(!open)h+='<p><strong>Research opens with the Grid Charter milestone.</strong></p>';
+  h+=`<div class="sec-label">Ongoing · repeats on its own, every level stronger</div>`;
+  for(const k in REPEAT){const R=REPEAT[k],id='rep:'+k,lv=repLv(k);h+=techCard(id,`${R.n} · level ${lv}`,R.d,S.res.cur===id?`Researching level ${lv+1}`:`Next: level ${lv+1}`,S.res.cur===id?'cur':open?'':'future',open)}
   for(const t of tiers){
-    const gate=t>1?rung(t-2):null,open=S.ms>=MS.length&&S.gt>=t-1;
-    h+=`<div class="sec-label">Tier ${t}${open||!gate?'':` · opens at ${gate.n}, ${fmtW(gate.kw)} sustained`}</div>`;
+    const gate=t>1?rung(t-2):null,topen=open&&S.gt>=t-1;
+    h+=`<div class="sec-label">Tier ${t}${topen||!gate?'':` · opens at ${gate.n}, ${fmtW(gate.kw)} sustained`}</div>`;
     for(const id in TECH){const N=TECH[id];if(N.t!==t)continue;
-      const done=S.res.done[id],cur=S.res.cur===id,ready=techReady(id),miss=(N.req||[]).filter(r=>!S.res.done[r]).map(r=>TECH[r].n),started=!!S.res.p[id];
-      h+=`<div class="ms ${done?'done':cur?'cur':ready?'':'future'}"><div class="ms-top"><h4>${N.n}</h4><span class="st">${done?'Done':cur?'Researching':ready?(started?'Paused':'Available'):'Locked'}</span></div><div class="ms-unl">${N.d}</div>`+
-        (done?'':`<div class="ms-req" id="tq-${id}">${techCostChips(id)}</div>`)+
-        (miss.length&&!done?`<div class="ms-unl">Needs <b>${miss.join(', ')}</b></div>`:'')+
-        (ready&&!done?`<button class="btn${cur?'':' primary'}" data-tech="${id}">${cur?'Pause':started?'Resume':'Research'}</button>`:'')+`</div>`;
+      const done=S.res.done[id],cur=S.res.cur===id,ready=techReady(id),miss=(N.req||[]).filter(r=>!S.res.done[r]).map(r=>TECH[r].n);
+      h+=techCard(id,N.n,N.d+(miss.length&&!done?` <b>Needs ${miss.join(', ')}.</b>`:''),done?'Done':cur?'Researching':ready?(S.res.p[id]?'Paused':'Available'):'Locked',done?'done':cur?'cur':ready?'':'future',ready&&!done);
     }
   }
   openModal(h+'</div>');RES_OPEN=true;updateResearch();
@@ -1481,8 +1503,35 @@ function updateResearch(){
   const a=$('#rsCharge');if(!a)return;const cap=chargeCap(),rate=Math.max(0,PW.gen-PW.demand)/1000;
   a.textContent=`${Math.floor(S.charge||0).toLocaleString()} of ${cap.toLocaleString()} MJ stored`;
   $('#rsRate').textContent=S.ms>=MS.length?`+${rate.toFixed(2)} MJ/s spare`:'';$('#rsBar').style.width=Math.min(100,(S.charge||0)/cap*100)+'%';
-  if(S.res.cur){const q=$('#tq-'+S.res.cur);if(q)q.innerHTML=techCostChips(S.res.cur)}
+  if(S.res.cur){const q=$('#tq-'+S.res.cur.replace(':','_'));if(q)q.innerHTML=techCostChips(S.res.cur)}
 }
+
+// ================= offline progress =================
+// While you're away the factory earns a share of what it was delivering to the Core, without using ore or fuel.
+let AWAY=null;
+function offEff(){return Math.min(1,.2+.1*((S.up&&S.up.night)||0))}
+function offCapH(){return 8+4*((S.up&&S.up.haul)||0)}
+function trackRates(d){
+  // rolling ~3 minute average of deliveries to the Core and of spare power, per game-second
+  const a=1/180;S.dr=S.dr||{};
+  for(const k of new Set([...Object.keys(S.dr),...Object.keys(d)])){const v=(S.dr[k]||0)*(1-a)+(d[k]||0)*a;if(v<1e-4)delete S.dr[k];else S.dr[k]=v}
+  S.dch=(S.dch||0)*(1-a)+(S.ms>=MS.length?Math.max(0,PW.gen-PW.demand)/1000:0)*a;
+}
+function fmtAway(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h}h ${m}m`:`${m} min`}
+function grantOffline(sec){
+  if(!S||sec<60)return;
+  const t=Math.min(sec,offCapH()*3600),e=offEff(),got={};let any=false;
+  for(const k in (S.dr||{})){const n=Math.floor(S.dr[k]*t*e);if(n>0){addInv(k,n);got[k]=n;any=true}}
+  let ch=0;if(S.ms>=MS.length&&S.dch>0){ch=Math.max(0,Math.min(chargeCap()-(S.charge||0),S.dch*t*e));S.charge=(S.charge||0)+ch;if(ch>=1)any=true}
+  if(!any)return;
+  const keys=ITEM_ORDER.filter(k=>got[k]);
+  openModal(`<span class="eyebrow">Welcome back</span><h1>Your factory kept going</h1>
+  <p>You were away <strong>${fmtAway(sec)}</strong>. It ran at <strong>${Math.round(e*100)}%</strong> while you were gone, without using up ore or fuel.${sec>t?` Offline time counts up to ${offCapH()} hours; Long haul raises that.`:''}</p>
+  <div class="ms-req">${keys.map(k=>`<span class="req done"><img src="${ICON[k]}" alt="${ITEMS[k].n}">+${got[k].toLocaleString()}</span>`).join('')}${ch>=1?`<span class="req done">${BOLT}+${Math.floor(ch).toLocaleString()} MJ</span>`:''}</div>
+  <button class="btn primary" data-close>Collect</button>`);
+  hudTick(true);save();
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){AWAY=Date.now()}else if(AWAY){const s=(Date.now()-AWAY)/1000;AWAY=null;grantOffline(s)}});
 
 // ================= production stats, save codes, minimap =================
 // Counts are kept per game-second for the last minute; power is sampled every 5 seconds for the last 10 minutes.
@@ -1491,7 +1540,7 @@ let STATS_OPEN=false,bneck=true;try{bneck=localStorage.getItem('halo-foundry-bne
 function stat(k,t,n){STAT.cur[k][t]=(STAT.cur[k][t]||0)+(n||1)}
 function statTick(dt){
   STAT.acc+=dt;STAT.pacc+=dt;
-  if(STAT.acc>=1){STAT.acc-=1;STAT.hist.push(STAT.cur);if(STAT.hist.length>60)STAT.hist.shift();STAT.cur={p:{},c:{},d:{}};
+  if(STAT.acc>=1){STAT.acc-=1;trackRates(STAT.cur.d);STAT.hist.push(STAT.cur);if(STAT.hist.length>60)STAT.hist.shift();STAT.cur={p:{},c:{},d:{}};
     for(const b of S.bs.values())if(b.t==='belt'){b.rate=(b.rate||0)*.6+(b.fc||0)*.4;b.fc=0}}
   if(STAT.pacc>=5){STAT.pacc-=5;STAT.pw.push([PW.gen,PW.demand,PW.cap]);if(STAT.pw.length>120)STAT.pw.shift()}
 }
@@ -1740,7 +1789,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,res:S.res,charge:S.charge,gt:S.gt,gavg:S.gavg,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,res:S.res,dr:S.dr,dch:S.dch,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()))}catch(_){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null}catch(_){return null}}
@@ -1753,7 +1802,7 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    S.res=d.res&&d.res.done?d.res:{done:{},cur:null,p:{}};S.charge=d.charge||0;
+    S.res=d.res&&d.res.done?d.res:{done:{},cur:null,p:{},lv:{}};S.res.lv=S.res.lv||{};S.dr=d.dr||{};S.dch=d.dch||0;S.charge=d.charge||0;
     // players who earned buildings from the old grid ladder get the matching research for free
     for(const id in TECH){const N=TECH[id];if(S.res.done[id]||(!(N.unl||[]).length&&!(N.rec||[]).length))continue;if((N.unl||[]).every(t=>S.unl.includes(t))&&(N.rec||[]).every(k=>S.rec.includes(k)))S.res.done[id]=1}
     S.refined=d.refined||0;speed=testerOK()?(d.speed||1):1;
@@ -1763,6 +1812,7 @@ function start(data,forceNew){
     if(d.cam){cam.x=d.cam.x+OFF;cam.y=d.cam.y+OFF;cam.z=d.cam.z}
   }else{cam.x=CX;cam.y=CY;cam.z=Math.max(18,Math.min(36,Math.min(VW,VH)/20))}
   tool='inspect';sel=null;elSheet.hidden=true;recalc();dirty=false;buildDock();updateRot();hudTick(true);
+  if(d&&d.savedAt&&!d.fromCode)setTimeout(()=>grantOffline((Date.now()-d.savedAt)/1000),400);
   return !d;
 }
 

@@ -103,9 +103,14 @@ const TECH={
   lattice:{t:5,n:'Lattice cores',mj:2000,items:{photonic:200,servo:80,composite:200},req:['photonics','fab2'],rec:['lattice'],d:'Lattice cores, the top-tier part.'},
   mirrors:{t:6,n:'Halo mirrors',mj:6000,items:{lattice:50,petal:200},req:['lattice'],fx:'mirrors',d:'Every sail petal in orbit gives 24 kW instead of 8.'}
 };
+// Ongoing research: repeats forever. Each level costs more Charge, and the item set rotates so many parts stay useful.
+const REPEAT={
+  overcharge:{n:'Overcharge',mj:150,grow:1.6,igrow:1.45,sets:[{circuit:200,steel:100},{motor:60,lens:120},{processor:40,film:150},{photonic:30,composite:60}],d:'Every machine works 5% faster per level.'},
+  harmonics:{n:'Grid harmonics',mj:250,grow:1.7,igrow:1.45,sets:[{coil:150,glass:300},{wafer:200,frame:60},{servo:30,composite:80},{lattice:5,photonic:60}],d:'Every generator, the Core and the halo produce 10% more power per level.'}
+};
 function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-2;return{kw:6000*Math.pow(3,k),n:'Overclock '+k,oc:1,d:'Every machine works 10% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
 
-export {TECH,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
