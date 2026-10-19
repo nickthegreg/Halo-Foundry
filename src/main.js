@@ -1,4 +1,5 @@
 import {TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {CHANGELOG,LATEST} from './data/changelog.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
 (()=>{
 'use strict';
@@ -930,8 +931,8 @@ function syncRot(d){rot=d;rotTurns=rotTurns-((rotTurns%4+4)%4)+d;elRot.querySele
 let toastT=0;
 function showToast(m){elToast.textContent=m;elToast.classList.remove('hide');clearTimeout(toastT);toastT=setTimeout(()=>elToast.classList.add('hide'),2200)}
 let banT=0;
-function showBanner(h,p){elBanner.innerHTML=`<h3></h3><p></p>`;elBanner.querySelector('h3').textContent=h;elBanner.querySelector('p').textContent=p;elBanner.hidden=false;clearTimeout(banT);banT=setTimeout(()=>elBanner.hidden=true,5200)}
-elBanner.addEventListener('click',()=>elBanner.hidden=true);
+function showBanner(h,p){if(elBanner.dataset.reload)return;elBanner.innerHTML=`<h3></h3><p></p>`;elBanner.querySelector('h3').textContent=h;elBanner.querySelector('p').textContent=p;elBanner.hidden=false;clearTimeout(banT);banT=setTimeout(()=>elBanner.hidden=true,5200)}
+elBanner.addEventListener('click',()=>{if(elBanner.dataset.reload){save();location.reload();return}elBanner.hidden=true});
 
 function chip(t,n,cls){return `<span class="${cls||'chip'}"><img src="${ICON[t]}" alt="${ITEMS[t].n}" title="${ITEMS[t].n}">${n}</span>`}
 let invSig='',hudN=0;
@@ -1099,6 +1100,27 @@ function showMilestones(){
   }
   openModal(h+'</div>');
 }
+// ---------- what's new ----------
+const SEEN_KEY='halo-foundry-seen';
+function seenN(){try{return +localStorage.getItem(SEEN_KEY)||0}catch(_){return 0}}
+function markSeen(){try{localStorage.setItem(SEEN_KEY,String(LATEST))}catch(_){}}
+function showNews(since){
+  const list=CHANGELOG.filter(c=>since==null||c.n>since);
+  const fmtD=d=>new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  openModal(`<div class="card-head"><h3>What's new</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><div class="ms-list">${list.map(c=>`<div class="ms ${c.n===LATEST?'cur':'done'}"><div class="ms-top"><h4>${c.title}</h4><span class="st">${fmtD(c.date)}</span></div><ul class="news">${c.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>`).join('')}</div>${since!=null?'<div class="actions"><button class="btn" data-news>All updates</button><button class="btn primary" data-close>Back to the factory</button></div>':''}`);
+  markSeen();
+}
+// While the game stays open, check now and then whether a newer version has been published.
+let updAt=0,updShown=false;
+function checkUpdate(){
+  if(updShown||location.protocol!=='https:'||Date.now()-updAt<120000)return;updAt=Date.now();
+  fetch('src/data/changelog.js',{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{
+    const m=/n:(\d+)/.exec(t);if(!m||+m[1]<=LATEST)return;updShown=true;
+    elBanner.innerHTML='<h3>Update ready</h3><p>Tap here to load the new version. Your game is saved first.</p>';elBanner.dataset.reload='1';elBanner.hidden=false;clearTimeout(banT);
+  }).catch(()=>{});
+}
+setInterval(()=>{if(!document.hidden)checkUpdate()},600000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 let resetArm=0;
 function showMenu(){
   openModal(`<div class="card-head"><h3>Menu</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
@@ -1112,7 +1134,8 @@ function showMenu(){
   <p>Progress saves on this device every few seconds.</p>
   <div class="actions"><button class="btn" data-stats>Production</button><button class="btn" data-savecode>Save code</button></div>
   <div class="actions"><button class="btn${bneck?' primary':''}" data-bneck>Bottleneck markers: ${bneck?'on':'off'}</button></div>
-  <div class="actions"><button class="btn" data-help>How to play</button><button class="btn danger" data-reset>Start over</button></div>`);
+  <div class="actions"><button class="btn" data-news>What's new</button><button class="btn" data-help>How to play</button></div>
+  <div class="actions"><button class="btn danger" data-reset>Start over</button></div>`);
 }
 function showFinale(){openModal(`<span class="eyebrow">Tutorial complete</span><h1>The halo is lit</h1><p>${PET_GOAL} sail petals now circle the star. From here on, conveyors need construction pulses too, and the Core can send a second pulse at once. Two milestones stand between you and the <strong>Grid Charter</strong>. After that, progress is measured in sustained power, and the ladder has no top.</p><button class="btn primary" data-close>Start the main game</button>`)}
 function testerOK(){try{return localStorage.getItem('halo-foundry-tester')==='1'}catch(_){return false}}
@@ -1141,6 +1164,7 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.bpdel!=null){if(Date.now()-(b._arm||0)<3000){const a=loadBPS();a.splice(+b.dataset.bpdel,1);storeBPS(a);showBlueprints()}else{b._arm=Date.now();b.textContent='Tap again'}}
   else if(b.hasAttribute('data-next')){musicNext();setTimeout(showMenu,60)}
   else if(b.hasAttribute('data-help'))showHelp();
+  else if(b.hasAttribute('data-news'))showNews();
   else if(b.hasAttribute('data-reset')){
     if(Date.now()-resetArm<3000){try{localStorage.removeItem(SAVE_KEY)}catch(_){}start(null,true);closeModal();showToast('New world generated')}
     else{resetArm=Date.now();b.textContent='Tap again to wipe';setTimeout(()=>{if(b.isConnected)b.innerHTML='Start over'},3000)}
@@ -1839,6 +1863,9 @@ function boot(data){
   const isNew=start(data);
   let seenIntro=false;try{seenIntro=!!localStorage.getItem(SAVE_KEY+'-intro')}catch(_){}
   if(isNew&&!seenIntro){showWelcome();try{localStorage.setItem(SAVE_KEY+'-intro','1')}catch(_){}}
+  const sn=seenN();
+  if(isNew||sn>=LATEST)markSeen();
+  else setTimeout(()=>{const go=()=>{if(!elModal.hidden){setTimeout(go,1000);return}showNews(sn||LATEST-1)};go()},900);
   requestAnimationFrame(t=>{lastT=t;frame(t)});
 }
 window.addEventListener('resize',()=>{resize()});

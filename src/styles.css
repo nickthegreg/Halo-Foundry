@@ -178,3 +178,5 @@ textarea.code{width:100%;min-height:88px;resize:vertical;border-radius:12px;bord
 .banner h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--sun)}
 .banner p{margin:0;font-size:14px;line-height:1.4;color:var(--text)}
 @media (prefers-reduced-motion:reduce){.sheet,.card,.banner{animation:none}.rot svg{transition:none}}
+.news{margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.4;color:var(--text)}
+.news li::marker{color:var(--sun)}
