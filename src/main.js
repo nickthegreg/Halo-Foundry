@@ -1,4 +1,4 @@
-import {B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {TECH,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
 (()=>{
 'use strict';
@@ -23,7 +23,7 @@ const PARTS=[];
 let hover=null, tapFx=null;
 
 function fresh(seed){
-  return {v:1,seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,up:{belt:0,vein:0},pulses:[],pq:[],grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
+  return {v:1,seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,res:{done:{},cur:null,p:{}},charge:0,up:{belt:0,vein:0},pulses:[],pq:[],grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
 }
 
 // ================= helpers =================
@@ -54,8 +54,8 @@ function init(t){
     case 'belt':return{items:[],vin:0};
     case 'drill':case 'deepdrill':return{prog:0,out:0,ang:0,dep:false};
     case 'junction':return{lanes:[[],[]]};
-    case 'smelter':return{inT:null,inN:0,outT:null,outN:0,prog:0,run:false,cur:null,heat:0};
-    case 'fab':case 'assembler':return{rec:null,buf:{},outN:0,prog:0,run:false,ang:0};
+    case 'smelter':case 'foundry':return{inT:null,inN:0,outT:null,outN:0,prog:0,run:false,cur:null,heat:0};
+    case 'fab':case 'fab2':case 'assembler':return{rec:null,buf:{},outN:0,prog:0,run:false,ang:0};
     case 'refinery':return{n:0,run:false,prog:0,outN:0,ang:0};
     case 'reactor':return{fuel:0,energy:0,load:0,heat:0,ang:0};
     case 'splitter':return{hold:null,rr:0,pri:null};
@@ -92,8 +92,8 @@ function contents(b){
     case 'belt':b.items.forEach(it=>o.push(it.t));break;
     case 'drill':case 'deepdrill':add(b.ore,b.out);break;
     case 'junction':b.lanes.forEach(l=>l.forEach(i=>o.push(i.t)));break;
-    case 'smelter':if(b.inT)add(b.inT,b.inN);if(b.outT)add(b.outT,b.outN);if(b.run&&b.cur)add(Object.keys(SMELT).find(k=>SMELT[k]===b.cur),1);break;
-    case 'fab':case 'assembler':for(const k in b.buf)add(k,b.buf[k]);if(b.rec)add(b.rec,b.outN);break;
+    case 'smelter':case 'foundry':if(b.inT)add(b.inT,b.inN);if(b.outT)add(b.outT,b.outN);if(b.run&&b.cur)add(Object.keys(SMELT).find(k=>SMELT[k]===b.cur),1);break;
+    case 'fab':case 'fab2':case 'assembler':for(const k in b.buf)add(k,b.buf[k]);if(b.rec)add(b.rec,b.outN);break;
     case 'refinery':add('aether',b.outN);break;
     case 'reactor':add('aether',b.fuel);break;
     case 'splitter':case 'sorter':if(b.hold)o.push(b.hold);break;
@@ -146,10 +146,10 @@ function accept(nb,t,side){
       const L=nb.items[nb.items.length-1];if(L&&L.p<SP)return false;
       nb.items.push({t,p:0,f:side});return true;}
     case 'junction':{const lane=nb.lanes[side&1],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:0,d:opp(side)});return true;}
-    case 'smelter':
-      if(!SMELT[t]||nb.inN>=6||(nb.inN>0&&nb.inT!==t))return false;
+    case 'smelter':case 'foundry':
+      if(!SMELT[t]||nb.inN>=(nb.t==='foundry'?30:6)||(nb.inN>0&&nb.inT!==t))return false;
       nb.inT=t;nb.inN++;return true;
-    case 'fab':case 'assembler':{
+    case 'fab':case 'fab2':case 'assembler':{
       if(!nb.rec)return false;const need=RECIPES[nb.rec].in[t];if(!need)return false;
       const c=nb.buf[t]||0;if(c>=Math.max(need*2,4))return false;nb.buf[t]=c+1;return true;}
     case 'splitter':case 'sorter':if(nb.hold)return false;nb.hold=t;return true;
@@ -189,7 +189,7 @@ function checkMs(){
   burst(CX,CY,'#f3c25a',40);sfx('fanfare');
   const names=[...m.unl.map(t=>B[t].n),...m.rec.map(r=>ITEMS[r].n)];
   if(S.ms===TUT){setTimeout(showFinale,900)}
-  else if(S.ms>=MS.length)showBanner('Grid Charter signed','The Core now drinks every spare kilowatt and generators run flat out. Raise sustained output to climb grid tiers.');
+  else if(S.ms>=MS.length)showBanner('Grid Charter signed','Generators now run flat out and spare power fills your Charge bank. Tap the top bar to start research.');
   else showBanner('Milestone complete · '+m.n,names.length?('Unlocked: '+names.join(', ')+'.'):'Keep going. The next step is in the top bar.');
   buildDock();save();
 }
@@ -207,13 +207,14 @@ function daylight(){return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*
 function sim(dt){
   S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0));
   const day=daylight();
-  let demand=0,base=CORE_GEN+S.petals*8,cap=0;const comb=[];
+  let demand=0,base=CORE_GEN+S.petals*(S.res&&S.res.done.mirrors?24:8),cap=0;const comb=[];
   for(const b of S.bs.values()){
     if(b.bp)continue;
     if(b.t==='relay')b.active=true;
     if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):B[b.t].pw;
     if(b.t==='solar')base+=45*day;
     else if(b.t==='collector')base+=400*(.25+.75*day);
+    else if(b.t==='filmarray')base+=160*(.2+.8*day);
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)){cap+=B[b.t].gen;comb.push(b)}
   }
   const gridOn=S.ms>=MS.length;
@@ -223,7 +224,7 @@ function sim(dt){
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
   for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<0.02){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}}if(c.energy<0)c.energy=0}
-  if(gridOn){S.gavg+=(gen-S.gavg)*Math.min(1,dt/20);if(S.gavg>=rung(S.gt).kw)climbRung()}
+  if(gridOn){S.gavg+=(gen-S.gavg)*Math.min(1,dt/20);if(S.gavg>=rung(S.gt).kw)climbRung();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick()}
   stepPulses(dt);
 
   for(const b of S.bs.values()){
@@ -242,21 +243,21 @@ function sim(dt){
         }
         break;
       case 'combustor':if(b.ember>0&&pushDir(b,'ember',b.d))b.ember--;break;
-      case 'smelter':
-        if(!b.run&&b.inN>0&&b.outN<4&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=SMELT_T[b.inT];stat('c',b.inT);b.inN--;if(!b.inN)b.inT=null}
+      case 'smelter':case 'foundry':
+        if(!b.run&&b.inN>0&&b.outN<(b.t==='foundry'?16:4)&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=SMELT_T[b.inT];stat('c',b.inT);b.inN--;if(!b.inN)b.inT=null}
         b.active=b.run;
-        if(b.run){b.prog+=dt*sat/(b.ct||1);if(b.prog>=1){b.run=false;b.outT=b.cur;b.outN++;stat('p',b.cur);sfx('smelt',b.x+.5,b.y+.5)}}
+        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)/(b.ct||1);if(b.prog>=1){b.run=false;b.outT=b.cur;b.outN++;stat('p',b.cur);sfx('smelt',b.x+.5,b.y+.5)}}
         b.heat+=((b.run?sat:0)-b.heat)*Math.min(1,dt*2.5);
         if(b.outN>0&&pushDir(b,b.outT,b.d)){b.outN--;if(!b.outN)b.outT=null}
         break;
-      case 'fab':case 'assembler':{
+      case 'fab':case 'fab2':case 'assembler':{
         const r=b.rec&&RECIPES[b.rec];
         if(r&&!b.run&&b.outN+r.out<=Math.max(4,r.out*2)){
           let ok=true;for(const k in r.in)if((b.buf[k]||0)<r.in[k]){ok=false;break}
           if(ok){for(const k in r.in){b.buf[k]-=r.in[k];stat('c',k,r.in[k])}b.run=true;b.prog=0}
         }
         b.active=b.run;
-        if(b.run){b.prog+=dt*sat/r.t;b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;b.outN+=r.out;stat('p',b.rec,r.out);sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
+        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)/r.t;b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;b.outN+=r.out;stat('p',b.rec,r.out);sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
         if(r&&b.outN>0&&pushDir(b,b.rec,b.d))b.outN--;
         break;}
       case 'batcher':{
@@ -515,6 +516,12 @@ function drawItem(g,t,r){
       const gr=g.createRadialGradient(-r*.2,-r*.25,r*.05,0,0,r*.95);gr.addColorStop(0,'#ffe8bf');gr.addColorStop(.4,'#ff6a3d');gr.addColorStop(1,'#4e1730');
       g.beginPath();g.moveTo(0,-r*.92);g.lineTo(r*.66,-r*.12);g.lineTo(r*.38,r*.82);g.lineTo(-r*.42,r*.76);g.lineTo(-r*.7,-r*.06);g.closePath();g.fillStyle=gr;g.fill();g.stroke();
       g.beginPath();g.moveTo(-r*.25,-r*.2);g.lineTo(r*.15,-r*.55);g.strokeStyle='rgba(255,240,210,.8)';g.lineWidth=r*.09;g.stroke();break;}
+    case 'wafer':{const gr=g.createLinearGradient(-r,-r,r,r);gr.addColorStop(0,'#5a5f8a');gr.addColorStop(.5,'#c4ccff');gr.addColorStop(1,'#3b3f66');g.beginPath();g.arc(0,0,r*.85,0,7);g.fillStyle=gr;g.fill();g.stroke();g.strokeStyle='rgba(30,30,60,.55)';g.lineWidth=r*.05;g.beginPath();for(let k=-2;k<=2;k++){g.moveTo(k*r*.3,-r*.7);g.lineTo(k*r*.3,r*.7);g.moveTo(-r*.7,k*r*.3);g.lineTo(r*.7,k*r*.3)}g.stroke();break;}
+    case 'film':{g.save();g.rotate(-.3);rr(g,-r*.9,-r*.55,r*1.8,r*1.1,r*.12);g.fillStyle='#2a4fb0';g.fill();g.stroke();g.strokeStyle='#9fd0ff';g.lineWidth=r*.07;g.beginPath();g.moveTo(-r*.6,-r*.2);g.lineTo(r*.5,-r*.2);g.moveTo(-r*.6,r*.15);g.lineTo(r*.2,r*.15);g.stroke();g.restore();break;}
+    case 'composite':{for(let i=2;i>=0;i--){rr(g,-r*.85+i*r*.1,-r*.7+i*r*.3,r*1.5,r*.5,r*.1);g.fillStyle=['#6f7a96','#9aa6c2','#c9d2e8'][i];g.fill();g.stroke()}break;}
+    case 'coil':{g.lineWidth=r*.44;g.beginPath();g.arc(0,0,r*.55,0,7);g.stroke();g.strokeStyle='#e88a55';g.lineWidth=r*.3;g.beginPath();g.arc(0,0,r*.55,0,7);g.stroke();g.strokeStyle='#ffc39a';g.lineWidth=r*.06;for(let k=0;k<8;k++){const a=k/8*6.283;g.beginPath();g.moveTo(Math.cos(a)*r*.42,Math.sin(a)*r*.42);g.lineTo(Math.cos(a)*r*.68,Math.sin(a)*r*.68);g.stroke()}g.fillStyle='#2a2638';g.beginPath();g.arc(0,0,r*.24,0,7);g.fill();break;}
+    case 'photonic':{rr(g,-r*.75,-r*.75,r*1.5,r*1.5,r*.18);g.fillStyle='#1f2440';g.fill();g.stroke();const gr=g.createRadialGradient(0,0,0,0,0,r*.6);gr.addColorStop(0,'#ffffff');gr.addColorStop(.4,'#9fe8ff');gr.addColorStop(1,'rgba(159,232,255,0)');g.fillStyle=gr;g.beginPath();g.arc(0,0,r*.6,0,7);g.fill();g.strokeStyle='#9fe8ff';g.lineWidth=r*.07;g.beginPath();g.moveTo(-r*.75,0);g.lineTo(-r*.32,0);g.moveTo(r*.32,0);g.lineTo(r*.75,0);g.moveTo(0,-r*.75);g.lineTo(0,-r*.32);g.moveTo(0,r*.32);g.lineTo(0,r*.75);g.stroke();break;}
+    case 'lattice':{const pts=[];for(let k=0;k<6;k++){const a=k/6*6.283-1.5708;pts.push([Math.cos(a)*r*.88,Math.sin(a)*r*.88])}g.beginPath();pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.closePath();const gr=g.createLinearGradient(-r,-r,r,r);gr.addColorStop(0,'#f3c25a');gr.addColorStop(.5,'#c99bff');gr.addColorStop(1,'#7ff0d0');g.fillStyle=gr;g.fill();g.stroke();g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=r*.06;g.beginPath();pts.forEach(q=>{g.moveTo(0,0);g.lineTo(q[0],q[1])});g.stroke();break;}
     case 'frame':
       rr(g,-r*.8,-r*.8,r*1.6,r*1.6,r*.12);g.fillStyle='#8a94b0';g.fill();g.stroke();
       rr(g,-r*.46,-r*.46,r*.92,r*.92,r*.06);g.fillStyle='#2a2638';g.fill();
@@ -594,6 +601,32 @@ function drawMachine(g,b,x,y,s){
       else{g.fillStyle='#ff7378';g.beginPath();g.arc(cx,cy,s*.06,0,7);g.fill()}
       if(b.run){g.beginPath();g.arc(cx,cy,s*.32,-1.5708,-1.5708+6.283*b.prog);g.strokeStyle='#f3c25a';g.lineWidth=s*.06;g.stroke();glow(b.x+.5,b.y+.5,.8,'#9f8cff',.25)}
       port(g,b,x,y,s,'#c4baff');break;}
+    case 'foundry':{
+      const S3=s*3,c3x=x+S3/2,c3y=y+S3/2,h=b.heat;
+      rr(g,x+s*.08,y+s*.08,S3-s*.16,S3-s*.16,s*.35);g.fillStyle='#4a3a52';g.fill();g.lineWidth=s*.05;g.strokeStyle='#a07a6a';g.stroke();
+      for(let i=0;i<3;i++){g.fillStyle='#3a2c3c';rr(g,x+s*(.5+i)-s*.28,y+s*.22,s*.56,s*.42,s*.1);g.fill()}
+      const gr=g.createRadialGradient(c3x,c3y+s*.25,0,c3x,c3y+s*.25,s);gr.addColorStop(0,h>.05?`rgba(255,${210+30*h|0},${140+60*h|0},${.4+.6*h})`:'#2a1e2b');gr.addColorStop(.7,h>.05?`rgba(240,110,50,${.3+.5*h})`:'#24181f');gr.addColorStop(1,'#1c1218');
+      rr(g,c3x-s*.95,c3y-s*.3,s*1.9,s*1.15,s*.3);g.fillStyle=gr;g.fill();g.strokeStyle='#6b4a5a';g.lineWidth=s*.06;g.stroke();
+      if(b.outT){const q=s*.7;g.drawImage(SPR[b.outT],c3x-q/2,c3y+s*.27-q/2,q,q)}
+      if(h>.05)glow(b.x+1.5,b.y+1.6,2.6,'#ff9a45',.6*h);
+      port(g,b,x,y,s,'#ffb070');break;}
+    case 'fab2':{
+      const S2=s*2,c2x=x+s,c2y=y+s;
+      rr(g,x+s*.08,y+s*.08,S2-s*.16,S2-s*.16,s*.3);g.fillStyle='#423d6c';g.fill();g.lineWidth=Math.max(1,s*.05);g.strokeStyle='#9f95e6';g.stroke();
+      g.save();g.setLineDash([s*.14,s*.08]);g.lineDashOffset=-b.ang*s*.5;g.beginPath();g.arc(c2x,c2y,s*.62,0,7);g.strokeStyle=b.run?'#b8b0ff':'#5d5790';g.lineWidth=s*.09;g.stroke();g.restore();
+      if(b.rec){const q=s*.8;g.drawImage(SPR[b.rec],c2x-q/2,c2y-q/2,q,q)}else{g.fillStyle='#ff7378';g.beginPath();g.arc(c2x,c2y,s*.1,0,7);g.fill()}
+      if(b.run){g.beginPath();g.arc(c2x,c2y,s*.62,-1.5708,-1.5708+6.283*b.prog);g.strokeStyle='#f3c25a';g.lineWidth=s*.09;g.stroke();glow(b.x+1,b.y+1,1.4,'#9f8cff',.3)}
+      port(g,b,x,y,s,'#c4baff');break;}
+    case 'filmarray':{
+      const S2=s*2,i0=s*.06;rr(g,x+i0,y+i0,S2-2*i0,S2-2*i0,s*.12);g.fillStyle='#1e2a5c';g.fill();g.lineWidth=Math.max(1,s*.05);g.strokeStyle='#c9a34e';g.stroke();
+      g.strokeStyle='#33478a';g.lineWidth=Math.max(1,s*.025);g.beginPath();for(let k=1;k<4;k++){const o=i0+(S2-2*i0)*k/4;g.moveTo(x+o,y+i0);g.lineTo(x+o,y+S2-i0);g.moveTo(x+i0,y+o);g.lineTo(x+S2-i0,y+o)}g.stroke();
+      const sh=PW.day;if(sh>0){g.save();rr(g,x+i0,y+i0,S2-2*i0,S2-2*i0,s*.12);g.clip();const ph=(((S?S.time:0)*.12+b.x*.11)%1.6)-.3,gx=x+S2*ph,gr=g.createLinearGradient(gx-s*.5,y,gx+s*.5,y+S2);gr.addColorStop(0,'rgba(255,240,200,0)');gr.addColorStop(.5,`rgba(200,230,255,${.3*sh})`);gr.addColorStop(1,'rgba(255,240,200,0)');g.fillStyle=gr;g.fillRect(x,y,S2,S2);g.restore()}
+      break;}
+    case 'capacitor':{
+      const S2=s*2;rr(g,x+s*.1,y+s*.1,S2-s*.2,S2-s*.2,s*.3);g.fillStyle='#2f3550';g.fill();g.lineWidth=Math.max(1,s*.05);g.strokeStyle='#7ff0d0';g.stroke();
+      const f=S&&S.bs?Math.min(1,(S.charge||0)/chargeCap()):.6;
+      for(let i=0;i<3;i++){const cx2=x+s*(.45+i*.55),top=y+s*.4,hh=s*1.2;g.fillStyle='#1c2236';rr(g,cx2-s*.18,top,s*.36,hh,s*.12);g.fill();if(f>.01){g.fillStyle='#7ff0d0';const fh=Math.max(s*.24,hh*f);rr(g,cx2-s*.18,top+hh-fh,s*.36,fh,s*.12);g.fill()}}
+      glow(b.x+1,b.y+1,1.6,'#7ff0d0',.15+.3*f);break;}
     case 'batcher':{
       const S2=s*2;rr(g,x+s*.08,y+s*.08,S2-s*.16,S2-s*.16,s*.3);g.fillStyle='#3d3a62';g.fill();g.lineWidth=Math.max(1,s*.05);g.strokeStyle='#8c82c8';g.stroke();
       const ks=Object.keys(b.st).filter(k=>b.st[k]>0).slice(0,6);
@@ -728,7 +761,7 @@ function itemPos(b,it){
 function makeBuildingIcons(){
   for(const t of Object.keys(B)){
     const c=document.createElement('canvas');c.width=c.height=72;const g=c.getContext('2d');
-    const fake=Object.assign({t,x:0,y:0,d:1,w:B[t].w||1},init(t),{ore:'ferrite',heat:.7,ang:.5,fuel:5,n:1,vin:3,ph:.4,run:false,prog:0,rec:t==='fab'?'gear':null});
+    const fake=Object.assign({t,x:0,y:0,d:1,w:B[t].w||1},init(t),{ore:'ferrite',heat:.7,ang:.5,fuel:5,n:1,vin:3,ph:.4,run:false,prog:0,rec:t==='fab'||t==='fab2'?'gear':null});
     const saveGL=GL;GL=[];
     if(t==='belt')drawBeltLayer(g,[[fake,4,4]],64,0);
     else if(fake.w>1)drawMachine(g,fake,0,0,72/fake.w);
@@ -743,7 +776,7 @@ let DPR=1,VW=0,VH=0;
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);VW=window.innerWidth;VH=window.innerHeight;cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);cv.style.width=VW+'px';cv.style.height=VH+'px'}
 const w2sx=x=>(x-cam.x)*cam.z+VW/2,w2sy=y=>(y-cam.y)*cam.z+VH/2;
 const s2wx=x=>(x-VW/2)/cam.z+cam.x,s2wy=y=>(y-VH/2)/cam.z+cam.y;
-const ITEM_TINT={ferrite:'#e07a40',cuprite:'#3cc49c',silica:'#c8c0ea',carbon:'#8d7fc8',iron:'#b8c0d6',copper:'#e88a55',glass:'#9fdcf0',gear:'#a3abc0',wire:'#ec9a5e',circuit:'#3aa070',steel:'#7d88a6',lens:'#7fd6ea',motor:'#f08a3c',prism:'#ffd66e',petal:'#f3c25a',frame:'#8a94b0',processor:'#6fe0c0',servo:'#e08a3c',aether:'#c99bff',ember:'#ff6a3d'};
+const ITEM_TINT={wafer:'#a7b0ee',film:'#3d66d0',composite:'#aab4cc',coil:'#e88a55',photonic:'#9fe8ff',lattice:'#c99bff',ferrite:'#e07a40',cuprite:'#3cc49c',silica:'#c8c0ea',carbon:'#8d7fc8',iron:'#b8c0d6',copper:'#e88a55',glass:'#9fdcf0',gear:'#a3abc0',wire:'#ec9a5e',circuit:'#3aa070',steel:'#7d88a6',lens:'#7fd6ea',motor:'#f08a3c',prism:'#ffd66e',petal:'#f3c25a',frame:'#8a94b0',processor:'#6fe0c0',servo:'#e08a3c',aether:'#c99bff',ember:'#ff6a3d'};
 const glowCache={},DISCO=['#ffd77a','#ff9fd0','#9fe8ff','#ffffff','#c7b2ff'];
 function glowSpr(col){
   if(glowCache[col])return glowCache[col];
@@ -868,7 +901,7 @@ let tipOverride='',tipUntil=0;
 function setTool(t){
   if(t==='blueprints'){showBlueprints();return}
   ROUTE=null;
-  if(!isUnl(t)){const i=MS.findIndex(m=>m.unl.includes(t));if(i>=0)showToast(`${B[t].n} unlocks with ${MS[i].n}`);else{const j=RUNGS.findIndex(q=>(q.unl||[]).includes(t));showToast(`${B[t].n} unlocks at grid tier ${j+1} (${fmtW(RUNGS[j].kw)} sustained)`)}return}
+  if(!isUnl(t)){const i=MS.findIndex(m=>m.unl.includes(t));if(i>=0)showToast(`${B[t].n} unlocks with ${MS[i].n}`);else{const tk=Object.keys(TECH).find(k=>(TECH[k].unl||[]).includes(t));showToast(tk?`${B[t].n} comes from research: ${TECH[tk].n}`:`${B[t].n} is still locked`)}return}
   tool=(tool===t&&t!=='inspect')?'inspect':t;sfx('tick');
   const k=S.newT.indexOf(t);if(k>=0)S.newT.splice(k,1);
   if(tool!=='inspect')closeSheet();
@@ -914,9 +947,9 @@ function hudTick(force){
     $('#goalEyebrow').textContent=S.ms<TUT?`Tutorial ${S.ms+1}/${TUT}`:`Milestone ${S.ms-TUT+1}/${MS.length-TUT}`;$('#goalName').textContent=m.n;
     $('#goalReqs').innerHTML=Object.keys(m.req).map(k=>{const h=Math.min(S.prog[k]||0,m.req[k]);return `<span class="req${h>=m.req[k]?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${h}/${m.req[k]}<i style="width:${h/m.req[k]*100}%"></i></span>`}).join('');
   }else{
-    const g=rung(S.gt),f=Math.min(1,S.gavg/g.kw);
-    $('#goalEyebrow').textContent='Grid tier '+(S.gt+1);$('#goalName').textContent=g.n;
-    $('#goalReqs').innerHTML=`<span class="req">${BOLT}${fmtW(S.gavg)} / ${fmtW(g.kw)}<i style="width:${f*100}%"></i></span>`;
+    const g=rung(S.gt),f=Math.min(1,S.gavg/g.kw),cur=S.res.cur,tf=cur?techFrac(cur):0;
+    $('#goalEyebrow').textContent=cur?'Researching':'Research';$('#goalName').textContent=cur?TECH[cur].n:'Tap to choose';
+    $('#goalReqs').innerHTML=(cur?`<span class="req">${Math.floor(tf*100)}%<i style="width:${tf*100}%"></i></span>`:'')+`<span class="req">${BOLT}${fmtW(S.gavg)} / ${fmtW(g.kw)}<i style="width:${f*100}%"></i></span>`;
   }
   // power
   const sh=PW.sat<.999;$('#powerBox').classList.toggle('short',sh);
@@ -931,6 +964,7 @@ function hudTick(force){
   const tx=tool==='paste'?'':tipText();if(tx){if(elTip.innerHTML!==tx)elTip.innerHTML=tx;elTip.hidden=false}else elTip.hidden=true;
   refreshSheet();
   if(STATS_OPEN&&!elModal.hidden&&(hudN=(hudN+1)%4)===0)updateStats();
+  if(RES_OPEN&&!elModal.hidden&&(resN=(resN+1)%4)===0)updateResearch();
 }
 
 // ---------- inspector ----------
@@ -941,14 +975,16 @@ function status(b){
     case 'belt':return['ok',(b.rate||0)>.05?`Moving ${(b.rate||0).toFixed(1)} items/s of ${(BV/SP).toFixed(1)} max`:b.items.length?`Holding ${b.items.length}, not moving`:'Empty'];
     case 'drill':case 'deepdrill':return b.dep?['bad','Ore in reach used up']:b.out>=2?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
     case 'junction':{const n=b.lanes[0].length+b.lanes[1].length;return['ok',n?`Carrying ${n}`:'Empty']}
-    case 'smelter':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
+    case 'smelter':case 'foundry':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];
     case 'reactor':return b.load>.01?['ok',`Running · ${fmtW(b.load*10000)}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs Aether'];
-    case 'fab':case 'assembler':{if(!b.rec)return['bad','Pick a recipe'];const r=RECIPES[b.rec];return b.run?(lp?['warn','Low power · '+pct]:['ok','Assembling']):b.outN+r.out>Math.max(4,r.out*2)?['warn','Output blocked']:['warn','Waiting for inputs']}
+    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return['bad','Pick a recipe'];const r=RECIPES[b.rec];return b.run?(lp?['warn','Low power · '+pct]:['ok','Assembling']):b.outN+r.out>Math.max(4,r.out*2)?['warn','Output blocked']:['warn','Waiting for inputs']}
     case 'batcher':{const ks=Object.keys(b.ratio);if(!ks.length)return['warn','No ratio set · passing items through'];if(b.q&&(b.q[0].length||b.q[1].length))return['ok',b.q[0].length&&b.q[1].length?'Sending on both outputs':'Sending a batch'];const need=ks.filter(k=>(b.st[k]||0)<b.ratio[k]).map(k=>ITEMS[k].s);return['warn','Waiting for '+need.join(', ')]}
     case 'splitter':case 'sorter':return b.hold?['warn','Waiting for room']:['ok','Ready'];
     case 'combustor':return b.load>.01?['ok',`Burning · ${Math.round(b.load*150)} kW`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs carbon'];
     case 'turbine':return b.load>.01?['ok',`Burning · ${fmtW(b.load*1200)}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs carbon'];
+    case 'filmarray':return['ok',`Making ${Math.round(160*(.2+.8*PW.day))} kW`];
+    case 'capacitor':return['ok',`${Math.floor(S.charge||0).toLocaleString()} of ${chargeCap().toLocaleString()} MJ stored in all banks`];
     case 'collector':return['ok',`Making ${Math.round(400*(.25+.75*PW.day))} kW`];
     case 'relay':return['ok','Pulse origin'];
     case 'solar':return PW.day>0?['ok',`Making ${Math.round(45*PW.day)} kW`]:['warn','Night'];
@@ -963,10 +999,10 @@ function bufRow(b){
   switch(b.t){
     case 'junction':{const a=[...b.lanes[0],...b.lanes[1]].map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
     case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*(B[b.t].mult||1)).toFixed(2)}/s</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*(B[b.t].mult||1)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
-    case 'smelter':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
+    case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/4')}</div>`;
-    case 'fab':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+r.in[k])).join('')}<span class="arrow">→</span>${chip(b.rec,b.outN)}<span class="lbl">${r.t}s</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`}
+    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+r.in[k])).join('')}<span class="arrow">→</span>${chip(b.rec,b.outN)}<span class="lbl">${r.t}s</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`}
     case 'batcher':{const ks=Object.keys(b.st).filter(k=>b.st[k]>0);return ks.length?`<div class="flow"><span class="lbl">Stored</span>${ks.map(k=>chip(k,b.st[k]+'/50')).join('')}</div>`:'<div class="flow"><span class="lbl">Empty</span></div>'}
     case 'splitter':case 'sorter':return b.hold?`<div class="flow"><span class="lbl">Holding</span>${chip(b.hold,1)}</div>`:'';
     case 'turbine':return `<div class="flow"><span class="lbl">Fuel</span>${chip('carbon',b.fuel+'/20')}</div>`;
@@ -982,7 +1018,7 @@ function closeSheet(){sel=null;SELB=null;elSheet.hidden=true}
 function renderSheet(){
   const b=sel,d=B[b.t];
   let ctrl='';
-  if(b.t==='fab'||b.t==='assembler'){
+  if(b.t==='fab'||b.t==='fab2'||b.t==='assembler'){
     const recs=S.rec.filter(k=>(RECIPES[k].at==='asm')===(b.t==='assembler'));
     ctrl=`<div class="sec-label">Recipe</div>`+(recs.length?`<div class="grid">${recs.map(k=>{const r=RECIPES[k];return `<button class="opt${b.rec===k?' on':''}" data-rec="${k}"><img src="${ICON[k]}" alt=""><span class="t"><b>${ITEMS[k].n}${r.out>1?' ×'+r.out:''}</b><small>${Object.keys(r.in).map(i=>r.in[i]+' '+ITEMS[i].s).join(' + ')}</small></span></button>`}).join('')}</div>`:'<p class="desc">No recipes unlocked for this factory yet.</p>');
   }
@@ -1024,8 +1060,8 @@ elSheet.addEventListener('click',e=>{
 });
 
 // ---------- modals ----------
-function openModal(html){STATS_OPEN=false;elCard.innerHTML=html;elModal.hidden=false}
-function closeModal(){STATS_OPEN=false;elModal.hidden=true}
+function openModal(html){STATS_OPEN=false;RES_OPEN=false;elCard.innerHTML=html;elModal.hidden=false}
+function closeModal(){STATS_OPEN=false;RES_OPEN=false;elModal.hidden=true}
 elModal.addEventListener('click',e=>{if(e.target===elModal)closeModal()});
 const HOWTO=`<ol class="howto">
 <li><span>1</span><span>Pick a building in the bottom bar, then tap the ground. It goes down as a <strong>blueprint</strong> and the Core sends a pulse out to build it. In the tutorial, Conveyors and Crossings appear instantly. In the main game they need pulses too, and one pulse builds a whole dragged line.</span></li>
@@ -1088,6 +1124,7 @@ elCard.addEventListener('click',e=>{
   if(b.hasAttribute('data-close'))closeModal();
   else if(b.dataset.speed){if(!testerOK())return;speed=+b.dataset.speed;S.speed=speed;showMenu()}
   else if(b.dataset.up){const k=b.dataset.up,c=UPG[k].cost(S.up[k]||0);if(!canAfford(c)){showToast('Need '+missing(c)+' more');return}pay(c,-1);S.up[k]=(S.up[k]||0)+1;save();showMenu();showToast(UPG[k].n+' is now level '+S.up[k])}
+  else if(b.dataset.tech){const id=b.dataset.tech;S.res.cur=S.res.cur===id?null:id;sfx('tick');showResearch();hudTick(true)}
   else if(b.hasAttribute('data-stats'))showStats();
   else if(b.hasAttribute('data-savecode'))showSaveCode();
   else if(b.hasAttribute('data-bneck')){bneck=!bneck;try{localStorage.setItem('halo-foundry-bneck',bneck?'1':'0')}catch(_){}showMenu()}
@@ -1105,7 +1142,7 @@ elCard.addEventListener('click',e=>{
     else{resetArm=Date.now();b.textContent='Tap again to wipe';setTimeout(()=>{if(b.isConnected)b.innerHTML='Start over'},3000)}
   }
 });
-$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=showMilestones;$('#orreryBtn').onclick=showMilestones;
+$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=showMilestones;
 $('#powerBox').onclick=showStats;$('#mapBtn').onclick=showMap;
 
 // ================= audio: generative music + positional effects =================
@@ -1398,6 +1435,55 @@ function eraseTo(sx,sy){
   while((lx!==tx||ly!==ty)&&guard++<200){const dx=tx-lx,dy=ty-ly;if(Math.abs(dx)>=Math.abs(dy))lx+=Math.sign(dx);else ly+=Math.sign(dy);eraseTile(lx,ly)}
   G.lt=[lx,ly];
 }
+// ================= research =================
+// Spare power fills a Charge bank (MJ). Research draws Charge and items from storage together; it finishes when both are paid.
+let RES_OPEN=false,resN=0;
+function chargeCap(){let c=200;for(const b of S.bs.values())if(b.t==='capacitor'&&!b.bp)c+=B.capacitor.cap;return c}
+function techOpen(N){return S.ms>=MS.length&&S.gt>=N.t-1}
+function techReady(id){const N=TECH[id];return !S.res.done[id]&&techOpen(N)&&(N.req||[]).every(r=>S.res.done[r])}
+function techProg(id){return S.res.p[id]||(S.res.p[id]={c:0,it:{}})}
+function techFrac(id){const N=TECH[id],p=S.res.p[id]||{c:0,it:{}};let f=Math.min(1,p.c/N.mj),n=1;for(const k in N.items){f+=Math.min(1,(p.it[k]||0)/N.items[k]);n++}return f/n}
+function researchTick(){
+  const id=S.res.cur;if(!id)return;const N=TECH[id];if(!N||!techReady(id)){S.res.cur=null;return}
+  const p=techProg(id);
+  if(p.c<N.mj){const pay=Math.min(N.mj-p.c,S.charge||0);S.charge-=pay;p.c+=pay}
+  const f=Math.min(1,p.c/N.mj);let done=p.c>=N.mj-1e-6;
+  for(const k in N.items){const need=N.items[k],want=Math.min(need,Math.ceil(need*f))-(p.it[k]||0);if(want>0){const take=Math.min(want,Math.floor(S.inv[k]||0));if(take>0){S.inv[k]-=take;p.it[k]=(p.it[k]||0)+take}}if((p.it[k]||0)<need)done=false}
+  if(done)completeTech(id);
+}
+function grantTech(id){const N=TECH[id];S.res.done[id]=1;(N.unl||[]).forEach(t=>{if(!S.unl.includes(t)){S.unl.push(t);S.newT.push(t)}});(N.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
+function completeTech(id){const N=TECH[id];grantTech(id);S.res.cur=null;delete S.res.p[id];burst(CX,CY,'#7ff0d0',40);sfx('fanfare');showBanner('Research complete · '+N.n,N.d+' Pick the next one from the top bar.');buildDock();save();if(RES_OPEN&&!elModal.hidden)showResearch()}
+function techCostChips(id){
+  const N=TECH[id],p=S.res.p[id]||{c:0,it:{}};
+  return `<span class="req${p.c>=N.mj?' done':''}">${BOLT}${Math.floor(p.c).toLocaleString()}/${N.mj.toLocaleString()} MJ<i style="width:${Math.min(100,p.c/N.mj*100)}%"></i></span>`+
+    Object.keys(N.items).map(k=>{const h=p.it[k]||0,n=N.items[k],inv=Math.floor(S.inv[k]||0);return `<span class="req${h>=n?' done':''}" title="${inv.toLocaleString()} in storage"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${h.toLocaleString()}/${n.toLocaleString()}<i style="width:${h/n*100}%"></i></span>`}).join('');
+}
+function showResearch(){
+  const tiers=[...new Set(Object.values(TECH).map(N=>N.t))].sort((a,b)=>a-b);
+  let h=`<div class="card-head"><h3>Research</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
+  <div class="ms cur"><div class="ms-top"><h4>Charge</h4><span class="st" id="rsRate"></span></div><div class="meter"><b id="rsBar"></b></div><div class="ms-unl" id="rsCharge"></div></div>
+  <p>Research spends stored Charge and items from storage. Spare power refills Charge, so a bigger grid researches faster. Progress is kept if you switch.</p><div class="ms-list">`;
+  if(S.ms<MS.length)h+='<p><strong>Research opens with the Grid Charter milestone.</strong></p>';
+  for(const t of tiers){
+    const gate=t>1?rung(t-2):null,open=S.ms>=MS.length&&S.gt>=t-1;
+    h+=`<div class="sec-label">Tier ${t}${open||!gate?'':` · opens at ${gate.n}, ${fmtW(gate.kw)} sustained`}</div>`;
+    for(const id in TECH){const N=TECH[id];if(N.t!==t)continue;
+      const done=S.res.done[id],cur=S.res.cur===id,ready=techReady(id),miss=(N.req||[]).filter(r=>!S.res.done[r]).map(r=>TECH[r].n),started=!!S.res.p[id];
+      h+=`<div class="ms ${done?'done':cur?'cur':ready?'':'future'}"><div class="ms-top"><h4>${N.n}</h4><span class="st">${done?'Done':cur?'Researching':ready?(started?'Paused':'Available'):'Locked'}</span></div><div class="ms-unl">${N.d}</div>`+
+        (done?'':`<div class="ms-req" id="tq-${id}">${techCostChips(id)}</div>`)+
+        (miss.length&&!done?`<div class="ms-unl">Needs <b>${miss.join(', ')}</b></div>`:'')+
+        (ready&&!done?`<button class="btn${cur?'':' primary'}" data-tech="${id}">${cur?'Pause':started?'Resume':'Research'}</button>`:'')+`</div>`;
+    }
+  }
+  openModal(h+'</div>');RES_OPEN=true;updateResearch();
+}
+function updateResearch(){
+  const a=$('#rsCharge');if(!a)return;const cap=chargeCap(),rate=Math.max(0,PW.gen-PW.demand)/1000;
+  a.textContent=`${Math.floor(S.charge||0).toLocaleString()} of ${cap.toLocaleString()} MJ stored`;
+  $('#rsRate').textContent=S.ms>=MS.length?`+${rate.toFixed(2)} MJ/s spare`:'';$('#rsBar').style.width=Math.min(100,(S.charge||0)/cap*100)+'%';
+  if(S.res.cur){const q=$('#tq-'+S.res.cur);if(q)q.innerHTML=techCostChips(S.res.cur)}
+}
+
 // ================= production stats, save codes, minimap =================
 // Counts are kept per game-second for the last minute; power is sampled every 5 seconds for the last 10 minutes.
 const STAT={acc:0,pacc:0,cur:{p:{},c:{},d:{}},hist:[],pw:[]};
@@ -1437,8 +1523,8 @@ function badOf(b){
   if(b.bp)return null;
   switch(b.t){
     case 'drill':case 'deepdrill':return b.dep||b.out>=2?'block':null;
-    case 'smelter':return b.run?null:b.outN>=4?'block':!b.inN?'starve':null;
-    case 'fab':case 'assembler':{if(!b.rec||b.run)return null;const r=RECIPES[b.rec];return b.outN+r.out>Math.max(4,r.out*2)?'block':'starve'}
+    case 'smelter':case 'foundry':return b.run?null:b.outN>=(b.t==='foundry'?16:4)?'block':!b.inN?'starve':null;
+    case 'fab':case 'fab2':case 'assembler':{if(!b.rec||b.run)return null;const r=RECIPES[b.rec];return b.outN+r.out>Math.max(4,r.out*2)?'block':'starve'}
     case 'refinery':return b.outN>=2?'block':null;
     case 'combustor':case 'turbine':case 'reactor':return !b.fuel&&b.energy<=0?'starve':null;
   }
@@ -1548,7 +1634,7 @@ function openSelSheet(){
   elSheet.innerHTML=`<div class="sh-head"><div class="sh-title"><h2>Selection</h2><span class="pill ok">${bs.length} building${bs.length===1?'':'s'}</span></div><button class="x" data-sx="close" aria-label="Close">${SVG.x}</button></div>
   <div class="sh-body"><div class="flow">${Object.keys(cnt).map(t=>`<span class="chip"><img src="${ICON_B[t]}" alt="${B[t].n}">${cnt[t]}</span>`).join('')}</div>
   <div class="actions"><button class="btn primary" data-sx="copy">Copy</button><button class="btn" data-sx="save">Save blueprint</button></div>
-  ${grp('fab',fr,'Recipe')}${grp('assembler',ar,'Recipe')}${grp('batcher',S.rec,'Ratio')}
+  ${grp('fab',fr,'Recipe')}${grp('fab2',fr,'Recipe')}${grp('assembler',ar,'Recipe')}${grp('batcher',S.rec,'Ratio')}
   <div class="actions"><button class="btn danger" data-sx="del">${SVG.trash}Remove all</button></div></div>`;
   elSheet.hidden=false;
 }
@@ -1569,7 +1655,7 @@ function rotLayout(L){return{w:L.h,h:L.w,items:L.items.map(e=>Object.assign({},e
 function loadBPS(){try{return JSON.parse(localStorage.getItem('halo-foundry-bps')||'[]')}catch(_){return[]}}
 function storeBPS(a){try{localStorage.setItem('halo-foundry-bps',JSON.stringify(a))}catch(_){}}
 function saveBlueprint(L){const a=loadBPS(),n=a.reduce((m,x)=>Math.max(m,x.no||0),0)+1;a.unshift({no:n,name:'Blueprint '+n,L});storeBPS(a.slice(0,40));showToast(`Saved as Blueprint ${n}. It’s under Blueprints in the toolbar.`);sfx('tick')}
-const BP_COL={belt:'#6d66a0',junction:'#9890c8',drill:'#e08a3c',deepdrill:'#f0a050',smelter:'#ff9a45',fab:'#9f95e6',assembler:'#c4baff',refinery:'#c99bff',reactor:'#d8b4ff',combustor:'#ff7a3a',turbine:'#ff8a45',solar:'#5a74d0',collector:'#a6dcff',splitter:'#f3c25a',sorter:'#f3c25a',batcher:'#f3c25a',uplink:'#62d8ff',relay:'#7ff0d0',ring:'#ffd77a'};
+const BP_COL={foundry:'#ff7a45',fab2:'#b0a6f0',filmarray:'#3d5ac0',capacitor:'#7ff0d0',belt:'#6d66a0',junction:'#9890c8',drill:'#e08a3c',deepdrill:'#f0a050',smelter:'#ff9a45',fab:'#9f95e6',assembler:'#c4baff',refinery:'#c99bff',reactor:'#d8b4ff',combustor:'#ff7a3a',turbine:'#ff8a45',solar:'#5a74d0',collector:'#a6dcff',splitter:'#f3c25a',sorter:'#f3c25a',batcher:'#f3c25a',uplink:'#62d8ff',relay:'#7ff0d0',ring:'#ffd77a'};
 function bpThumb(L){
   const cs=Math.max(3,Math.min(12,Math.floor(240/Math.max(L.w,L.h,1)))),c=document.createElement('canvas');c.width=L.w*cs+8;c.height=L.h*cs+8;const g=c.getContext('2d');
   g.fillStyle='#262342';g.fillRect(0,0,c.width,c.height);
@@ -1594,7 +1680,7 @@ function placeLayout(){
   const L=PASTE.L,ax=PASTE.ax,ay=PASTE.ay;if(ax==null){showToast('Tap the ground first to position it');return}
   let ok=0;const fail={};G.stroke=[];
   const order=[...L.items].sort((p,q)=>((p.t==='belt'||p.t==='junction')?1:0)-((q.t==='belt'||q.t==='junction')?1:0));
-  for(const e of order){const r=place(e.t,ax+e.dx,ay+e.dy,e.d);if(typeof r==='object'){ok++;if(e.rec&&(e.t==='fab'||e.t==='assembler'))r.rec=e.rec;if(e.filter&&e.t==='sorter')r.filter=e.filter;if(e.t==='splitter'&&e.pri!=null)r.pri=e.pri;if(e.ratio&&e.t==='batcher')r.ratio=Object.assign({},e.ratio)}else fail[r]=(fail[r]||0)+1}
+  for(const e of order){const r=place(e.t,ax+e.dx,ay+e.dy,e.d);if(typeof r==='object'){ok++;if(e.rec&&(e.t==='fab'||e.t==='fab2'||e.t==='assembler'))r.rec=e.rec;if(e.filter&&e.t==='sorter')r.filter=e.filter;if(e.t==='splitter'&&e.pri!=null)r.pri=e.pri;if(e.ratio&&e.t==='batcher')r.ratio=Object.assign({},e.ratio)}else fail[r]=(fail[r]||0)+1}
   flushStroke();sfx(ok?'place':'err');
   const why={blocked:'no room',cost:'not enough materials',ore:'no ore in reach',frontier:'beyond the frontier'};
   const sk=Object.keys(fail).map(k=>`${fail[k]} ${why[k]||k}`).join(', ');
@@ -1653,8 +1739,8 @@ function tap(sx,sy){
 
 // ================= save / load =================
 function serialize(){
-  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,gt:S.gt,gavg:S.gavg,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
+  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,res:S.res,charge:S.charge,gt:S.gt,gavg:S.gavg,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()))}catch(_){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null}catch(_){return null}}
@@ -1667,10 +1753,13 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
+    S.res=d.res&&d.res.done?d.res:{done:{},cur:null,p:{}};S.charge=d.charge||0;
+    // players who earned buildings from the old grid ladder get the matching research for free
+    for(const id in TECH){const N=TECH[id];if(S.res.done[id]||(!(N.unl||[]).length&&!(N.rec||[]).length))continue;if((N.unl||[]).every(t=>S.unl.includes(t))&&(N.rec||[]).every(k=>S.rec.includes(k)))S.res.done[id]=1}
     S.refined=d.refined||0;speed=testerOK()?(d.speed||1):1;
     const OFF=d.wv?0:128,mapI=k=>OFF?(((k/128)|0)+128)*W+(k%128)+128:k;
     if(d.res)for(let i=0;i<d.res.length;i+=2){const k=mapI(d.res[i]);RES[k]=d.res[i+1];if(RES[k]<=0&&ORE[k])deplete(k)}
-    for(const a of d.bs||[]){if(!B[a[0]])continue;const b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){if(a[4].r)b.ratio=a[4].r;else b.ratio=a[4]}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(a[5]===1){b.bp=true;S.pq.push([b.id])}}}
+    for(const a of d.bs||[]){if(!B[a[0]])continue;const b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){if(a[4].r)b.ratio=a[4].r;else b.ratio=a[4]}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(a[5]===1){b.bp=true;S.pq.push([b.id])}}}
     if(d.cam){cam.x=d.cam.x+OFF;cam.y=d.cam.y+OFF;cam.z=d.cam.z}
   }else{cam.x=CX;cam.y=CY;cam.z=Math.max(18,Math.min(36,Math.min(VW,VH)/20))}
   tool='inspect';sel=null;elSheet.hidden=true;recalc();dirty=false;buildDock();updateRot();hudTick(true);
@@ -1691,6 +1780,8 @@ function frame(now){
   saveAcc+=rdt;if(saveAcc>8){saveAcc=0;save()}
   requestAnimationFrame(frame);
 }
+// Test hook, only on a local dev server
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get S(){return S},place,cam,at,setSpeed:v=>{speed=v},TECH,showResearch};
 let booted=false;
 function boot(data){
   if(booted)return;booted=true;

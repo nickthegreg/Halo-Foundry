@@ -5,12 +5,12 @@ const opp=d=>(d+2)&3;
 const BELT_V=1.75, SP=0.34, DAY_LEN=300, PET_GOAL=40, CORE_GEN=120;
 const SAVE_KEY='halo-foundry-v2';
 
-const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','ember'];
+const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','ember','wafer','film','composite','coil','photonic','lattice'];
 const ITEMS={
   ferrite:{n:'Ferrite ore',s:'ferrite'},cuprite:{n:'Cuprite ore',s:'cuprite'},silica:{n:'Silica sand',s:'silica'},carbon:{n:'Carbon',s:'carbon'},
   iron:{n:'Iron ingot',s:'iron'},copper:{n:'Copper ingot',s:'copper'},glass:{n:'Glass',s:'glass'},
   gear:{n:'Gear',s:'gear'},wire:{n:'Wire',s:'wire'},circuit:{n:'Circuit',s:'circuit'},steel:{n:'Steel',s:'steel'},
-  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'}
+  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'}
 };
 const ORE_KEYS=[null,'ferrite','cuprite','silica','carbon'];
 const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silica:['#b3a9da','#f6f2ff'],carbon:['#3c3552','#b3a5ef']};
@@ -29,7 +29,13 @@ const RECIPES={
   petal:{in:{motor:1,prism:1,steel:2},out:1,t:5},
   frame:{in:{steel:2,gear:4},out:1,t:2},
   processor:{in:{circuit:4,glass:2,wire:12},out:1,t:4,at:'asm'},
-  servo:{in:{motor:1,processor:1,frame:1},out:1,t:6,at:'asm'}
+  servo:{in:{motor:1,processor:1,frame:1},out:1,t:6,at:'asm'},
+  wafer:{in:{glass:2,carbon:1},out:1,t:2},
+  film:{in:{wafer:1,glass:2},out:2,t:2},
+  composite:{in:{steel:2,glass:3},out:1,t:3},
+  coil:{in:{copper:4,iron:1},out:1,t:1.5},
+  photonic:{in:{wafer:2,wire:6,lens:1},out:1,t:4,at:'asm'},
+  lattice:{in:{photonic:2,composite:2,servo:1},out:1,t:8,at:'asm'}
 };
 const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'Moves items one tile at a time. Drag to lay a line that follows your finger. Dragging across another conveyor adds a Crossing.'},
@@ -38,6 +44,8 @@ const B={
   deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:3},pw:40,dir:1,r:2,mult:2.5,d:'Mines the 5×5 area around it at 2.5× speed and uses up ore half as fast. Each one costs more Ember shards than the last.'},
   smelter:{n:'Smelter',cost:{iron:10},pw:25,dir:1,d:'Melts ferrite, cuprite or silica into ingots and glass. Takes ore from any side.'},
   fab:{n:'Fabricator',cost:{iron:12,copper:8},pw:35,dir:1,d:'Builds the recipe you pick. Feed it the inputs from any side.'},
+  fab2:{n:'Fabricator Mk II',cost:{composite:10,servo:4,circuit:30},pw:110,dir:1,w:2,mult:2.5,d:'Runs Fabricator recipes 2.5× as fast. Feed it from any side; output leaves its bright edge.'},
+  foundry:{n:'Foundry',cost:{composite:20,frame:20,steel:100},pw:160,dir:1,w:3,mult:4,d:'Smelts ore 4× as fast as a Smelter and holds far more. One ore type at a time, from any side.'},
   splitter:{n:'Splitter',cost:{iron:4,copper:2},dir:1,d:'Takes in items and shares them forward, left and right in turn.'},
   sorter:{n:'Sorter',cost:{iron:4,circuit:2},dir:1,d:'Your chosen item goes straight ahead. Everything else leaves through the sides.'},
   batcher:{n:'Batcher',cost:{iron:10,gear:6,circuit:2},dir:1,w:2,d:'Holds up to 50 of each item and sends them out in the ratio you set, in whole sets, from two output slots on its bright edge at the same time. Pick a recipe to copy its ratio.'},
@@ -46,6 +54,8 @@ const B={
   uplink:{n:'Uplink',cost:{steel:8,circuit:6},pw:60,d:'Beams whatever you feed it straight to the Core. Up to 4 items a second next to the Core, slower and hungrier for power the farther away it stands.'},
   ring:{n:'Launch Ring',cost:{steel:30,motor:10,lens:20},pw:120,w:3,d:'Feed it sail petals. Each one is flung into orbit around the star and adds 8 kW to the grid for good.'},
   turbine:{n:'Turbine Hall',cost:{steel:40,motor:10,circuit:30},gen:1200,burn:1.5,w:3,d:'Burns carbon for up to 1.2 MW, twice as efficiently as a Combustor. Takes carbon from any side. Ember shards go straight to storage.'},
+  filmarray:{n:'Film Array',cost:{film:40,frame:8,circuit:20},gen:160,w:2,d:'Up to 160 kW in daylight and a fifth of that at night.'},
+  capacitor:{n:'Capacitor Bank',cost:{coil:30,composite:6,steel:20},w:2,cap:400,d:'Stores 400 MJ more Charge for research.'},
   collector:{n:'Prism Collector',cost:{prism:12,lens:30,steel:20},gen:400,w:3,d:'Up to 400 kW in daylight and a quarter of that at night.'},
   relay:{n:'Pulse Relay',cost:{steel:10,circuit:10,lens:4},pw:30,d:'Construction pulses for blueprints closer to this relay than to the Core launch from here. Pulses move at 40% speed outside the starting area, so relays out there save a lot of time.'},
   assembler:{n:'Assembler',cost:{frame:20,circuit:40,motor:10},pw:150,dir:1,w:3,d:'A large factory for advanced parts: Processors and Servos. Feed it from any side. Output leaves its bright edge.'},
@@ -61,22 +71,41 @@ const MS=[
   {n:'Sail Program',req:{motor:30,prism:30},unl:['ring'],rec:['petal'],b:'Everything a sail petal needs.'},
   {n:'The Halo',req:{petal:PET_GOAL},unl:[],rec:[],launch:true,b:'Launch '+PET_GOAL+' sail petals into orbit.'},
   {n:'Heavy Industry',req:{steel:150,motor:40,circuit:200},unl:['turbine'],rec:[],b:'Build up the heavy plant a real power grid needs.'},
-  {n:'Grid Charter',req:{gear:300,wire:1000,lens:100},unl:[],rec:[],b:'Wire the moon for power. After this, progress is measured in sustained watts.'}
+  {n:'Grid Charter',req:{gear:300,wire:1000,lens:100},unl:[],rec:[],b:'Wire the moon for power. After this, spare power is stored as Charge and spent on research.'}
 ];
 const TUT=6;
 // Grid ladder: sustained generation thresholds (kW). Past the named rungs it scales ×3 forever.
 const RUNGS=[
-  {kw:600,n:'Hum',spd:1.5,unl:['collector'],rec:['frame'],d:'Pulses travel 50% faster. Unlocks the Prism Collector and Frames.'},
-  {kw:2000,n:'Thrum',unl:['relay','assembler'],rec:['processor','servo'],d:'Unlocks the Pulse Relay and the Assembler, with Processors and Servos.'},
-  {kw:6000,n:'Roar',spd:1.5,map:96,unl:['refinery'],d:'Pulses travel 50% faster. The frontier opens to 192×192 tiles. Unlocks the Refinery.'},
-  {kw:18000,n:'Overclock 1',oc:1,unl:['reactor'],d:'Every machine works 10% faster. Unlocks the Aether Reactor.'},
-  {kw:54000,n:'Overclock 2',oc:1,map:128,d:'Every machine works 10% faster. The frontier opens to 256×256 tiles, and a third pulse can fly at once.'},
+  {kw:600,n:'Hum',spd:1.5,d:'Pulses travel 50% faster. Opens tier 2 research.'},
+  {kw:2000,n:'Thrum',d:'Opens tier 3 research.'},
+  {kw:6000,n:'Roar',spd:1.5,map:96,d:'Pulses travel 50% faster. The frontier opens to 192×192 tiles. Opens tier 4 research.'},
+  {kw:18000,n:'Overclock 1',oc:1,d:'Every machine works 10% faster. Opens tier 5 research.'},
+  {kw:54000,n:'Overclock 2',oc:1,map:128,d:'Every machine works 10% faster. The frontier opens to 256×256 tiles, a third pulse can fly at once, and tier 6 research opens.'},
   {kw:162000,n:'Overclock 3',oc:1,d:'Every machine works 10% faster.'},
   {kw:486000,n:'Overclock 4',oc:1,map:192,d:'Every machine works 10% faster. The whole moon opens: 384×384 tiles.'}
 ];
+// Research: spent with Charge (stored spare power, in MJ) plus items from storage.
+// Tier n opens once grid tier n-1 is reached (tier 1 opens with the Grid Charter).
+const TECH={
+  frames:{t:1,n:'Structural frames',mj:40,items:{steel:100,gear:200},rec:['frame'],d:'Frames: steel and gears for big buildings.'},
+  optics:{t:1,n:'Prism optics',mj:60,items:{prism:30,lens:60},unl:['collector'],d:'The Prism Collector: 400 kW of daylight power.'},
+  wafers:{t:1,n:'Silicon wafers',mj:50,items:{glass:300,carbon:100},rec:['wafer','film'],d:'Wafers and solar film from glass and carbon.'},
+  capacitors:{t:1,n:'Capacitor banks',mj:50,items:{copper:500,steel:60},rec:['coil'],unl:['capacitor'],d:'Copper coils and Capacitor Banks to store more Charge.'},
+  relays:{t:2,n:'Pulse relays',mj:120,items:{circuit:200,lens:60},unl:['relay'],d:'Pulse Relays launch construction pulses out in the field.'},
+  assembly:{t:2,n:'Assembly',mj:150,items:{frame:60,circuit:300,motor:40},req:['frames'],unl:['assembler'],rec:['processor','servo'],d:'The Assembler, with Processors and Servos.'},
+  filmarrays:{t:2,n:'Film arrays',mj:120,items:{film:200,frame:30},req:['wafers'],unl:['filmarray'],d:'Film Arrays: compact 2×2 solar.'},
+  composites:{t:2,n:'Composites',mj:100,items:{steel:300,glass:300},req:['frames','wafers'],rec:['composite'],d:'Composite plates from steel and glass.'},
+  foundry:{t:3,n:'Foundry',mj:300,items:{composite:80,frame:80,steel:400},req:['composites'],unl:['foundry'],d:'The Foundry: smelting at 4× speed.'},
+  fab2:{t:3,n:'Fabricator Mk II',mj:300,items:{servo:30,processor:60,composite:40},req:['assembly','composites'],unl:['fab2'],d:'A 2×2 Fabricator that runs 2.5× as fast.'},
+  photonics:{t:3,n:'Photonics',mj:300,items:{wafer:300,processor:50},req:['assembly','wafers'],rec:['photonic'],d:'Photonic chips from wafers, wire and lenses.'},
+  refining:{t:4,n:'Aether refining',mj:800,items:{photonic:60,composite:150},req:['foundry'],unl:['refinery'],d:'The Refinery: any raw ore into Aether.'},
+  reactors:{t:5,n:'Aether reactors',mj:2000,items:{aether:20,servo:100,photonic:150},req:['refining'],unl:['reactor'],d:'The Aether Reactor: 10 MW per reactor.'},
+  lattice:{t:5,n:'Lattice cores',mj:2000,items:{photonic:200,servo:80,composite:200},req:['photonics','fab2'],rec:['lattice'],d:'Lattice cores, the top-tier part.'},
+  mirrors:{t:6,n:'Halo mirrors',mj:6000,items:{lattice:50,petal:200},req:['lattice'],fx:'mirrors',d:'Every sail petal in orbit gives 24 kW instead of 8.'}
+};
 function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-2;return{kw:6000*Math.pow(3,k),n:'Overclock '+k,oc:1,d:'Every machine works 10% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','fab','splitter','sorter','batcher','combustor','deepdrill','solar','uplink','ring','turbine','collector','relay','assembler','refinery','reactor','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
 
-export {B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {TECH,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
