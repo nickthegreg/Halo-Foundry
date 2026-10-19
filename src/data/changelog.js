@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:5,date:'2026-10-19',title:'True mute',items:[
+    'Volume at 0 is now silent. The echo on music and effects used to keep playing at 0, which caused a faint constant hum.',
+    'With both sliders at 0, sound switches off completely and uses no battery.'
+  ]},
   {n:4,date:'2026-10-19',title:'Update notices',items:[
     'This card: after each update, the game shows what changed. Reopen it any time from Menu → What\'s new.',
     'If the game is open while an update lands, a banner offers to load the new version.'

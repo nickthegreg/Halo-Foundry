@@ -1178,33 +1178,37 @@ $('#powerBox').onclick=showStats;$('#mapBtn').onclick=showMap;
 let AUvis=0;
 const AU={ps:new Map(),ctx:null,mv:.5,sv:.6,last:{},winT:0,winN:0,m:{},cur:'',bag:[]};
 try{const a=JSON.parse(localStorage.getItem('halo-foundry-audio')||'{}');if(a.mv!=null)AU.mv=a.mv;if(a.sv!=null)AU.sv=a.sv}catch(_){}
-function audioPrefs(){try{localStorage.setItem('halo-foundry-audio',JSON.stringify({mv:AU.mv,sv:AU.sv}))}catch(_){}if(AU.ctx){AU.music.gain.setTargetAtTime(AU.mv*.45,AU.ctx.currentTime,.1);AU.sfx.gain.setTargetAtTime(AU.sv*.9,AU.ctx.currentTime,.1)}}
+function audioPrefs(){try{localStorage.setItem('halo-foundry-audio',JSON.stringify({mv:AU.mv,sv:AU.sv}))}catch(_){}if(AU.ctx){AU.music.gain.setTargetAtTime(AU.mv*.45,AU.ctx.currentTime,.1);AU.sfx.gain.setTargetAtTime(AU.sv*.9,AU.ctx.currentTime,.1);audioWake()}}
+// Both sliders at 0 = fully silent: the audio engine is paused, not just turned down.
+function audioMuted(){return AU.mv<=.001&&AU.sv<=.001}
+function audioWake(){const c=AU.ctx;if(!c)return;if(audioMuted()||document.hidden){if(c.state==='running')setTimeout(()=>{if(audioMuted()||document.hidden)c.suspend().catch(()=>{})},250)}else if(c.state==='suspended')c.resume().catch(()=>{})}
 const mf=m=>440*Math.pow(2,(m-69)/12);
 function impulse(c,sec,dec){const n=Math.floor(c.sampleRate*sec),b=c.createBuffer(2,n,c.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,dec)}return b}
 function audioInit(){
-  if(AU.ctx){if(AU.ctx.state==='suspended'&&!document.hidden)AU.ctx.resume().catch(()=>{});return}
+  if(AU.ctx){audioWake();return}
   const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
   let c;try{c=new C()}catch(_){return}AU.ctx=c;window.__haloCtx=c;
   AU.master=c.createGain();AU.master.gain.value=.55;
   const comp=c.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=6;comp.knee.value=8;comp.attack.value=.005;comp.release.value=.2;AU.master.connect(comp);comp.connect(c.destination);
   AU.music=c.createGain();AU.music.gain.value=AU.mv*.45;AU.music.connect(AU.master);
   AU.sfx=c.createGain();AU.sfx.gain.value=AU.sv*.9;AU.sfx.connect(AU.master);
-  AU.rev=c.createConvolver();AU.rev.buffer=impulse(c,1.8,2.8);const ro=c.createGain();ro.gain.value=.45;AU.rev.connect(ro);ro.connect(AU.master);
+  // Each bus gets its own reverb so its slider also silences the echo (a shared reverb leaked music at volume 0).
+  const ir=impulse(c,1.8,2.8);AU.revM=c.createConvolver();AU.revM.buffer=ir;AU.revM.connect(AU.music);AU.rev=c.createConvolver();AU.rev.buffer=ir;const ro=c.createGain();ro.gain.value=.5;AU.rev.connect(ro);ro.connect(AU.sfx);
   const nb=c.createBuffer(1,c.sampleRate*2,c.sampleRate),nd=nb.getChannelData(0);let br=0;for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;AU.noise=nb;
   const bb=c.createBuffer(1,c.sampleRate*4,c.sampleRate),bd=bb.getChannelData(0);for(let i=0;i<bd.length;i++){br=(br+.02*(Math.random()*2-1))/1.02;bd[i]=br*3.5}
   const hs=c.createBufferSource();hs.buffer=bb;hs.loop=true;const hf=c.createBiquadFilter();hf.type='lowpass';hf.frequency.value=170;AU.hum=c.createGain();AU.hum.gain.value=0;hs.connect(hf);hf.connect(AU.hum);AU.hum.connect(AU.sfx);hs.start();
-  if(c.state==='suspended')c.resume().catch(()=>{});
+  audioWake();
   musicStart(pickTune());setInterval(audioPump,100);
 }
 ['pointerdown','keydown'].forEach(ev=>window.addEventListener(ev,audioInit,{capture:true}));
-document.addEventListener('visibilitychange',()=>{if(!AU.ctx)return;if(document.hidden)AU.ctx.suspend().catch(()=>{});else AU.ctx.resume().catch(()=>{})});
+document.addEventListener('visibilitychange',audioWake);
 
 // ---- instruments ----
 // Every voice is built from oscillators and filtered noise. dest is the current tune's bus, so switching tunes fades the old one out cleanly.
 function inst(k,f,t,dur,v,opt,dest){
   const ct=AU.ctx.currentTime;AU.vn=(AU.vn||[]).filter(x=>x>ct);if(AU.vn.length>40)return; // voice cap keeps phones from crackling
   opt=opt||{};const c=AU.ctx,out=c.createGain(),snd=c.createGain(),G=out.gain,stops=[];
-  out.connect(dest||AU.m.bus||AU.music);snd.gain.value=opt.rev!=null?opt.rev:(k==='bass'||k==='sub'||k==='synthbass'||k==='upright'?.05:.4);out.connect(snd);snd.connect(AU.rev);
+  out.connect(dest||AU.m.bus||AU.music);snd.gain.value=opt.rev!=null?opt.rev:(k==='bass'||k==='sub'||k==='synthbass'||k==='upright'?.05:.4);out.connect(snd);snd.connect(AU.revM);
   const osc=(type,fr,to,gain,det)=>{const o=c.createOscillator();o.type=type;o.frequency.value=fr;if(det)o.detune.value=det;if(gain!=null&&gain!==1){const g=c.createGain();g.gain.value=gain;o.connect(g);g.connect(to)}else o.connect(to);stops.push(o);return o};
   const lp=(fr,q,to)=>{const b=c.createBiquadFilter();b.type='lowpass';b.frequency.value=fr;b.Q.value=q||.7;b.connect(to||out);return b};
   const vib=(param,rate,depth,delay)=>{const l=c.createOscillator(),g=c.createGain();l.frequency.value=rate;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(depth,t+(delay||.2)+.15);l.connect(g);g.connect(param);stops.push(l)};
