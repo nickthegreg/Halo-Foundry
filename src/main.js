@@ -1,4 +1,4 @@
-import {TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {CHANGELOG,LATEST} from './data/changelog.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
@@ -25,7 +25,7 @@ const PARTS=[];
 let hover=null, tapFx=null;
 
 function fresh(seed){
-  return {v:1,seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,res:{done:{},cur:null,p:{},lv:{}},charge:0,up:{belt:0,vein:0,night:0,haul:0},pulses:[],pq:[],grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
+  return {v:1,seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,ft:0,favg:0,cmd:{},res:{done:{},cur:null,p:{},lv:{}},charge:0,up:{belt:0,vein:0,night:0,haul:0},pulses:[],pq:[],grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
 }
 
 // ================= helpers =================
@@ -37,7 +37,7 @@ function pay(c,sg){for(const k in c)S.inv[k]=(S.inv[k]||0)+sg*c[k]}
 function missing(c){const m=[];for(const k in c){const h=S.inv[k]||0;if(h<c[k])m.push((c[k]-h)+' '+ITEMS[k].s)}return m.join(', ')}
 function countOf(t){let n=0;for(const b of S.bs.values())if(b.t===t)n++;return n}
 // Anything priced in Ember shards climbs Fibonacci-style with each one you own: 3, 5, 8, 13…
-function costOf(t,n){const c=Object.assign({},B[t].cost||{});if(c.ember){let a=c.ember,b=Math.round(c.ember*5/3);const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a}return c}
+function costOf(t,n){const c=Object.assign({},B[t].cost||{});if(c.ember){let a=c.ember,b=Math.round(c.ember*5/3);const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a}const off=Math.min(.5,.05*cmdLv('architect'));if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
 // Upgrade costs: hand-set early levels, then each further level costs the last one times `grow`
 function tierCost(T,grow,L){if(L<T.length)return T[L];const c={},m=Math.pow(grow,L-T.length+1),last=T[T.length-1];for(const k in last)c[k]=Math.round(last[k]*m/10)*10;return c}
 const BELT_COST=[{ember:5},{ember:50},{ember:500},{ember:5000},{aether:1000},{aether:4000,ember:20000},{aether:20000,ember:80000,servo:2000}];
@@ -51,6 +51,22 @@ const UPG={
   vein:{n:'Deep veins',d:'Drills pull more from every tile, so patches last 1.5× longer per level.',cost:L=>tierCost(VEIN_COST,7,L),eff:L=>`×${Math.pow(1.5,L).toFixed(2)} now, ×${Math.pow(1.5,L+1).toFixed(2)} next`}
 };
 function veinMul(){return Math.pow(1.5,(S.up&&S.up.vein)||0)}
+// Every Menu upgrade level compounds the halo: ×1.01 per level
+function upTotal(){let n=0;for(const k in (S.up||{}))n+=S.up[k]||0;return n}
+function haloMul(){return Math.pow(1.01,upTotal())}
+function petalKW(){return (S.res&&S.res.done.mirrors?24:8)*haloMul()}
+// Constellations and Commander points
+function constN(p){let i=0;while(p>=constReq(i))i++;return i}
+function cmdLv(k){return (S&&S.cmd&&S.cmd[k])||0}
+function cmdSpent(){let n=0;for(const k in (S.cmd||{}))n+=S.cmd[k]||0;return n}
+function cmdPts(){return Math.max(0,constN(S.petals)-cmdSpent())}
+function roman(n){const T=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];let s='';for(const [v,c] of T)while(n>=v){s+=c;n-=v}return s}
+function stellarMul(){return 1+.1*cmdLv('stellar')}
+// Furnace ladder perks, summed over every tier reached
+function fPerk(k){let v=0;for(let i=0;i<(S.ft||0);i++)v+=frung(i)[k]||0;return v}
+function burnPow(){return 1+fPerk('pow')}
+function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))}
+function emberChance(){return .02*(1+fPerk('ember'))}
 function toolTip(t){const d=B[t];return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))}${d.pw?' · '+d.pw+' kW':''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
 function costStr(c){return Object.keys(c).map(k=>c[k]+' '+ITEMS[k].s).join(' · ')}
 function addInv(t,n){S.inv[t]=(S.inv[t]||0)+(n||1);S.seen[t]=1}
@@ -200,7 +216,8 @@ function checkMs(){
   buildDock();save();
 }
 function launch(b){
-  S.petals++;sfx('launch',b.x+1.5,b.y+1.5);
+  const c0=constN(S.petals);S.petals++;sfx('launch',b.x+1.5,b.y+1.5);
+  if(constN(S.petals)>c0){const n=constN(S.petals);burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showBanner('Constellation '+roman(n)+' complete',`${S.petals} petals in orbit. +1 Commander point: spend it in Menu → Commander. Next constellation at ${constReq(n)}.`);save()}
   PARTS.push({k:'petal',x:b.x+1.5,y:b.y+1.5,vx:(Math.random()-.5)*.4,vy:-1.2,life:3.2,max:3.2});
   const m=MS[S.ms];
   if(m&&m.launch){S.prog.petal=Math.min(PET_GOAL,(S.prog.petal||0)+1);checkMs()}
@@ -213,24 +230,24 @@ function daylight(){return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*
 function sim(dt){
   S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0));
   const day=daylight();
-  let demand=0,base=CORE_GEN+S.petals*(S.res&&S.res.done.mirrors?24:8),cap=0;const comb=[];
+  let demand=0,solar=S.petals*petalKW(),cap=0;const comb=[];
   for(const b of S.bs.values()){
     if(b.bp)continue;
     if(b.t==='relay')b.active=true;
     if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):B[b.t].pw;
-    if(b.t==='solar')base+=45*day;
-    else if(b.t==='collector')base+=400*(.25+.75*day);
-    else if(b.t==='filmarray')base+=160*(.2+.8*day);
+    if(b.t==='solar')solar+=45*day;
+    else if(b.t==='collector')solar+=400*(.25+.75*day);
+    else if(b.t==='filmarray')solar+=160*(.2+.8*day);
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)){cap+=B[b.t].gen;comb.push(b)}
   }
-  const gridOn=S.ms>=MS.length,gmul=1+.1*repLv('harmonics');base*=gmul;cap*=gmul;
+  const gridOn=S.ms>=MS.length,gmul=1+.1*repLv('harmonics');solar*=gmul*stellarMul();cap*=gmul*burnPow();const base=CORE_GEN*gmul+solar;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
   const sat0=demand>0?Math.min(1,gen/demand):1;
-  PW={gen,demand,sat:sat0,cap:base+cap,day};
+  PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load};
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
-  for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<0.02){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}}if(c.energy<0)c.energy=0}
-  if(gridOn){S.gavg+=(gen-S.gavg)*Math.min(1,dt/20);if(S.gavg>=rung(S.gt).kw)climbRung();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick()}
+  for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');c.energy+=B[c.t].burn*fuelMul();if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}}if(c.energy<0)c.energy=0}
+  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick()}
   stepPulses(dt);
 
   for(const b of S.bs.values()){
@@ -326,7 +343,7 @@ function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
 function uplinkRate(b){return 4/(1+Math.max(0,coreDist(b)-3)/8)}
 function uplinkPw(b){return Math.round(60+3*coreDist(b))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)}
-function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))}
+function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -375,6 +392,11 @@ function climbRung(){
   (r.unl||[]).forEach(t=>{if(!S.unl.includes(t)){S.unl.push(t);S.newT.push(t)}});
   (r.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)});
   burst(CX,CY,'#7ff0d0',40);sfx('fanfare');showBanner('Grid tier '+S.gt+' · '+r.n,r.d+' Next: '+fmtW(rung(S.gt).kw)+' sustained.');buildDock();save();
+}
+
+function climbFurnace(){
+  const r=frung(S.ft||0);S.ft=(S.ft||0)+1;
+  burst(CX,CY,'#ff9a5a',40);sfx('fanfare');showBanner('Furnace tier '+S.ft+' · '+r.n,r.d+' Next: '+fmtW(frung(S.ft).kw)+' sustained from burners.');save();
 }
 
 // ================= world gen =================
@@ -993,7 +1015,7 @@ function hudTick(force){
   $('#pwText').textContent=`${fmtW(PW.demand)} / ${fmtW(PW.cap)}`;
   $('#pwBar').style.width=Math.min(100,PW.cap?PW.demand/PW.cap*100:0)+'%';
   const dl=PW.day;$('#pwDay').textContent=dl>=.99?'Day':dl<=.01?'Night':(Math.sin(dayPhase()*6.283)>0?'Day ':'Dusk ')+Math.round(dl*100)+'%';
-  $('#pwSat').textContent=sh?Math.round(PW.sat*100)+'% speed':S.ms>=MS.length?fmtW(S.gavg)+' avg':'';
+  $('#pwSat').textContent=sh?Math.round(PW.sat*100)+'% speed':S.ms>=MS.length?fmtW(S.gavg)+' solar avg':'';
   // inventory
   const keys=ITEM_ORDER.filter(k=>(S.inv[k]||0)>0),sig=keys.map(k=>k+S.inv[k]).join();
   if(sig!==invSig||force){invSig=sig;$('#inv').innerHTML=keys.length?keys.map(k=>chip(k,S.inv[k])).join(''):'<span class="empty">Storage is empty</span>'}
@@ -1124,11 +1146,23 @@ function showMilestones(){
   const sec=t=>`<div class="sec-label">${t}</div>`;
   let h=`<div class="card-head"><h3>Progress</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><div class="ms-list">`;
   MS.forEach((m,i)=>{if(i===0)h+=sec('Tutorial');if(i===TUT)h+=sec('Main game');h+=msCard(m,i)});
-  h+=sec('Grid ladder');
+  h+=sec('Grid ladder · solar power');
   const top=Math.max(S.gt+3,RUNGS.length+1);
   for(let i=0;i<top;i++){
     const r=rung(i),done=i<S.gt,cur=i===S.gt&&S.ms>=MS.length,cls=done?'done':cur?'cur':'future',f=done?1:cur?Math.min(1,S.gavg/r.kw):0;
     h+=`<div class="ms ${cls}"><div class="ms-top"><h4>Tier ${i+1} · ${r.n}</h4><span class="st">${done?'Reached':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}">${BOLT}${cur?fmtW(S.gavg)+' / ':''}${fmtW(r.kw)} sustained<i style="width:${f*100}%"></i></span></div><div class="ms-unl">${r.d}</div></div>`;
+  }
+  h+=sec('Furnace ladder · coal and Aether');
+  const ft=S.ft||0,ftop=ft+3;
+  for(let i=0;i<ftop;i++){
+    const r=frung(i),done=i<ft,cur=i===ft&&S.ms>=MS.length,cls=done?'done':cur?'cur':'future',f=done?1:cur?Math.min(1,(S.favg||0)/r.kw):0;
+    h+=`<div class="ms ${cls}"><div class="ms-top"><h4>Furnace ${i+1} · ${r.n}</h4><span class="st">${done?'Reached':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}">${BOLT}${cur?fmtW(S.favg||0)+' / ':''}${fmtW(r.kw)} sustained<i style="width:${f*100}%"></i></span></div><div class="ms-unl">${r.d}</div></div>`;
+  }
+  h+=sec('Constellations · sail petals in orbit');
+  const cn=constN(S.petals);
+  for(let i=0;i<cn+3;i++){
+    const q=constReq(i),done=i<cn,cur=i===cn,prev=i?constReq(i-1):0,f=done?1:cur?Math.max(0,Math.min(1,(S.petals-prev)/(q-prev))):0;
+    h+=`<div class="ms ${done?'done':cur?'cur':'future'}"><div class="ms-top"><h4>Constellation ${roman(i+1)}</h4><span class="st">${done?'Complete':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}"><img src="${ICON.petal}" alt="Sail petal">${cur?S.petals+' / ':''}${q} petals<i style="width:${f*100}%"></i></span></div><div class="ms-unl">+1 Commander point.</div></div>`;
   }
   openModal(h+'</div>');
 }
@@ -1158,6 +1192,9 @@ function showMenu(){
   openModal(`<div class="card-head"><h3>Menu</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
   <div class="sec-label">Upgrades</div><div class="ms-list">${Object.keys(UPG).map(k=>{const u=UPG[k],L=S.up[k]||0,mx=u.max&&L>=u.max,c=mx?{}:u.cost(L),ok=!mx&&canAfford(c);
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${u.eff(L)}</span></div><div class="ms-unl">${u.d}</div><div class="actions" style="align-items:center"><div class="ms-req" style="flex:1">${Object.keys(c).map(i=>`<span class="req${(S.inv[i]||0)>=c[i]?' done':''}"><img src="${ICON[i]}" alt="${ITEMS[i].n}">${(S.inv[i]||0).toLocaleString()}/${c[i].toLocaleString()}</span>`).join('')}</div>${mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 18px" data-up="${k}">Upgrade</button>`}</div></div>`}).join('')}</div>
+  <div class="sec-label">Halo</div><p style="font-size:14px">Each sail petal gives <strong>${petalKW().toFixed(1)} kW</strong> before other bonuses: ×${haloMul().toFixed(2)} from ${upTotal()} upgrade level${upTotal()===1?'':'s'} (+1% each, compounding).</p>
+  <div class="sec-label">Commander · ${cmdPts()} point${cmdPts()===1?'':'s'} to spend</div><p style="font-size:14px">Earn a point for every Constellation of sail petals in orbit. Next at ${constReq(constN(S.petals))} petals (${S.petals} now).</p><div class="ms-list">${Object.keys(CMD).map(k=>{const u=CMD[k],L=cmdLv(k),mx=u.max&&L>=u.max,ok=!mx&&cmdPts()>0;
+    return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4>${mx?'<span class="st">Maxed</span>':''}</div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 18px" data-cmd="${k}">+1</button>`}</div></div>`}).join('')}</div>
   <div class="sec-label">Ground</div><div class="seg">${BIOME_KEYS.map(k=>`<button data-biome="${k}" class="${BIOME===k?'on':''}">${BIOMES[k].n}</button>`).join('')}</div>
   <div class="sec-label">Sound</div>
   <label class="slider" for="musicVol"><span>Music</span><input id="musicVol" type="range" min="0" max="100" value="${Math.round(AU.mv*100)}"></label>
@@ -1187,6 +1224,7 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.up){const k=b.dataset.up;if(UPG[k].max&&(S.up[k]||0)>=UPG[k].max)return;const c=UPG[k].cost(S.up[k]||0);if(!canAfford(c)){showToast('Need '+missing(c)+' more');return}pay(c,-1);S.up[k]=(S.up[k]||0)+1;save();showMenu();showToast(UPG[k].n+' is now level '+S.up[k])}
   else if(b.dataset.tech){const id=b.dataset.tech;S.res.cur=S.res.cur===id?null:id;sfx('tick');showResearch();hudTick(true)}
   else if(b.hasAttribute('data-stats'))showStats();
+  else if(b.dataset.cmd){const k=b.dataset.cmd,u=CMD[k];if(!u)return;if(u.max&&cmdLv(k)>=u.max)return;if(cmdPts()<1){showToast('No Commander points. Complete the next Constellation to earn one.');return}S.cmd=S.cmd||{};S.cmd[k]=cmdLv(k)+1;save();showMenu();showToast(u.n+' is now level '+S.cmd[k])}
   else if(b.hasAttribute('data-savecode'))showSaveCode();
   else if(b.hasAttribute('data-bneck')){bneck=!bneck;try{localStorage.setItem('halo-foundry-bneck',bneck?'1':'0')}catch(_){}showMenu()}
   else if(b.hasAttribute('data-copycode')){const o=$('#codeOut'),v=o.value;if(!v.startsWith('HF'))return;const sel=()=>{o.focus();o.select();showToast('Code selected. Copy it from here.')};try{navigator.clipboard.writeText(v).then(()=>showToast('Save code copied'),sel)}catch(_){sel()}}
@@ -1850,8 +1888,8 @@ function tap(sx,sy){
 
 // ================= save / load =================
 function serialize(){
-  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,res:S.res,dr:S.dr,dch:S.dch,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
+  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,res:S.res,dr:S.dr,dch:S.dch,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()))}catch(_){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null}catch(_){return null}}
@@ -1864,13 +1902,13 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    S.res=d.res&&d.res.done?d.res:{done:{},cur:null,p:{},lv:{}};S.res.lv=S.res.lv||{};S.dr=d.dr||{};S.dch=d.dch||0;S.charge=d.charge||0;
+    S.res=d.res&&d.res.done?d.res:{done:{},cur:null,p:{},lv:{}};S.res.lv=S.res.lv||{};S.dr=d.dr||{};S.dch=d.dch||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};
     // players who earned buildings from the old grid ladder get the matching research for free
     for(const id in TECH){const N=TECH[id];if(S.res.done[id]||(!(N.unl||[]).length&&!(N.rec||[]).length))continue;if((N.unl||[]).every(t=>S.unl.includes(t))&&(N.rec||[]).every(k=>S.rec.includes(k)))S.res.done[id]=1}
     S.refined=d.refined||0;speed=testerOK()?(d.speed||1):1;
     const OFF=d.wv?0:128,mapI=k=>OFF?(((k/128)|0)+128)*W+(k%128)+128:k;
     if(d.res)for(let i=0;i<d.res.length;i+=2){const k=mapI(d.res[i]);RES[k]=d.res[i+1];if(RES[k]<=0&&ORE[k])deplete(k)}
-    for(const a of d.bs||[]){if(!B[a[0]])continue;const b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){if(a[4].r)b.ratio=a[4].r;else b.ratio=a[4]}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(a[5]===1){b.bp=true;S.pq.push([b.id])}}}
+    for(const a of d.bs||[]){if(!B[a[0]])continue;const b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){if(a[4].r)b.ratio=a[4].r;else b.ratio=a[4]}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0))}if(a[5]===1){b.bp=true;S.pq.push([b.id])}}}
     if(d.cam){cam.x=d.cam.x+OFF;cam.y=d.cam.y+OFF;cam.z=d.cam.z}
   }else{cam.x=CX;cam.y=CY;cam.z=Math.max(18,Math.min(36,Math.min(VW,VH)/20))}
   tool='inspect';sel=null;elSheet.hidden=true;recalc();dirty=false;buildDock();updateRot();hudTick(true);

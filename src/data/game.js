@@ -74,7 +74,8 @@ const MS=[
   {n:'Grid Charter',req:{gear:300,wire:1000,lens:100},unl:[],rec:[],b:'Wire the moon for power. After this, spare power is stored as Charge and spent on research.'}
 ];
 const TUT=6;
-// Grid ladder: sustained generation thresholds (kW). Past the named rungs it scales ×3 forever.
+// Grid ladder: sustained SOLAR generation thresholds (kW): Sun Leaves, Film Arrays, Prism Collectors and the halo.
+// The Core and burners don't count. Past the named rungs it scales ×3 forever.
 const RUNGS=[
   {kw:600,n:'Hum',spd:1.5,d:'Pulses travel 50% faster. Opens tier 2 research.'},
   {kw:2000,n:'Thrum',d:'Opens tier 3 research.'},
@@ -108,9 +109,27 @@ const REPEAT={
   overcharge:{n:'Overcharge',mj:150,grow:1.6,igrow:1.45,sets:[{circuit:200,steel:100},{motor:60,lens:120},{processor:40,film:150},{photonic:30,composite:60}],d:'Every machine works 5% faster per level.'},
   harmonics:{n:'Grid harmonics',mj:250,grow:1.7,igrow:1.45,sets:[{coil:150,glass:300},{wafer:200,frame:60},{servo:30,composite:80},{lattice:5,photonic:60}],d:'Every generator, the Core and the halo produce 10% more power per level.'}
 };
+// Furnace ladder: sustained power from Combustors, Turbine Halls and Aether Reactors (kW), climbed alongside the grid ladder.
+const FRUNGS=[
+  {kw:500,n:'Kindle',fuel:.15,d:'Every unit of carbon and Aether burns 15% longer.'},
+  {kw:2000,n:'Blaze',pow:.15,d:'Combustors, Turbine Halls and Aether Reactors make 15% more power.'},
+  {kw:8000,n:'Inferno',ember:1,d:'Carbon burners leave Ember shards twice as often.'},
+  {kw:30000,n:'Forge Star',fuel:.15,d:'Every unit of carbon and Aether burns 15% longer.'},
+  {kw:120000,n:'Crucible',pow:.15,d:'Combustors, Turbine Halls and Aether Reactors make 15% more power.'}
+];
+function frung(i){if(i<FRUNGS.length)return FRUNGS[i];const k=i-FRUNGS.length+1,f=k%2===1;return{kw:120000*Math.pow(4,k),n:'Furnace '+(i+1),[f?'fuel':'pow']:.1,d:f?'Every unit of fuel burns 10% longer.':'Burners make 10% more power.'}}
+// Constellations: tiers for sail petals in orbit. Each one earns a Commander point.
+const CONST_REQ=[10,25,50,100,200];
+function constReq(i){return i<CONST_REQ.length?CONST_REQ[i]:200*Math.pow(2,i-CONST_REQ.length+1)}
+const CMD={
+  industrialist:{n:'Industrialist',d:'Every machine works 5% faster per point.'},
+  stellar:{n:'Stellar',d:'Sun Leaves, Film Arrays, Prism Collectors and the halo make 10% more power per point.'},
+  ember:{n:'Ember',d:'Carbon and Aether burn 10% longer per point.'},
+  architect:{n:'Architect',max:10,d:'Buildings cost 5% less per point, up to 50% off.'}
+};
 function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-2;return{kw:6000*Math.pow(3,k),n:'Overclock '+k,oc:1,d:'Every machine works 10% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
 
-export {TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
