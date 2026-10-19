@@ -1,0 +1,14 @@
+{
+  "name": "halo-foundry",
+  "private": true,
+  "version": "0.20.0",
+  "type": "module",
+  "description": "A touch-first factory game: drill a moon, belt and assemble parts, grow a power grid around a star.",
+  "scripts": {
+    "start": "node tests/serve.mjs",
+    "test": "node tests/smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.48.2"
+  }
+}
