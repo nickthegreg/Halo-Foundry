@@ -2,7 +2,7 @@
 
 A touch-first factory game. Drill a small moon, belt and assemble parts, light the star with a halo of sail petals, then grow a power grid that never stops scaling.
 
-**Play:** https://nickthegreg.github.io/halo-foundry/ (after the first deploy). On a phone, use "Add to Home Screen" to install it; it works offline after one visit.
+**Play:** https://nickthegreg.github.io/Halo-Foundry/ (after the first deploy). On a phone, use "Add to Home Screen" to install it; it works offline after one visit.
 
 ## Run locally
 
