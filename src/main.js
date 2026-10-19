@@ -1,4 +1,5 @@
 import {TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {CHANGELOG,LATEST} from './data/changelog.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
 (()=>{
@@ -421,6 +422,9 @@ function genWorld(seed){
   RES0=RES.slice();
   CHUNKS.clear();
 }
+let BIOME='moon';try{const b=localStorage.getItem('halo-foundry-biome');if(BIOMES[b])BIOME=b}catch(_){}
+const BI=()=>BIOMES[BIOME];
+function setBiome(k){if(!BIOMES[k]||k===BIOME)return;BIOME=k;try{localStorage.setItem('halo-foundry-biome',k)}catch(_){}CHUNKS.clear();makeStars()}
 const GT=20,CH=32,CPX=CH*GT,CHUNKS=new Map();let chunkBudget=0,CHUNK_MAX=40;
 function chunkCv(cx,cy){
   const key=cy*1000+cx;let c=CHUNKS.get(key);
@@ -432,16 +436,14 @@ function chunkCv(cx,cy){
 }
 function renderChunk(cx,cy){
   const c=document.createElement('canvas');c.width=c.height=CPX;const g=c.getContext('2d'),X0=cx*CH,Y0=cy*CH;
-  g.fillStyle='#38344f';g.fillRect(0,0,CPX,CPX);
+  const T=BI();g.fillStyle=T.base;g.fillRect(0,0,CPX,CPX);
   const near=[];for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)near.push([i,j,mulberry(((S.seed*7)^((cx+i)*73856093)^((cy+j)*19349663))>>>0)]);
-  for(const [i,j,R] of near){for(let n=0;n<3;n++){const x=(i+R())*CPX,y=(j+R())*CPX,r=40+R()*170,dark=R()<.5,al=R()*.06+.02;if(x+r<0||y+r<0||x-r>CPX||y-r>CPX)continue;const gr=g.createRadialGradient(x,y,0,x,y,r),cc=dark?'rgba(0,0,0,':'rgba(120,105,190,';gr.addColorStop(0,cc+al+')');gr.addColorStop(1,cc+'0)');g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2)}}
-  for(const [i,j,R] of near){for(let n=0;n<9;n++){const x=(i+R())*CPX,y=(j+R())*CPX,r=6+R()*R()*44;if(x+r*1.2<0||y+r*1.2<0||x-r*1.2>CPX||y-r*1.2>CPX)continue;
-    g.beginPath();g.ellipse(x,y,r,r*.86,0,0,7);g.fillStyle='rgba(6,4,14,.22)';g.fill();
-    g.beginPath();g.ellipse(x,y,r,r*.86,0,Math.PI*.15,Math.PI*1.05);g.strokeStyle='rgba(200,190,255,.07)';g.lineWidth=Math.max(1,r*.12);g.stroke();
-    g.beginPath();g.ellipse(x+r*.08,y+r*.1,r*.8,r*.66,0,Math.PI*1.1,Math.PI*1.9);g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=Math.max(1,r*.1);g.stroke()}}
+  for(const [i,j,R] of near){for(let n=0;n<3;n++){const x=(i+R())*CPX,y=(j+R())*CPX,r=40+R()*170,dark=R()<.5,al=R()*T.blobA[1]+T.blobA[0];if(x+r<0||y+r<0||x-r>CPX||y-r>CPX)continue;const gr=g.createRadialGradient(x,y,0,x,y,r),cc=dark?T.blob[0]:T.blob[1];gr.addColorStop(0,cc+al+')');gr.addColorStop(1,cc+'0)');g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2)}}
+  DECO[T.deco](g,near,cx,cy);
   const RS=mulberry((S.seed+cx*31+cy*977)>>>0);
-  for(let n=0;n<CH*CH*2.5;n++){const x=RS()*CPX,y=RS()*CPX;g.fillStyle=RS()<.5?'rgba(220,210,255,.035)':'rgba(0,0,0,.12)';const z=RS()*2.2+.6;g.fillRect(x,y,z,z)}
-  g.strokeStyle='rgba(200,190,255,.085)';g.lineWidth=1;g.beginPath();
+  for(let n=0;n<CH*CH*2.5;n++){const x=RS()*CPX,y=RS()*CPX;g.fillStyle=RS()<.5?T.speck[0]:T.speck[1];const z=RS()*2.2+.6;g.fillRect(x,y,z,z)}
+  if(T.deco==='grass')grassTufts(g,RS);
+  g.strokeStyle=T.grid;g.lineWidth=1;g.beginPath();
   for(let i=0;i<=CH;i++){g.moveTo(i*GT+.5,0);g.lineTo(i*GT+.5,CPX);g.moveTo(0,i*GT+.5);g.lineTo(CPX,i*GT+.5)}
   g.stroke();
   for(let y=0;y<CH;y++)for(let x=0;x<CH;x++){
@@ -457,11 +459,41 @@ function renderChunk(cx,cy){
   }
   return c;
 }
+// Surface detail per biome. Features are seeded from the 3×3 neighbourhood so they run across chunk edges.
+const DECO={
+  craters(g,near){for(const [i,j,R] of near){for(let n=0;n<9;n++){const x=(i+R())*CPX,y=(j+R())*CPX,r=6+R()*R()*44;if(x+r*1.2<0||y+r*1.2<0||x-r*1.2>CPX||y-r*1.2>CPX)continue;
+    g.beginPath();g.ellipse(x,y,r,r*.86,0,0,7);g.fillStyle='rgba(6,4,14,.22)';g.fill();
+    g.beginPath();g.ellipse(x,y,r,r*.86,0,Math.PI*.15,Math.PI*1.05);g.strokeStyle='rgba(200,190,255,.07)';g.lineWidth=Math.max(1,r*.12);g.stroke();
+    g.beginPath();g.ellipse(x+r*.08,y+r*.1,r*.8,r*.66,0,Math.PI*1.1,Math.PI*1.9);g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=Math.max(1,r*.1);g.stroke()}}},
+  dunes(g,near){
+    for(const [i,j,R] of near){
+      // wind ripples: long gentle waves, a shadow line under a lit crest
+      for(let n=0;n<16;n++){const x0=(i+R())*CPX-160,y0=(j+R())*CPX,len=120+R()*220,amp=2+R()*4,wl=40+R()*50,ph=R()*6.28,tilt=(R()-.5)*.12;
+        if(y0+amp+60<0||y0-amp-60>CPX||x0>CPX||x0+len<0)continue;
+        for(const [dy,col,lw] of [[2,'rgba(105,64,28,.15)',2.4],[0,'rgba(255,238,205,.16)',1.3]]){g.beginPath();for(let t=0;t<=len;t+=8){const X=x0+t,Y=y0+dy+Math.sin(t/wl*6.28+ph)*amp+t*tilt;t?g.lineTo(X,Y):g.moveTo(X,Y)}g.strokeStyle=col;g.lineWidth=lw;g.stroke()}}
+      // rock outcrops and dry scrub
+      for(let n=0;n<4;n++){const x=(i+R())*CPX,y=(j+R())*CPX,r=4+R()*R()*16;if(x+r<0||y+r<0||x-r>CPX||y-r>CPX)continue;
+        g.beginPath();for(let q=0;q<7;q++){const a=q/7*6.283,rr=r*(.7+R()*.4);q?g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.7):g.moveTo(x+rr,y)}g.closePath();g.fillStyle='rgba(120,78,40,.55)';g.fill();
+        g.beginPath();g.ellipse(x-r*.2,y-r*.2,r*.45,r*.22,0,0,7);g.fillStyle='rgba(255,230,180,.18)';g.fill()}
+      for(let n=0;n<5;n++){const x=(i+R())*CPX,y=(j+R())*CPX;if(x<-8||y<-8||x>CPX+8||y>CPX+8)continue;g.strokeStyle='rgba(98,80,40,.55)';g.lineWidth=1.2;g.beginPath();for(let q=0;q<6;q++){const a=-Math.PI/2+(q-2.5)*.38;g.moveTo(x,y);g.lineTo(x+Math.cos(a)*(4+R()*3),y+Math.sin(a)*(4+R()*3))}g.stroke()}
+    }},
+  grass(g,near){
+    for(const [i,j,R] of near){
+      // meadow patches: soft darker and lighter clumps
+      for(let n=0;n<10;n++){const x=(i+R())*CPX,y=(j+R())*CPX,r=10+R()*30,dk=R()<.55;if(x+r<0||y+r<0||x-r>CPX||y-r>CPX)continue;
+        g.beginPath();g.ellipse(x,y,r,r*.7,R()*3,0,7);g.fillStyle=dk?'rgba(25,60,20,.14)':'rgba(170,215,105,.10)';g.fill()}
+      // flower clusters and small stones
+      for(let n=0;n<4;n++){const x=(i+R())*CPX,y=(j+R())*CPX,c=['rgba(255,250,235,.85)','rgba(255,214,90,.85)','rgba(240,150,200,.8)','rgba(170,190,255,.8)'][(R()*4)|0];if(x<-20||y<-20||x>CPX+20||y>CPX+20)continue;
+        for(let q=0;q<9;q++){g.fillStyle=c;g.beginPath();g.arc(x+(R()-.5)*26,y+(R()-.5)*20,1+R()*1.1,0,7);g.fill()}}
+      for(let n=0;n<3;n++){const x=(i+R())*CPX,y=(j+R())*CPX,r=2.5+R()*5;if(x+r<0||y+r<0||x-r>CPX||y-r>CPX)continue;g.beginPath();g.ellipse(x,y,r,r*.75,0,0,7);g.fillStyle='rgba(150,150,140,.7)';g.fill();g.beginPath();g.ellipse(x-r*.25,y-r*.25,r*.45,r*.3,0,0,7);g.fillStyle='rgba(235,235,225,.35)';g.fill()}
+    }}
+};
+function grassTufts(g,RS){for(let n=0;n<CH*CH*.9;n++){const x=RS()*CPX,y=RS()*CPX,h=3+RS()*4,lt=RS()<.5;g.strokeStyle=lt?'rgba(175,220,110,.45)':'rgba(25,60,18,.40)';g.lineWidth=1.1;g.beginPath();g.moveTo(x-2,y-h*.8);g.lineTo(x,y);g.lineTo(x+.5,y-h);g.moveTo(x,y);g.lineTo(x+2.5,y-h*.75);g.stroke()}}
 function paintSpentAt(g,lx,ly,x,y){
-  const R=mulberry(x*977+y*131+7);
-  g.fillStyle='#2b2840';g.fillRect(lx*GT,ly*GT,GT,GT);
-  for(let k=0;k<5;k++){g.fillStyle=k%2?'rgba(0,0,0,.3)':'rgba(200,190,255,.05)';g.beginPath();g.arc(lx*GT+2+R()*(GT-4),ly*GT+2+R()*(GT-4),1+R()*2.4,0,7);g.fill()}
-  g.strokeStyle='rgba(200,190,255,.085)';g.lineWidth=1;g.strokeRect(lx*GT+.5,ly*GT+.5,GT,GT);
+  const R=mulberry(x*977+y*131+7),T=BI();
+  g.fillStyle=T.spent;g.fillRect(lx*GT,ly*GT,GT,GT);
+  for(let k=0;k<5;k++){g.fillStyle=k%2?'rgba(0,0,0,.3)':T.spentDot;g.beginPath();g.arc(lx*GT+2+R()*(GT-4),ly*GT+2+R()*(GT-4),1+R()*2.4,0,7);g.fill()}
+  g.strokeStyle=T.grid;g.lineWidth=1;g.strokeRect(lx*GT+.5,ly*GT+.5,GT,GT);
 }
 function deplete(i){ORE[i]=0;RES[i]=0;const x=i%W,y=(i/W)|0,c=CHUNKS.get(((y/CH)|0)*1000+((x/CH)|0));if(c)paintSpentAt(c.getContext('2d'),x%CH,y%CH,x,y)}
 function forReach(b,fn){const k=ORE_KEYS.indexOf(b.ore),r=B[b.t].r;for(let y=b.y-r;y<=b.y+r;y++)for(let x=b.x-r;x<=b.x+r;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(ORE[i]===k&&RES[i]>0)fn(i)}}
@@ -470,7 +502,7 @@ function reachLeft(b){let n=0;forReach(b,i=>n+=RES[i]);return Math.round(n*veinM
 function resDiff(){const o=[];if(!RES)return o;for(let i=0;i<RES.length;i++)if(RES[i]!==RES0[i])o.push(i,Math.max(0,Math.round(RES[i]*10)/10));return o}
 function makeStars(){
   const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d'),R=mulberry(7);
-  g.fillStyle='#1c1a33';g.fillRect(0,0,512,512);
+  g.fillStyle=BI().sky;g.fillRect(0,0,512,512);
   for(let i=0;i<5;i++){const x=R()*512,y=R()*512,r=90+R()*160,gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,i%2?'rgba(80,60,150,.16)':'rgba(40,120,130,.10)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,512,512)}
   for(let i=0;i<260;i++){const x=R()*512,y=R()*512,s=R()*R()*1.8+.3;g.fillStyle=`rgba(${220+R()*35|0},${215+R()*40|0},255,${.25+R()*.7})`;g.beginPath();g.arc(x,y,s,0,7);g.fill()}
   starPat=ctx.createPattern(c,'repeat');
@@ -798,9 +830,9 @@ function render(rdt){
   if(wx1>wx0&&wy1>wy0){
     const c0=Math.floor(wx0/CH),c1=Math.floor((wx1-1)/CH),r0=Math.floor(wy0/CH),r1=Math.floor((wy1-1)/CH);
     chunkBudget=3;CHUNK_MAX=Math.max(40,(c1-c0+1)*(r1-r0+1)+8);g.imageSmoothingEnabled=true;
-    for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++){const c=chunkCv(cx,cy),sx=w2sx(cx*CH),sy=w2sy(cy*CH),sz=CH*z+.6;if(c)g.drawImage(c,sx,sy,sz,sz);else{g.fillStyle='#38344f';g.fillRect(sx,sy,sz,sz)}}
+    for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++){const c=chunkCv(cx,cy),sx=w2sx(cx*CH),sy=w2sy(cy*CH),sz=CH*z+.6;if(c)g.drawImage(c,sx,sy,sz,sz);else{g.fillStyle=BI().base;g.fillRect(sx,sy,sz,sz)}}
   }
-  {const L=mapLim(),lo=192-L,sz=2*L*z;g.fillStyle='rgba(16,14,32,.62)';g.beginPath();g.rect(0,0,VW,VH);g.rect(w2sx(lo),w2sy(lo),sz,sz);g.fill('evenodd');
+  {const L=mapLim(),lo=192-L,sz=2*L*z;g.fillStyle=BI().fog;g.beginPath();g.rect(0,0,VW,VH);g.rect(w2sx(lo),w2sy(lo),sz,sz);g.fill('evenodd');
    g.save();g.setLineDash([8,6]);g.strokeStyle='rgba(127,240,208,.4)';g.lineWidth=1.5;g.strokeRect(w2sx(lo),w2sy(lo),sz,sz);g.restore()}
   GL=[];
   const bx0=wx0-3,bx1=wx1+1,by0=wy0-3,by1=wy1+1,belts=[],mach=[];
@@ -1126,6 +1158,7 @@ function showMenu(){
   openModal(`<div class="card-head"><h3>Menu</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
   <div class="sec-label">Upgrades</div><div class="ms-list">${Object.keys(UPG).map(k=>{const u=UPG[k],L=S.up[k]||0,mx=u.max&&L>=u.max,c=mx?{}:u.cost(L),ok=!mx&&canAfford(c);
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${u.eff(L)}</span></div><div class="ms-unl">${u.d}</div><div class="actions" style="align-items:center"><div class="ms-req" style="flex:1">${Object.keys(c).map(i=>`<span class="req${(S.inv[i]||0)>=c[i]?' done':''}"><img src="${ICON[i]}" alt="${ITEMS[i].n}">${(S.inv[i]||0).toLocaleString()}/${c[i].toLocaleString()}</span>`).join('')}</div>${mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 18px" data-up="${k}">Upgrade</button>`}</div></div>`}).join('')}</div>
+  <div class="sec-label">Ground</div><div class="seg">${BIOME_KEYS.map(k=>`<button data-biome="${k}" class="${BIOME===k?'on':''}">${BIOMES[k].n}</button>`).join('')}</div>
   <div class="sec-label">Sound</div>
   <label class="slider" for="musicVol"><span>Music</span><input id="musicVol" type="range" min="0" max="100" value="${Math.round(AU.mv*100)}"></label>
   <label class="slider" for="sfxVol"><span>Effects</span><input id="sfxVol" type="range" min="0" max="100" value="${Math.round(AU.sv*100)}"></label>
@@ -1149,6 +1182,7 @@ elCard.addEventListener('input',e=>{const v=+e.target.value/100;if(e.target.id==
 elCard.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.hasAttribute('data-close'))closeModal();
+  else if(b.dataset.biome){setBiome(b.dataset.biome);sfx('tick');const st=elCard.scrollTop;showMenu();elCard.scrollTop=st}
   else if(b.dataset.speed){if(!testerOK())return;speed=+b.dataset.speed;S.speed=speed;showMenu()}
   else if(b.dataset.up){const k=b.dataset.up;if(UPG[k].max&&(S.up[k]||0)>=UPG[k].max)return;const c=UPG[k].cost(S.up[k]||0);if(!canAfford(c)){showToast('Need '+missing(c)+' more');return}pay(c,-1);S.up[k]=(S.up[k]||0)+1;save();showMenu();showToast(UPG[k].n+' is now level '+S.up[k])}
   else if(b.dataset.tech){const id=b.dataset.tech;S.res.cur=S.res.cur===id?null:id;sfx('tick');showResearch();hudTick(true)}
@@ -1633,7 +1667,7 @@ function showMap(){
   const L=mapLim(),lo=192-L,n=2*L;
   openModal(`<div class="card-head"><h3>Map</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><canvas id="mm" width="${n}" height="${n}"></canvas><p>Tap anywhere to jump there. The teal box is your current view.</p>`);
   const c=$('#mm'),g=c.getContext('2d'),img=g.createImageData(n,n),d=img.data,hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
-  const OC={1:hex('#c0643a'),2:hex('#2fae8a'),3:hex('#aea5d8'),4:hex('#6a5e96')},ground=hex('#38344f'),spent=hex('#2a273e'),core=hex('#f3c25a'),cache={};
+  const OC={1:hex('#c0643a'),2:hex('#2fae8a'),3:hex('#aea5d8'),4:hex('#6a5e96')},ground=hex(BI().base),spent=hex(BI().spent),core=hex('#f3c25a'),cache={};
   for(let y=0;y<n;y++)for(let x=0;x<n;x++){const i=(lo+y)*W+lo+x,id=S.grid[i];let col;
     if(id){const b=S.bs.get(id);col=b.t==='core'?core:(cache[b.t]=cache[b.t]||hex(BP_COL[b.t]||'#8c82c8'))}else col=ORE[i]?OC[ORE[i]]:RES0[i]>0?spent:ground;
     const k=(y*n+x)*4;d[k]=col[0];d[k+1]=col[1];d[k+2]=col[2];d[k+3]=255}

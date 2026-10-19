@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:6,date:'2026-10-19',title:'Ground styles',items:[
+    'New ground styles: Desert (sand ripples, rocks and scrub) and Grassland (meadow, flowers and stones), alongside the original Moon.',
+    'Switch any time in Menu → Ground. It only changes the look: ore, buildings and your save stay the same.'
+  ]},
   {n:5,date:'2026-10-19',title:'True mute',items:[
     'Volume at 0 is now silent. The echo on music and effects used to keep playing at 0, which caused a faint constant hum.',
     'With both sliders at 0, sound switches off completely and uses no battery.'
