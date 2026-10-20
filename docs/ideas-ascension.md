@@ -1,0 +1,63 @@
+# Ascension: design ideas (not built yet)
+
+Brainstormed 2026-10-19. Nothing here is in the game yet; pick a direction before building.
+
+## Shape
+- **Trigger:** a late goal, e.g. Aether Reactors researched or Constellation V. Ascending sends the foundry to a fresh moon (new seed, new ore layout).
+- **Currency: Starseeds.** Earned from lifetime Aether refined on a square-root curve, e.g. `floor(sqrt(aether / 10))`, so longer runs pay more without endless grinding being the only answer. Smaller bonus from petals in orbit or Furnace tier.
+- **Resets:** buildings, inventory, milestones, research, Charge, grid and furnace tiers.
+- **Kept:** Ember shards (all or a share), Starseeds and perks, blueprints, ground style. Maybe Menu upgrades at reduced levels.
+
+## Perk ideas
+
+### Ember shards
+- Fibonacci cost climb for Ember buildings starts lower or grows slower.
+- Flat discount on Ember costs per level.
+- Start each run with a few free Deep Drills that don't count toward the climb.
+- Higher Ember drop chance from burning (base 2%).
+
+### Production
+- Chance for any fabricator or smelter to make one extra item (duplication).
+- Chance a recipe skips consuming one input.
+- Machines start faster each run.
+- Smelters and Foundries hold more ore.
+- Fabricators keep a set's worth of buffer that never strands (also fixes splitter-chain jams).
+
+### Mining and map
+- Ore patches start richer (permanent Deep Veins).
+- Some depleted tiles slowly regrow ore.
+- Larger starting frontier.
+- A new ore type that only appears on ascended moons.
+
+### Logistics and building
+- Faster construction pulses or an extra pulse slot from the start.
+- Conveyors start at a higher Conveyor speed level.
+- Blueprints build for free up to a cost cap (placing your old layout is the main speed-up in later runs).
+- Longer-range Uplinks, or every building can send a few items to the Core.
+
+### Power
+- More kW per petal, or the halo keeps a share of its petals between runs.
+- Burners start at Furnace tier 1 or 2.
+- Solar keeps some output at night.
+- Core makes more than 120 kW.
+
+### Progression
+- Commander points carry over, or a free point per ascension.
+- One free research of your choice per run.
+- Higher starting Charge storage.
+- Skip the tutorial after the first ascension.
+- Better offline earnings or a longer offline cap.
+
+### Unique to ascension
+- **Moon modifiers you choose** (double carbon but no cuprite, fast days...). Harder moons pay more Starseeds.
+- **Challenges:** restricted runs (solar only, no splitters) with a permanent reward.
+- **Relics:** one random permanent bonus per ascension, chosen from three (JRPG feel, like Commander).
+- **Visuals:** past halos stay in the sky as faint rings.
+
+## Design notes
+- First ascension should pay off fast: second run reaches Grid Charter in roughly a third of the time.
+- Prefer percentages and head starts over skipping content, so runs don't feel samey.
+- Store ascension data under its own localStorage key so a broken run can't wipe perks, and include it in save codes.
+
+## Suggested first version
+Starseeds from Aether, keep Ember shards, a perk shop with 5–8 of the ideas above, and free starting Deep Drills.

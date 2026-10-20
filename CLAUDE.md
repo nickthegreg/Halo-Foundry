@@ -6,3 +6,4 @@
 - Save format: localStorage key `halo-foundry-v2`; save codes (Menu → Save code) move saves between sites. Keep loading old saves working when changing state.
 - The player is on mobile first: test at 390×844, touch input, and keep audio quiet by default.
 - Every player-facing update adds an entry at the top of `src/data/changelog.js` with the next `n`: that drives the in-game "What's new" card and the "Update ready" banner.
+- Design ideas for future features live in `docs/` (e.g. `docs/ideas-ascension.md`). Read them before building those features.
