@@ -1006,10 +1006,16 @@ function hudTick(force){
     $('#goalEyebrow').textContent=S.ms<TUT?`Tutorial ${S.ms+1}/${TUT}`:`Milestone ${S.ms-TUT+1}/${MS.length-TUT}`;$('#goalName').textContent=m.n;
     $('#goalReqs').innerHTML=Object.keys(m.req).map(k=>{const h=Math.min(S.prog[k]||0,m.req[k]);return `<span class="req${h>=m.req[k]?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${h}/${m.req[k]}<i style="width:${h/m.req[k]*100}%"></i></span>`}).join('');
   }else{
-    const g=rung(S.gt),f=Math.min(1,S.gavg/g.kw),cur=S.res.cur,tf=cur?techFrac(cur):0;
+    const cur=S.res.cur;
     $('#goalEyebrow').textContent=cur?'Researching':'Research';$('#goalName').textContent=cur?techName(cur):'Tap to choose';
-    $('#goalReqs').innerHTML=(cur?`<span class="req">${Math.floor(tf*100)}%<i style="width:${tf*100}%"></i></span>`:'')+`<span class="req">${BOLT}${fmtW(S.gavg)} / ${fmtW(g.kw)}<i style="width:${f*100}%"></i></span>`;
+    $('#goalReqs').classList.toggle('rs',S.ms>=MS.length);$('#goalReqs').innerHTML=cur?techHudChips(cur):'<span class="req">Pick what to research next</span>';
   }
+  // grid and furnace ladder markers
+  const lb=$('#ladBox'),lo=S.ms>=MS.length;if(lb.hidden===lo)lb.hidden=!lo;
+  if(lo){const g=rung(S.gt),fr=frung(S.ft||0);
+    $('#ladGt').textContent='Grid '+(S.gt+1);$('#ladGb').style.width=Math.min(100,S.gavg/g.kw*100)+'%';
+    $('#ladFt').textContent='Furnace '+((S.ft||0)+1);$('#ladFb').style.width=Math.min(100,(S.favg||0)/fr.kw*100)+'%';
+    lb.title=`Grid tier ${S.gt+1}: ${fmtW(S.gavg)} / ${fmtW(g.kw)} solar · Furnace tier ${(S.ft||0)+1}: ${fmtW(S.favg||0)} / ${fmtW(fr.kw)} from burners`}
   // power
   const sh=PW.sat<.999;$('#powerBox').classList.toggle('short',sh);
   $('#pwText').textContent=`${fmtW(PW.demand)} / ${fmtW(PW.cap)}`;
@@ -1243,7 +1249,7 @@ elCard.addEventListener('click',e=>{
   }
 });
 $('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=showMilestones;
-$('#powerBox').onclick=showStats;$('#mapBtn').onclick=showMap;
+$('#powerBox').onclick=showStats;$('#ladBox').onclick=showMilestones;$('#mapBtn').onclick=showMap;
 
 // ================= audio: generative music + positional effects =================
 // Everything is synthesized with Web Audio, so nothing loads from the network. Audio starts on the first touch.
@@ -1569,6 +1575,13 @@ function grantTech(id){const N=TECH[id];S.res.done[id]=1;(N.unl||[]).forEach(t=>
 function completeTech(id){
   if(isRep(id)){const k=id.slice(4);delete S.res.p[id];S.res.lv[k]=repLv(k)+1;sfx('build');showToast(`${REPEAT[k].n} reached level ${S.res.lv[k]}. Level ${S.res.lv[k]+1} has started.`);if(RES_OPEN&&!elModal.hidden)showResearch();return}
   const N=TECH[id];grantTech(id);S.res.cur=null;delete S.res.p[id];burst(CX,CY,'#7ff0d0',40);sfx('fanfare');showBanner('Research complete · '+N.n,N.d+' Pick the next one from the top bar.');buildDock();save();if(RES_OPEN&&!elModal.hidden)showResearch();
+}
+// Compact research requirements for the top bar: Charge first, then each item, with short numbers
+function fmtN(n){n=Math.floor(n);return n<1000?String(n):n<1e4?(n/1e3).toFixed(1).replace(/\.0$/,'')+'k':n<1e6?Math.round(n/1e3)+'k':(n/1e6).toFixed(1).replace(/\.0$/,'')+'M'}
+function techHudChips(id){
+  const C=techCost(id),p=S.res.p[id]||{c:0,it:{}};
+  return `<span class="req${p.c>=C.mj?' done':''}">${BOLT}${fmtN(p.c)}/${fmtN(C.mj)}<i style="width:${Math.min(100,p.c/C.mj*100)}%"></i></span>`+
+    Object.keys(C.items).map(k=>{const h=p.it[k]||0,n=C.items[k],have=S.inv[k]||0;return `<span class="req${h>=n?' done':h+have<n?' short':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(h)}/${fmtN(n)}<i style="width:${Math.min(100,h/n*100)}%"></i></span>`}).join('');
 }
 function techCostChips(id){
   const C=techCost(id),p=S.res.p[id]||{c:0,it:{}};

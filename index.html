@@ -31,11 +31,17 @@
     <button class="iconbtn glass" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   </div>
   <div class="row">
+    <div class="pcol">
     <button class="power glass" id="powerBox" aria-label="Power">
       <div class="top"><svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg><span id="pwText">0 / 120 kW</span></div>
       <div class="meter"><b id="pwBar"></b></div>
       <div class="sub"><span id="pwDay">Day</span><span id="pwSat"></span></div>
     </button>
+    <button class="ladders glass" id="ladBox" aria-label="Grid and Furnace tiers" hidden>
+      <div class="lad sol"><span id="ladGt">Grid 1</span><div class="meter"><b id="ladGb"></b></div></div>
+      <div class="lad fur"><span id="ladFt">Furnace 1</span><div class="meter"><b id="ladFb"></b></div></div>
+    </button>
+    </div>
     <div class="inv glass" id="inv"></div>
     <button class="iconbtn glass" id="mapBtn" aria-label="Map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
   </div>

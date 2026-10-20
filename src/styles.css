@@ -47,9 +47,23 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 .req svg{width:13px;height:13px;margin:0 2px 0 4px;flex:none}
 .req i{position:absolute;left:0;bottom:0;height:2px;background:var(--sun)}
 .req.done{color:var(--ok)}
+.req.short{color:var(--warn)}
+.reqs.rs{gap:4px}
+.reqs.rs .req{font-size:11px;padding:1px 5px 1px 1px;gap:2px}
+.reqs.rs .req img{width:16px;height:16px}
+.reqs.rs .req svg{margin:0 1px 0 3px}
 .req.done i{background:var(--ok)}
 .iconbtn{pointer-events:auto;width:44px;border-radius:14px;display:grid;place-items:center;flex:none;color:var(--muted)}
 .iconbtn svg{width:20px;height:20px}
+.pcol{display:flex;flex-direction:column;gap:6px;flex:none;width:150px}
+.pcol .power{flex:1}
+.ladders{pointer-events:auto;border-radius:12px;padding:5px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;color:var(--text)}
+.ladders[hidden]{display:none}
+.lad{display:flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lad span{width:66px;flex:none;color:var(--muted)}
+.lad .meter{flex:1}
+.lad.sol .meter b{background:var(--sun)}
+.lad.fur .meter b{background:#ff9a5a}
 .power{pointer-events:auto;border-radius:12px;padding:5px 10px;display:flex;flex-direction:column;justify-content:center;gap:4px;flex:none;width:150px;text-align:left}
 .power .top{display:flex;justify-content:space-between;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .power .top svg{width:12px;height:12px;flex:none}

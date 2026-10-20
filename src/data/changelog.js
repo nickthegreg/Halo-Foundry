@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:8,date:'2026-10-19',title:'Research and tiers on screen',items:[
+    'The top bar now shows what your current research still needs: Charge and each item. Items turn orange when storage doesn’t hold enough to finish.',
+    'New Grid and Furnace tier markers under the power box show progress to the next tier. Tap them to open Progress.'
+  ]},
   {n:7,date:'2026-10-19',title:'Constellations and the Furnace ladder',items:[
     'Combustors, Turbine Halls and Aether Reactors now keep their fuel when you save, so power comes straight back when you return.',
     'Every Menu upgrade level now boosts sail petal power by 1%, compounding.',
