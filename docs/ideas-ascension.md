@@ -54,6 +54,14 @@ Brainstormed 2026-10-19. Nothing here is in the game yet; pick a direction befor
 - **Relics:** one random permanent bonus per ascension, chosen from three (JRPG feel, like Commander).
 - **Visuals:** past halos stay in the sky as faint rings.
 
+### More ideas (added 2026-10-21)
+- **Bigger Core:** the Core grows (3×3 → 4×4 → 5×5), giving more sides to feed and room for more Uplinks next to it.
+- **Free trickle production:** the Core makes items on its own at x per minute. Starts with ingots and low-tier parts; more and higher ascensions raise the amount and unlock better items.
+- **Uplink duplication:** a chance that an item beamed by an Uplink arrives as two.
+- **Fabricator duplication:** a chance a craft makes an extra output.
+- **Growing veins:** ore tiles that aren't depleted slowly gain ore over time, above their starting amount.
+- **Tiberium seeds:** every ore patch has one seed tile that never runs out. Ore slowly spreads back out from it to depleted tiles, so a mined-out patch always recovers eventually. Show the seed so players can build around it.
+
 ## Design notes
 - First ascension should pay off fast: second run reaches Grid Charter in roughly a third of the time.
 - Prefer percentages and head starts over skipping content, so runs don't feel samey.

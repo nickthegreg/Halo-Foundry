@@ -216,7 +216,7 @@ function checkMs(){
   buildDock();save();
 }
 function launch(b){
-  const c0=constN(S.petals);S.petals++;sfx('launch',b.x+1.5,b.y+1.5);
+  const c0=constN(S.petals);S.petals++;LAUNCHED++;sfx('launch',b.x+1.5,b.y+1.5);
   if(constN(S.petals)>c0){const n=constN(S.petals);burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showBanner('Constellation '+roman(n)+' complete',`${S.petals} petals in orbit. +1 Commander point: spend it in Menu → Commander. Next constellation at ${constReq(n)}.`);save()}
   PARTS.push({k:'petal',x:b.x+1.5,y:b.y+1.5,vx:(Math.random()-.5)*.4,vy:-1.2,life:3.2,max:3.2});
   const m=MS[S.ms];
@@ -237,7 +237,7 @@ function sim(dt){
     if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):B[b.t].pw;
     if(b.t==='solar')solar+=45*day;
     else if(b.t==='collector')solar+=400*(.25+.75*day);
-    else if(b.t==='filmarray')solar+=160*(.2+.8*day);
+    else if(b.t==='filmarray')solar+=300*(.4+.6*day);
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)){cap+=B[b.t].gen;comb.push(b)}
   }
   const gridOn=S.ms>=MS.length,gmul=1+.1*repLv('harmonics');solar*=gmul*stellarMul();cap*=gmul*burnPow();const base=CORE_GEN*gmul+solar;
@@ -1048,7 +1048,7 @@ function status(b){
     case 'splitter':case 'sorter':return b.hold?['warn','Waiting for room']:['ok','Ready'];
     case 'combustor':return b.load>.01?['ok',`Burning · ${Math.round(b.load*150)} kW`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs carbon'];
     case 'turbine':return b.load>.01?['ok',`Burning · ${fmtW(b.load*1200)}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs carbon'];
-    case 'filmarray':return['ok',`Making ${Math.round(160*(.2+.8*PW.day))} kW`];
+    case 'filmarray':return['ok',`Making ${Math.round(300*(.4+.6*PW.day))} kW`];
     case 'capacitor':return['ok',`${Math.floor(S.charge||0).toLocaleString()} of ${chargeCap().toLocaleString()} MJ stored in all banks`];
     case 'collector':return['ok',`Making ${Math.round(400*(.25+.75*PW.day))} kW`];
     case 'relay':return['ok','Pulse origin'];
@@ -1621,13 +1621,14 @@ function updateResearch(){
 
 // ================= offline progress =================
 // While you're away the factory earns a share of what it was delivering to the Core, without using ore or fuel.
-let AWAY=null;
+let AWAY=null,LAUNCHED=0;
 function offEff(){return Math.min(1,.2+.1*((S.up&&S.up.night)||0))}
 function offCapH(){return 8+4*((S.up&&S.up.haul)||0)}
 function trackRates(d){
   // rolling ~3 minute average of deliveries to the Core and of spare power, per game-second
   const a=1/180;S.dr=S.dr||{};
   for(const k of new Set([...Object.keys(S.dr),...Object.keys(d)])){const v=(S.dr[k]||0)*(1-a)+(d[k]||0)*a;if(v<1e-4)delete S.dr[k];else S.dr[k]=v}
+  S.lr=(S.lr||0)*(1-a)+LAUNCHED*a;LAUNCHED=0;if(S.lr<1e-5)S.lr=0;
   S.dch=(S.dch||0)*(1-a)+(S.ms>=MS.length?Math.max(0,PW.gen-PW.demand)/1000:0)*a;
 }
 function fmtAway(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h}h ${m}m`:`${m} min`}
@@ -1636,11 +1637,15 @@ function grantOffline(sec){
   const t=Math.min(sec,offCapH()*3600),e=offEff(),got={};let any=false;
   for(const k in (S.dr||{})){const n=Math.floor(S.dr[k]*t*e);if(n>0){addInv(k,n);got[k]=n;any=true}}
   let ch=0;if(S.ms>=MS.length&&S.dch>0){ch=Math.max(0,Math.min(chargeCap()-(S.charge||0),S.dch*t*e));S.charge=(S.charge||0)+ch;if(ch>=1)any=true}
+  // Launch Rings keep flinging petals at the same share of their recent rate
+  let pl=0,cg=0;if(S.lr>0){pl=Math.floor(S.lr*t*e);if(pl>0){const c0=constN(S.petals);S.petals+=pl;cg=constN(S.petals)-c0;any=true;
+    const m=MS[S.ms];if(m&&m.launch){S.prog.petal=Math.min(PET_GOAL,(S.prog.petal||0)+pl);checkMs()}}}
   if(!any)return;
   const keys=ITEM_ORDER.filter(k=>got[k]);
   openModal(`<span class="eyebrow">Welcome back</span><h1>Your factory kept going</h1>
   <p>You were away <strong>${fmtAway(sec)}</strong>. It ran at <strong>${Math.round(e*100)}%</strong> while you were gone, without using up ore or fuel.${sec>t?` Offline time counts up to ${offCapH()} hours; Long haul raises that.`:''}</p>
   <div class="ms-req">${keys.map(k=>`<span class="req done"><img src="${ICON[k]}" alt="${ITEMS[k].n}">+${got[k].toLocaleString()}</span>`).join('')}${ch>=1?`<span class="req done">${BOLT}+${Math.floor(ch).toLocaleString()} MJ</span>`:''}</div>
+  ${pl>0?`<p><strong>${pl.toLocaleString()}</strong> sail petal${pl===1?' was':'s were'} launched into orbit (${S.petals.toLocaleString()} now).${cg>0?` <strong>${cg===1?'A Constellation':cg+' Constellations'}</strong> completed: +${cg} Commander point${cg===1?'':'s'} in Menu → Commander.`:''}</p>`:''}
   <button class="btn primary" data-close>Collect</button>`);
   hudTick(true);save();
 }
@@ -1902,7 +1907,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()))}catch(_){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null}catch(_){return null}}
@@ -1915,7 +1920,7 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};
     // players who earned buildings from the old grid ladder get the matching research for free
     for(const id in TECH){const N=TECH[id];if(S.res.done[id]||(!(N.unl||[]).length&&!(N.rec||[]).length))continue;if((N.unl||[]).every(t=>S.unl.includes(t))&&(N.rec||[]).every(k=>S.rec.includes(k)))S.res.done[id]=1}
     S.refined=d.refined||0;speed=testerOK()?(d.speed||1):1;
