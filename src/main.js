@@ -1445,6 +1445,7 @@ function showMenu(){
 function showFinale(){openModal(`<span class="eyebrow">Tutorial complete</span><h1>The halo is lit</h1><p>${PET_GOAL} sail petals now circle the star. From here on, conveyors need construction pulses too, and the Core can send a second pulse at once. Two milestones stand between you and the <strong>Grid Charter</strong>. After that, progress is measured in sustained power, and the ladder has no top.</p><button class="btn primary" data-close>Start the main game</button>`)}
 function testerOK(){try{return localStorage.getItem('halo-foundry-tester')==='1'}catch(_){return false}}
 elCard.addEventListener('submit',e=>{
+  if(e.target.id==='bpNameForm'){e.preventDefault();const no=+e.target.dataset.no,v=($('#bpNameIn').value||'').trim().slice(0,40),a=loadBPS(),x=a.find(q=>q.no===no);if(x&&v){x.name=v;storeBPS(a)}showBlueprints();showToast('Saved as “'+(x?x.name:v)+'”');return}
   if(e.target.id!=='testerForm')return;e.preventDefault();
   const v=($('#testerPw').value||'').trim().toLowerCase();
   if(v==='na'){try{localStorage.setItem('halo-foundry-tester','1')}catch(_){}showMenu();showToast('Tester speed controls unlocked')}
@@ -1471,6 +1472,8 @@ elCard.addEventListener('click',e=>{
     if(cd&&!cd.chWon&&cd.ch!==id&&Date.now()-(titleArm.ch||0)>3000){titleArm.ch=Date.now();b.textContent='Tap again: replaces '+CHALLENGES[cd.ch].n;return}
     startRun(CH_KEY,chData(id));showToast(CHALLENGES[id].n+': '+CHALLENGES[id].d)}
   else if(b.dataset.creward){const k=b.dataset.creward;if(!S.chOffer||!S.chOffer.includes(k))return;META.crelics.push(k);META.ch[S.ch].reward=k;saveMeta();S.chOffer=null;save();closeModal();burst(CX,CY,'#f3c25a',50);sfx('fanfare');showToast(RELICS[k].n+' now works in every main game')}
+  else if(b.dataset.bpren)showBpName(+b.dataset.bpren);
+  else if(b.hasAttribute('data-bplist'))showBlueprints();
   else if(b.hasAttribute('data-ascopen'))showAscension();
   else if(b.hasAttribute('data-relicshow'))showRelicPick();
   else if(b.dataset.relic){const k=b.dataset.relic;if(!S.relicPick||!S.relicPick.includes(k)||!RELICS[k])return;S.relics=S.relics||[];S.relics.push(k);S.relicPick=null;save();closeModal();burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showToast(RELICS[k].n+': '+relicText(k))}
@@ -2071,21 +2074,47 @@ function captureLayout(bs){
 function rotLayout(L){return{w:L.h,h:L.w,items:L.items.map(e=>Object.assign({},e,{dx:L.h-(e.dy+e.w),dy:e.dx,d:(e.d+1)&3}))}}
 function loadBPS(){try{return JSON.parse(localStorage.getItem('halo-foundry-bps')||'[]')}catch(_){return[]}}
 function storeBPS(a){try{localStorage.setItem('halo-foundry-bps',JSON.stringify(a))}catch(_){}}
-function saveBlueprint(L){const a=loadBPS(),n=a.reduce((m,x)=>Math.max(m,x.no||0),0)+1;a.unshift({no:n,name:'Blueprint '+n,L});storeBPS(a.slice(0,40));showToast(`Saved as Blueprint ${n}. It’s under Blueprints in the toolbar.`);sfx('tick')}
+function saveBlueprint(L){const a=loadBPS(),n=a.reduce((m,x)=>Math.max(m,x.no||0),0)+1;a.unshift({no:n,name:bpAutoName(L,n),L});storeBPS(a.slice(0,40));sfx('tick');closeSheet();showBpName(n,true)}
+// A starting name from what the blueprint makes, e.g. "Circuits ×4" or "Smelting line"
+function bpAutoName(L,n){const rec={};let sm=0,dr=0;for(const e of L.items){if(e.rec)rec[e.rec]=(rec[e.rec]||0)+1;if(e.t==='smelter'||e.t==='foundry')sm++;if(e.t==='drill'||e.t==='deepdrill')dr++}
+  const ks=Object.keys(rec).sort((a,b)=>rec[b]-rec[a]);if(ks.length)return ITEMS[ks[0]].n+(rec[ks[0]]>1?' ×'+rec[ks[0]]:'')+(ks.length>1?' +'+(ks.length-1):'');
+  if(sm)return 'Smelting line';if(dr)return 'Mining outpost';return 'Blueprint '+n}
+function showBpName(no,fresh){const x=loadBPS().find(q=>q.no===no);if(!x)return;
+  openModal(`<span class="eyebrow">${fresh?'Blueprint saved':'Rename blueprint'}</span><h1>Name it</h1><form id="bpNameForm" data-no="${no}"><input id="bpNameIn" maxlength="40" autocomplete="off" value="${escAttr(x.name)}" style="width:100%;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--raise);color:var(--text);padding:0 12px;font:inherit;font-size:16px"><div class="actions"><button type="button" class="btn" data-bplist>Skip</button><button type="submit" class="btn primary">Save name</button></div></form><p style="font-size:14px">Find it under Blueprints in the toolbar.</p>`);
+  setTimeout(()=>{const i=$('#bpNameIn');if(i){i.focus();i.select()}},50)}
+function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+// What's inside: buildings with counts, recipes set, sorter filters, batcher ratios, and the cost to place it
+function bpContents(L){
+  const bc={},rec={},filt={},rat=[];
+  for(const e of L.items){bc[e.t]=(bc[e.t]||0)+1;if(e.rec)rec[e.rec]=(rec[e.rec]||0)+1;if(e.t==='sorter'&&e.filter)filt[e.filter]=1;if(e.t==='batcher'&&e.ratio)rat.push(e.ratio)}
+  const conv=(bc.belt||0)+(bc.junction||0),order=TOOLS.filter(t=>bc[t]&&t!=='belt'&&t!=='junction');
+  const lock=order.filter(t=>!isUnl(t));
+  const bchip=t=>`<span class="chip${isUnl(t)?'':' lockchip'}" title="${B[t].n}"><img src="${ICON_B[t]}" alt="${B[t].n}">${bc[t]}<span class="cn">${B[t].n}</span></span>`;
+  let h=`<div class="bprow">${order.map(bchip).join('')}${conv?`<span class="chip" title="Conveyors and crossings"><img src="${ICON_B.belt}" alt="Conveyors">${conv}<span class="cn">Conveyors</span></span>`:''}</div>`;
+  const rk=Object.keys(rec);if(rk.length)h+=`<div class="bprow"><span class="lbl">Makes</span>${rk.map(k=>chip(k,'×'+rec[k])).join('')}</div>`;
+  const fk=Object.keys(filt);if(fk.length)h+=`<div class="bprow"><span class="lbl">Sorts</span>${fk.map(k=>chip(k,'')).join('')}</div>`;
+  if(rat.length)h+=`<div class="bprow"><span class="lbl">Batches</span>${rat.slice(0,3).map(r=>Object.keys(r).map(k=>chip(k,r[k])).join('')).join('<span class="lbl">·</span>')}</div>`;
+  const c=layoutCost(L),ok=canAfford(c);
+  h+=`<div class="bprow"><span class="lbl">Cost</span>${Object.keys(c).map(k=>`<span class="chip${(S.inv[k]||0)>=c[k]?'':' short'}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(c[k])}</span>`).join('')}</div>`;
+  if(lock.length)h+=`<p class="bpwarn">Not unlocked yet: ${lock.map(t=>B[t].n).join(', ')}. Those pieces will be skipped.</p>`;
+  else if(!ok)h+=`<p class="bpwarn">Not enough in storage to place all of it right now.</p>`;
+  return h;
+}
 const BP_COL={foundry:'#ff7a45',fab2:'#b0a6f0',filmarray:'#3d5ac0',capacitor:'#7ff0d0',belt:'#6d66a0',junction:'#9890c8',drill:'#e08a3c',deepdrill:'#f0a050',smelter:'#ff9a45',fab:'#9f95e6',assembler:'#c4baff',refinery:'#c99bff',reactor:'#d8b4ff',combustor:'#ff7a3a',turbine:'#ff8a45',solar:'#5a74d0',collector:'#a6dcff',splitter:'#f3c25a',sorter:'#f3c25a',batcher:'#f3c25a',uplink:'#62d8ff',relay:'#7ff0d0',ring:'#ffd77a'};
 function bpThumb(L){
   const cs=Math.max(3,Math.min(12,Math.floor(240/Math.max(L.w,L.h,1)))),c=document.createElement('canvas');c.width=L.w*cs+8;c.height=L.h*cs+8;const g=c.getContext('2d');
   g.fillStyle='#262342';g.fillRect(0,0,c.width,c.height);
   for(const e of L.items){const x=4+e.dx*cs,y=4+e.dy*cs,s=e.w*cs;g.fillStyle=BP_COL[e.t]||'#7d75b4';
-    if(e.t==='belt'){const v=DIRS[e.d];g.fillRect(x+cs*.3,y+cs*.3,cs*.4,cs*.4);g.fillRect(x+cs*.5+v[0]*cs*.25-cs*.15,y+cs*.5+v[1]*cs*.25-cs*.15,cs*.3,cs*.3)}else g.fillRect(x+.5,y+.5,s-1,s-1)}
+    if(e.t==='belt'){const v=DIRS[e.d];g.fillRect(x+cs*.3,y+cs*.3,cs*.4,cs*.4);g.fillRect(x+cs*.5+v[0]*cs*.25-cs*.15,y+cs*.5+v[1]*cs*.25-cs*.15,cs*.3,cs*.3)}else{g.fillRect(x+.5,y+.5,s-1,s-1);const it=e.rec||(e.t==='sorter'&&e.filter);if(it&&SPR[it]&&s>=8){const q=Math.max(6,s*.8);g.drawImage(SPR[it],x+s/2-q/2,y+s/2-q/2,q,q)}}}
   return c.toDataURL();
 }
 function showBlueprints(){
   const a=loadBPS();
-  const card=(title,L,btns)=>`<div class="ms"><div class="ms-top"><h4>${title}</h4><span class="st">${L.items.length} pieces · ${L.w}×${L.h}</span></div><img class="bpimg" src="${bpThumb(L)}" alt=""><div class="actions">${btns}</div></div>`;
+  const card=(title,L,btns)=>`<div class="ms"><div class="ms-top"><h4>${title}</h4><span class="st">${L.w}×${L.h} tiles</span></div><img class="bpimg" src="${bpThumb(L)}" alt="">${bpContents(L)}<div class="actions">${btns}</div></div>`;
   openModal(`<div class="card-head"><h3>Blueprints</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><div class="ms-list">
   ${CLIP?card('Clipboard',CLIP,'<button class="btn primary" data-bpclip>Paste</button>'):''}
-  ${a.length?a.map((x,i)=>card(x.name,x.L,`<button class="btn primary" data-bpuse="${i}">Place</button><button class="btn danger" data-bpdel="${i}">Delete</button>`)).join(''):'<p>No saved blueprints yet. Pick <strong>Select</strong>, drag a box around buildings, then tap <strong>Save blueprint</strong>.</p>'}</div>`);
+  ${a.length?a.map((x,i)=>card(escHtml(x.name),x.L,`<button class="btn primary" data-bpuse="${i}">Place</button><button class="btn" data-bpren="${x.no}">Rename</button><button class="btn danger" data-bpdel="${i}">Delete</button>`)).join(''):'<p>No saved blueprints yet. Pick <strong>Select</strong>, drag a box around buildings, then tap <strong>Save blueprint</strong>.</p>'}</div>`);
 }
 function startPaste(L){PASTE={L:JSON.parse(JSON.stringify(L)),ax:null,ay:null};closeModal();closeSheet();tool='paste';ROUTE=null;buildDock();updateRot();hudTick(true);showToast('Tap where it should go, then tap Place')}
 function layoutCost(L){const c={},cnt={};for(const e of L.items){const k=costOf(e.t,countOf(e.t)+(cnt[e.t]||0));cnt[e.t]=(cnt[e.t]||0)+1;for(const i in k)c[i]=(c[i]||0)+k[i]}return c}
@@ -2203,7 +2232,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={showTitle,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch};
 let booted=false;
 function boot(data){
   if(booted)return;booted=true;
