@@ -1,8 +1,21 @@
-# Ascension: design ideas (not built yet)
+# Ascension: design notes
 
-Brainstormed 2026-10-19. Nothing here is in the game yet; pick a direction before building.
+Brainstormed 2026-10-19.
 
-## Shape
+## Built (2026-10-21)
+- Unlocks when any Aether is in storage (main game only). Minimums for later ascensions: not decided yet.
+- Starseeds = floor(√(Aether in storage)) at the moment of ascending. Changed from √(Aether/10), which gave 0 for small amounts now that Aether is scarce.
+- New moon starts at the main game (ms = TUT, tutorial unlocks granted), 400 iron + 200 copper.
+- Kept: Ember shards, Nova shards, Starseeds (S.asc), Commander levels and points (S.cmdBank banks Constellations from past moons; S.cmdSpent tracks spend), blueprints, ground style, lifetime Aether refined (drives Refinery cost).
+- Reset: everything else, including all Menu upgrades and petals.
+- Ember scaling (conservative): no extra perk yet. Shards are kept in full; the Fibonacci climb restarts because it counts Deep Drills owned.
+- Commander cost per path level: 1 + floor(level / 2).
+- Nova shards: 1% per Aether burned in a Reactor, first-find popup. No use yet.
+- Starseed shop: not built.
+
+## Original brainstorm
+
+### Shape
 - **Trigger:** a late goal, e.g. Aether Reactors researched or Constellation V. Ascending sends the foundry to a fresh moon (new seed, new ore layout).
 - **Currency: Starseeds.** Earned from lifetime Aether refined on a square-root curve, e.g. `floor(sqrt(aether / 10))`, so longer runs pay more without endless grinding being the only answer. Smaller bonus from petals in orbit or Furnace tier.
 - **Resets:** buildings, inventory, milestones, research, Charge, grid and furnace tiers.

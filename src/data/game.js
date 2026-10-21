@@ -5,12 +5,12 @@ const opp=d=>(d+2)&3;
 const BELT_V=1.75, SP=0.34, DAY_LEN=300, PET_GOAL=40, CORE_GEN=120;
 const SAVE_KEY='halo-foundry-v2';
 
-const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','ember','wafer','film','composite','coil','photonic','lattice'];
+const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','ember','nova','wafer','film','composite','coil','photonic','lattice'];
 const ITEMS={
   ferrite:{n:'Ferrite ore',s:'ferrite'},cuprite:{n:'Cuprite ore',s:'cuprite'},silica:{n:'Silica sand',s:'silica'},carbon:{n:'Carbon',s:'carbon'},
   iron:{n:'Iron ingot',s:'iron'},copper:{n:'Copper ingot',s:'copper'},glass:{n:'Glass',s:'glass'},
   gear:{n:'Gear',s:'gear'},wire:{n:'Wire',s:'wire'},circuit:{n:'Circuit',s:'circuit'},steel:{n:'Steel',s:'steel'},
-  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'}
+  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'},nova:{n:'Nova shard',s:'nova'}
 };
 const ORE_KEYS=[null,'ferrite','cuprite','silica','carbon'];
 const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silica:['#b3a9da','#f6f2ff'],carbon:['#3c3552','#b3a5ef']};
@@ -41,11 +41,11 @@ const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'Moves items one tile at a time. Drag to lay a line that follows your finger. Dragging across another conveyor adds a Crossing.'},
   junction:{n:'Crossing',cost:{iron:3,copper:2},d:'Two conveyor lines pass over each other here. Items leave on the side opposite where they came in.'},
   drill:{n:'Drill',cost:{iron:8,copper:4},pw:12,dir:1,r:1,d:'Mines one ore type from the 3×3 area around it and pushes it out of its bright edge. Patches run dry over time.'},
-  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:3},pw:40,dir:1,r:2,mult:2.5,d:'Mines the 5×5 area around it at 2.5× speed and uses up ore half as fast. Each one costs more Ember shards than the last.'},
+  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:3},pw:40,dir:1,w:2,r:2,mult:2.5,d:'A 2×2 drill that mines the 6×6 area around it at 2.5× speed and uses up ore half as fast. Ore leaves through two slots on its bright edge and two on the back. Each one costs more Ember shards than the last.'},
   smelter:{n:'Smelter',cost:{iron:10},pw:25,dir:1,d:'Melts ferrite, cuprite or silica into ingots and glass. Takes ore from any side.'},
   fab:{n:'Fabricator',cost:{iron:12,copper:8},pw:35,dir:1,d:'Builds the recipe you pick. Feed it the inputs from any side.'},
   fab2:{n:'Fabricator Mk II',cost:{composite:10,servo:4,circuit:30},pw:110,dir:1,w:2,mult:2.5,d:'Runs Fabricator recipes 2.5× as fast. Feed it from any side; output leaves its bright edge.'},
-  foundry:{n:'Foundry',cost:{composite:20,frame:20,steel:100},pw:160,dir:1,w:3,mult:4,d:'Smelts ore 4× as fast as a Smelter and holds far more. One ore type at a time, from any side.'},
+  foundry:{n:'Foundry',cost:{composite:20,frame:20,steel:100},pw:160,dir:1,w:3,mult:4,d:'Smelts ore 4× as fast as a Smelter and holds far more. One ore type at a time, from any side. Output leaves through three slots on its bright edge.'},
   splitter:{n:'Splitter',cost:{iron:4,copper:2},dir:1,d:'Takes in items and shares them forward, left and right in turn.'},
   sorter:{n:'Sorter',cost:{iron:4,circuit:2},dir:1,d:'Your chosen item goes straight ahead. Everything else leaves through the sides.'},
   batcher:{n:'Batcher',cost:{iron:10,gear:6,circuit:2},dir:1,w:2,d:'Holds up to 50 of each item and sends them out in the ratio you set, in whole sets, from two output slots on its bright edge at the same time. Pick a recipe to copy its ratio.'},
@@ -59,7 +59,7 @@ const B={
   collector:{n:'Prism Collector',cost:{prism:12,lens:30,steel:20},gen:400,w:3,d:'Up to 400 kW in daylight and a quarter of that at night.'},
   relay:{n:'Pulse Relay',cost:{steel:10,circuit:10,lens:4},pw:30,d:'Construction pulses for blueprints closer to this relay than to the Core launch from here. Pulses move at 40% speed outside the starting area, so relays out there save a lot of time.'},
   assembler:{n:'Assembler',cost:{frame:20,circuit:40,motor:10},pw:150,dir:1,w:3,d:'A large factory for advanced parts: Processors and Servos. Feed it from any side. Output leaves its bright edge.'},
-  refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether. Starts at 1,000 ore per Aether and gets cheaper with every Aether made, down to 50.'},
+  refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether. Starts at 1,000 ore per Aether and needs 1 ore less for every 1,000 Aether you have ever made, down to 50.'},
   reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:10000,burn:120,w:3,d:'Burns one Aether every 2 minutes for 10 MW. Takes Aether from any side.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
 };
