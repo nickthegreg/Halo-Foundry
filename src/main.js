@@ -292,8 +292,8 @@ function sim(dt){
     switch(b.t){
       case 'drill':case 'deepdrill':{
         const P=ORE_P[b.ore];
-        b.active=b.out<drillCap(b)&&!b.dep;
-        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){if(mineOne(b)){b.prog-=1;b.out++;stat('p',b.ore);sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
+        b.active=b.out<drillCap(b)&&!b.dep&&!b.wait;
+        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){const mo=mineOne(b);if(mo<0){b.prog=1;b.wait=true;b.active=false}else if(mo){b.prog-=1;b.out++;stat('p',b.ore);sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
         if(b.out>0&&(b.t==='deepdrill'?pushPorts(b,b.ore,outPorts(b)):pushDir(b,b.ore,b.d)))b.out--;
         break;}
       case 'junction':
@@ -710,8 +710,8 @@ function seedTick(dt){
   const R=2+ssLv('seedr'),rate=.00002*Math.pow(1.5,ssLv('seedg'))*rp('seed')*t;let grew=false;
   for(const p of SEEDS){const sx=p.seed%W,sy=(p.seed/W)|0;
     for(let y=sy-R;y<=sy+R;y++)for(let x=sx-R;x<=sx+R;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(PATCH[i]!==p.id||RES[i]>=RES0[i])continue;
-      RES[i]=Math.min(RES0[i],RES[i]+RES0[i]*rate);if(!ORE[i]){ORE[i]=p.k;grew=true;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}
-  if(grew)for(const b of S.bs.values())if(b.dep)b.dep=false;
+      RES[i]=Math.min(RES0[i],RES[i]+RES0[i]*rate);if(!ORE[i]&&RES[i]>=2){ORE[i]=p.k;grew=true;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}
+  for(const b of S.bs.values()){if(b.wait)b.wait=false;if(grew&&b.dep)b.dep=false}
 }
 function drawSeeds(g,z){
   if(!SEEDS.length)return;const L=cam.x-VW/z/2-1,Rr=cam.x+VW/z/2+1,T=cam.y-VH/z/2-1,Bt=cam.y+VH/z/2+1,pulse=.6+.4*Math.sin(S.time*2.4);
@@ -735,7 +735,10 @@ function growCore(){
 }
 function deplete(i){ORE[i]=0;RES[i]=0;const x=i%W,y=(i/W)|0,c=CHUNKS.get(((y/CH)|0)*1000+((x/CH)|0));if(c)paintSpentAt(c.getContext('2d'),x%CH,y%CH,x,y)}
 function forReach(b,fn){const k=ORE_KEYS.indexOf(b.ore),r=drillR(b.t),w=b.w||1;for(let y=b.y-r;y<=b.y+w-1+r;y++)for(let x=b.x-r;x<=b.x+w-1+r;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(ORE[i]===k&&RES[i]>0&&!(SEEDT&&SEEDT[i]))fn(i)}}
-function mineOne(b){let bi=-1,bv=0;forReach(b,i=>{if(RES[i]>bv){bv=RES[i];bi=i}});if(bi<0)return false;RES[bi]-=oreUse(b)/veinMul();if(RES[bi]<=.001)deplete(bi);return true}
+function seededTile(i){const p=PATCH&&PATCH[i]>=0?PATCHES[PATCH[i]]:null;return !!(p&&SEEDT[p.seed])}
+// 1 = mined, 0 = nothing left in reach, -1 = a seeded patch is regrowing but no tile holds a whole unit yet
+function mineOne(b){let bi=-1,bv=0;forReach(b,i=>{if(RES[i]>bv){bv=RES[i];bi=i}});if(bi<0)return 0;const use=oreUse(b)/veinMul();
+  if(bv<use&&seededTile(bi))return -1;RES[bi]-=use;if(RES[bi]<=.001){if(seededTile(bi))RES[bi]=Math.max(0,RES[bi]);deplete(bi)}return 1}
 function reachLeft(b){let n=0;forReach(b,i=>n+=RES[i]);return Math.round(n*veinMul()/oreUse(b))}
 function resDiff(){const o=[];if(!RES)return o;for(let i=0;i<RES.length;i++)if(RES[i]!==RES0[i])o.push(i,Math.max(0,Math.round(RES[i]*10)/10));return o}
 function makeStars(){
@@ -1265,7 +1268,7 @@ function status(b){
   const lp=PW.sat<.999,pct=Math.round(PW.sat*100)+'%';
   switch(b.t){
     case 'belt':return['ok',(b.rate||0)>.05?`Moving ${(b.rate||0).toFixed(1)} items/s of ${(BV/SP).toFixed(1)} max`:b.items.length?`Holding ${b.items.length}, not moving`:'Empty'];
-    case 'drill':case 'deepdrill':return b.dep?['bad','Ore in reach used up']:b.out>=drillCap(b)?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
+    case 'drill':case 'deepdrill':return b.wait?['warn','Waiting for ore to regrow']:b.dep?['bad','Ore in reach used up']:b.out>=drillCap(b)?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
     case 'junction':{const n=b.lanes[0].length+b.lanes[1].length;return['ok',n?`Carrying ${n}`:'Empty']}
     case 'smelter':case 'foundry':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];
