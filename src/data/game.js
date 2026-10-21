@@ -137,16 +137,90 @@ const SS={
   trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`}
 };
 const TRICKLE=[['iron','copper'],['glass','gear','wire'],['circuit','steel'],['lens','motor','frame'],['prism','processor','coil']];
-// Relics: one is chosen from three every 3rd ascension. They stack.
+// Relics: permanent bonuses that stack. One is chosen from three every 3rd ascension; rarer ones turn up less often.
+// fx keys are percentages unless noted: spd machines, belt conveyors, solar solar+halo, burn burners, pulse pulses, ember Ember drops,
+// ore ore per tile, off offline output (points), haul offline hours (h), dup duplication (points), core Core power, cap Charge storage,
+// petal kW per petal, drill drill speed, seed seed regrowth, trk trickle rate, smelt smelting, fab fabricating, up Uplink rate,
+// cost building discount, fuel fuel burn time, mj research Charge discount, nova Nova drops, seeds Starseeds per ascension, refine Refinery ore discount
+const RARITY={c:{n:'Common',w:60,col:'#b8b0e6'},r:{n:'Rare',w:28,col:'#6fd0ff'},e:{n:'Epic',w:10,col:'#d08cff'},l:{n:'Legendary',w:2,col:'#f3c25a'}};
 const RELICS={
-  gears:{n:'Relic of Gears',d:'Every machine works 10% faster.'},
-  rails:{n:'Relic of Rails',d:'Conveyors move 25% faster.'},
-  dawn:{n:'Relic of Dawn',d:'Solar power and the halo make 20% more.'},
-  hearth:{n:'Relic of the Hearth',d:'Combustors, Turbine Halls and Reactors make 20% more power.'},
-  courier:{n:'Relic of the Courier',d:'Construction pulses travel 30% faster.'},
-  cinder:{n:'Relic of Cinders',d:'Ember shards drop 50% more often.'},
-  lode:{n:'Relic of the Lode',d:'Ore patches hold 25% more ore.'},
-  dream:{n:'Relic of Dreams',d:'+10% offline output, up to 100%.'}
+  courier:{n:'Courier Wings',r:'c',fx:{pulse:30}},
+  cinder:{n:'Cinder Charm',r:'c',fx:{ember:50}},
+  cog:{n:'Cog of Haste',r:'c',fx:{spd:5}},
+  grease:{n:'Greased Rails',r:'c',fx:{belt:10}},
+  pane:{n:'Sunlit Pane',r:'c',fx:{solar:10}},
+  coals:{n:'Banked Coals',r:'c',fx:{burn:10}},
+  pick:{n:'Prospector’s Pick',r:'c',fx:{ore:10}},
+  lantern:{n:'Night Lantern',r:'c',fx:{off:5}},
+  hourglass:{n:'Pocket Hourglass',r:'c',fx:{haul:2}},
+  spark:{n:'Core Spark',r:'c',fx:{core:25}},
+  coil:{n:'Capacitor Coil',r:'c',fx:{cap:20}},
+  polish:{n:'Petal Polish',r:'c',fx:{petal:10}},
+  bit:{n:'Diamond Bit',r:'c',fx:{drill:10}},
+  bellows:{n:'Smelter’s Bellows',r:'c',fx:{smelt:10}},
+  ratchet:{n:'Fitter’s Ratchet',r:'c',fx:{fab:10}},
+  fuse:{n:'Slow Fuse',r:'c',fx:{fuel:10}},
+  sprout:{n:'Green Sprout',r:'c',fx:{seed:25}},
+  gears:{n:'Relic of Gears',r:'r',fx:{spd:10}},
+  rails:{n:'Relic of Rails',r:'r',fx:{belt:25}},
+  dawn:{n:'Relic of Dawn',r:'r',fx:{solar:20}},
+  hearth:{n:'Relic of the Hearth',r:'r',fx:{burn:20}},
+  lode:{n:'Relic of the Lode',r:'r',fx:{ore:25}},
+  dream:{n:'Relic of Dreams',r:'r',fx:{off:10}},
+  echo:{n:'Twin Echo',r:'r',fx:{dup:3}},
+  lattice:{n:'Charge Lattice',r:'r',fx:{cap:50}},
+  bloom:{n:'Seed Bloom',r:'r',fx:{seed:50}},
+  fountain:{n:'Trickle Fountain',r:'r',fx:{trk:50}},
+  antenna:{n:'Uplink Antenna',r:'r',fx:{up:25}},
+  rule:{n:'Builder’s Rule',r:'r',fx:{cost:5}},
+  quiet:{n:'Quiet Reactor',r:'r',fx:{fuel:20}},
+  pouch:{n:'Starseed Pouch',r:'r',fx:{seeds:10}},
+  crown:{n:'Overclock Crown',r:'e',fx:{spd:20}},
+  mirror:{n:'Halo Mirror',r:'e',fx:{petal:30,solar:10}},
+  crucible:{n:'Ember Crucible',r:'e',fx:{ember:100,burn:10}},
+  motherlode:{n:'Mother Lode',r:'e',fx:{ore:40}},
+  chamber:{n:'Echo Chamber',r:'e',fx:{dup:6}},
+  engine:{n:'Research Engine',r:'e',fx:{mj:20}},
+  novalens:{n:'Nova Lens',r:'e',fx:{nova:50}},
+  stone:{n:'Refiner’s Stone',r:'e',fx:{refine:10}},
+  pulsar:{n:'Pulse Engine',r:'e',fx:{pulse:50,belt:15}},
+  longdream:{n:'Long Dream',r:'e',fx:{off:15,haul:4}},
+  heart:{n:'Heart of the Moon',r:'l',fx:{spd:15,ore:25,core:100}},
+  starforge:{n:'Starforge',r:'l',fx:{burn:30,solar:30}},
+  seam:{n:'Infinite Seam',r:'l',fx:{seed:100,ore:30}},
+  seedcrown:{n:'Seedbearer’s Crown',r:'l',fx:{seeds:25,dup:5}},
+  // Challenge relics: only earned by finishing that challenge
+  sunsigil:{n:'Sunbound Sigil',r:'l',sig:'solar',fx:{solar:50,petal:25}},
+  loom:{n:'Loom of One Thread',r:'l',sig:'nosplit',fx:{belt:40,fab:20}},
+  hands:{n:'Hands of the Maker',r:'l',sig:'handfed',fx:{up:50,dup:5}},
+  eternity:{n:'Hourglass Eternal',r:'l',sig:'speed',fx:{spd:25,pulse:50}},
+  deepcrown:{n:'Deep Crown',r:'l',sig:'deeponly',fx:{drill:40,nova:50}},
+  seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:15,fab:25}}
+};
+const FX_TEXT={spd:'machines {v}% faster',belt:'conveyors {v}% faster',solar:'solar and halo +{v}%',burn:'burner power +{v}%',pulse:'pulses {v}% faster',ember:'Ember drops +{v}%',ore:'+{v}% ore per tile',off:'+{v}% offline output',haul:'+{v} h offline time',dup:'+{v}% duplication',core:'Core power +{v}%',cap:'Charge storage +{v}%',petal:'+{v}% power per petal',drill:'drills {v}% faster',seed:'seeds regrow {v}% faster',trk:'trickle {v}% faster',smelt:'smelting {v}% faster',fab:'fabricating {v}% faster',up:'Uplinks {v}% faster',cost:'buildings {v}% cheaper',fuel:'fuel burns {v}% longer',mj:'research needs {v}% less Charge',nova:'Nova drops +{v}%',seeds:'+{v}% Starseeds when you Ascend',refine:'Refineries need {v}% less ore'};
+function relicText(k){const f=RELICS[k].fx;const t=Object.keys(f).map(q=>FX_TEXT[q].replace('{v}',f[q])).join(', ');return t.charAt(0).toUpperCase()+t.slice(1)+'.'}
+// Moon modifiers: pick one of three (or a plain moon) when you Ascend. seeds = Starseed multiplier when you leave that moon.
+const MODS={
+  rich:{n:'Rich moon',seeds:.75,d:'Every ore patch holds twice as much ore.'},
+  barren:{n:'Barren moon',seeds:1.3,d:'Ore patches hold half as much ore.'},
+  carbon:{n:'Carbon world',seeds:1.2,d:'Carbon patches hold three times as much; cuprite patches hold half.'},
+  longnight:{n:'Long night',seeds:1.25,d:'Nights last much longer and days are short.'},
+  eternal:{n:'Eternal day',seeds:1.15,d:'The sun never sets, but Combustors can’t be built.'},
+  thin:{n:'Thin crust',seeds:1.1,d:'Drills mine 50% faster, but use up ore twice as fast.'},
+  lowg:{n:'Low gravity',seeds:1,d:'Conveyors are 50% faster and pulses twice as fast, but each launch takes 2 sail petals.'},
+  embermoon:{n:'Ember moon',seeds:1.1,d:'Ember shards drop three times as often, but all power is 20% lower.'},
+  unstable:{n:'Unstable core',seeds:1.2,d:'The Core only makes power while the sun is up.'},
+  seeded:{n:'Seeded moon',seeds:1.15,d:'Every ore patch has a seed tile, but patches start with 30% of their ore.'},
+  frontier:{n:'Frontier moon',seeds:1.2,d:'No ore within 24 tiles of the Core, but the map starts at 192×192.'}
+};
+// Challenges: a separate run from the main game's start. Sign the Grid Charter to win, then choose a reward.
+const CHALLENGES={
+  solar:{n:'Solar only',ban:['combustor','turbine','reactor'],d:'No Combustors, Turbine Halls or Reactors.'},
+  nosplit:{n:'One thread',ban:['splitter','sorter'],d:'No Splitters or Sorters.'},
+  handfed:{n:'Hand-fed',ban:['uplink'],d:'No Uplinks: every item reaches the Core by conveyor.'},
+  speed:{n:'Speedrun',limit:7200,d:'Sign the Grid Charter within 2 hours of play.'},
+  deeponly:{n:'Deep roots',ban:['drill'],inv:{ember:40},d:'No basic Drills. You start with 40 Ember shards for Deep Drills.'},
+  minimal:{n:'Minimalist',cap:150,d:'At most 150 buildings, not counting conveyors and crossings.'}
 };
 // Nova workshop: permanent Deep Drill upgrades bought with Nova shards
 const NUP={
@@ -160,4 +234,4 @@ function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).to
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
 
-export {SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};

@@ -1,4 +1,4 @@
-import {SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {CHANGELOG,LATEST} from './data/changelog.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
@@ -9,9 +9,9 @@ if(window.__haloStop)try{window.__haloStop()}catch(_){}
 let STOPPED=false;window.__haloStop=()=>{STOPPED=true;try{window.__haloCtx&&window.__haloCtx.close()}catch(_){}};
 // ================= constants & data =================
 let BV=1.75;
-function mapLim(){let m=64;for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].map)m=RUNGS[i].map;return m}
+function mapLim(){let m=modOn('frontier')?96:64;for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].map)m=Math.max(m,RUNGS[i].map);return m}
 function inLim(x,y){const L=mapLim();return x>=192-L&&y>=192-L&&x<192+L&&y<192+L}
-function refRatio(){return Math.max(50,1000-Math.floor((S.refined||0)/1000))}
+function refRatio(){return Math.max(50,Math.round((1000-Math.floor((S.refined||0)/1000))*(1-Math.min(.5,relStat('refine')/100))))}
 
 // ================= rng =================
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -37,7 +37,7 @@ function pay(c,sg){for(const k in c)S.inv[k]=(S.inv[k]||0)+sg*c[k]}
 function missing(c){const m=[];for(const k in c){const h=S.inv[k]||0;if(h<c[k])m.push((c[k]-h)+' '+ITEMS[k].s)}return m.join(', ')}
 function countOf(t){let n=0;for(const b of S.bs.values())if(b.t===t)n++;return n}
 // Anything priced in Ember shards climbs Fibonacci-style with each one you own: 3, 5, 8, 13…
-function costOf(t,n){const c=Object.assign({},B[t].cost||{});if(c.ember){let a=c.ember,b=Math.round(c.ember*5/3);const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a}const off=Math.min(.5,.05*cmdLv('architect'));if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
+function costOf(t,n){const c=Object.assign({},B[t].cost||{});if(c.ember){let a=c.ember,b=Math.round(c.ember*5/3);const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a}const off=Math.min(.5,.05*cmdLv('architect')+relStat('cost')/100);if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
 // Upgrade costs: hand-set early levels, then each further level costs the last one times `grow`
 function tierCost(T,grow,L){if(L<T.length)return T[L];const c={},m=Math.pow(grow,L-T.length+1),last=T[T.length-1];for(const k in last)c[k]=Math.round(last[k]*m/10)*10;return c}
 const BELT_COST=[{ember:5},{ember:50},{ember:500},{ember:5000},{aether:1000},{aether:4000,ember:20000},{aether:20000,ember:80000,servo:2000}];
@@ -53,19 +53,34 @@ const UPG={
 function ssLv(k){return (S&&S.ss&&S.ss[k])||0}
 function nupLv(k){return (S&&S.nup&&S.nup[k])||0}
 function relN(k){let n=0;for(const r of (S&&S.relics)||[])if(r===k)n++;return n}
+// ---------- account-wide profile (challenge results, challenge relics, daily bests) ----------
+const META_KEY='halo-foundry-meta';
+const SLOT_KEYS=[SAVE_KEY,SAVE_KEY+'-s2',SAVE_KEY+'-s3'],DAILY_KEY=SAVE_KEY+'-daily',CH_KEY=SAVE_KEY+'-ch';
+let META=(()=>{try{return JSON.parse(localStorage.getItem(META_KEY)||'{}')||{}}catch(_){return{}}})();
+META.ch=META.ch||{};META.crelics=META.crelics||[];META.daily=META.daily||{};
+let CUR=[...SLOT_KEYS,DAILY_KEY,CH_KEY].includes(META.last)?META.last:SAVE_KEY;
+function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(META))}catch(_){}}
+function mode(){return (S&&S.mode)||'campaign'}
+function isCamp(){return mode()==='campaign'}
+function modOn(k){return !!(S&&S.mod===k)}
+function chal(){return S&&S.ch?CHALLENGES[S.ch]:null}
+// Sum of one relic stat over this game's relics, plus challenge relics (main game only)
+function relStat(k){let v=0;const add=r=>{const f=RELICS[r]&&RELICS[r].fx;if(f&&f[k])v+=f[k]};for(const r of (S&&S.relics)||[])add(r);if(isCamp())for(const r of META.crelics)add(r);return v}
+function rp(k){return 1+relStat(k)/100}
+function banned(t){const c=chal();return !!((c&&c.ban&&c.ban.includes(t))||(t==='combustor'&&modOn('eternal')))}
 function ascN(){return (S&&S.asc&&S.asc.n)||0}
 function lifeSeeds(){return (S&&S.asc&&S.asc.total)||0}
 // Every Starseed ever earned: +1% ore per tile, +1% duplication for Fabricators and Uplinks (capped at 100%)
-function dupP(){return Math.min(1,.01*lifeSeeds())}
-function coreKW(){return CORE_GEN*(1+.2*ascN())}
+function dupP(){return Math.min(1,.01*lifeSeeds()+relStat('dup')/100)}
+function coreKW(){return CORE_GEN*(1+.2*ascN())*rp('core')}
 function drillR(t){return B[t].r+(t==='deepdrill'?nupLv('reach'):0)}
-function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)}
-function oreUse(b){return b.t==='deepdrill'?.5*Math.pow(.85,nupLv('thrift')):1}
-function veinMul(){return Math.pow(1.5,(S.up&&S.up.vein)||0)*(1+.01*lifeSeeds())*(1+.25*relN('lode'))}
+function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)}
+function oreUse(b){return (b.t==='deepdrill'?.5*Math.pow(.85,nupLv('thrift')):1)*(modOn('thin')?2:1)}
+function veinMul(){return Math.pow(1.5,(S.up&&S.up.vein)||0)*(1+.01*lifeSeeds())*rp('ore')}
 // Every Menu upgrade level compounds the halo: ×1.01 per level
 function upTotal(){let n=0;for(const k in (S.up||{}))n+=S.up[k]||0;return n}
 function haloMul(){return Math.pow(1.01,upTotal())}
-function petalKW(){return (S.res&&S.res.done.mirrors?24:8)*haloMul()}
+function petalKW(){return (S.res&&S.res.done.mirrors?24:8)*haloMul()*rp('petal')}
 // Constellations and Commander points
 function constN(p){let i=0;while(p>=constReq(i))i++;return i}
 function cmdLv(k){return (S&&S.cmd&&S.cmd[k])||0}
@@ -74,12 +89,12 @@ function cmdLevels(c){let n=0;for(const k in (c||{}))n+=c[k]||0;return n}
 function cmdPts(){return Math.max(0,(S.cmdBank||0)+ascN()+constN(S.petals)-(S.cmdSpent||0))}
 function cmdCost(k){return 1+Math.floor(cmdLv(k)/2)}
 function roman(n){const T=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];let s='';for(const [v,c] of T)while(n>=v){s+=c;n-=v}return s}
-function stellarMul(){return (1+.1*cmdLv('stellar'))*(1+.2*relN('dawn'))}
+function stellarMul(){return (1+.1*cmdLv('stellar'))*rp('solar')}
 // Furnace ladder perks, summed over every tier reached
 function fPerk(k){let v=0;for(let i=0;i<(S.ft||0);i++)v+=frung(i)[k]||0;return v}
-function burnPow(){return (1+fPerk('pow'))*(1+.2*relN('hearth'))}
-function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))}
-function emberChance(){return .02*(1+fPerk('ember'))*(1+.5*relN('cinder'))}
+function burnPow(){return (1+fPerk('pow'))*rp('burn')}
+function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
+function emberChance(){return .02*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
 function toolTip(t){const d=B[t];return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))}${d.pw?' · '+d.pw+' kW':''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
 function costStr(c){return Object.keys(c).map(k=>c[k]+' '+ITEMS[k].s).join(' · ')}
 function addInv(t,n){S.inv[t]=(S.inv[t]||0)+(n||1);S.seen[t]=1}
@@ -111,6 +126,8 @@ function drillType(x,y,r,w){
 function place(t,x,y,d,free,oreForce){
   const w=B[t].w||1;
   for(let j=0;j<w;j++)for(let i=0;i<w;i++){const xx=x+i,yy=y+j;if(xx<0||yy<0||xx>=W||yy>=H||S.grid[yy*W+xx])return 'blocked';if(!free&&!inLim(xx,yy))return 'frontier';if(!free&&SEEDT&&SEEDT[yy*W+xx])return 'seed'}
+  if(!free&&banned(t))return 'banned';
+  if(!free&&chal()&&chal().cap&&t!=='belt'&&t!=='junction'&&bCount()>=chal().cap)return 'cap';
   let ore=null;if(B[t].r){ore=oreForce||drillType(x,y,drillR(t),w);if(!ore)return 'ore'}
   if(!free&&B[t].cost){const c=costOf(t);if(!canAfford(c))return 'cost';pay(c,-1)}
   const b=Object.assign({id:S.nid++,t,x,y,d:d|0,w},init(t));
@@ -210,11 +227,13 @@ function batPush(b,t,i){const o=batOut(b,i),nb=at(o[0],o[1]);if(!nb||nb===b)retu
 function edgeTile(b,d,i){const w=b.w||1;return d===1?[b.x+w,b.y+i]:d===3?[b.x-1,b.y+i]:d===0?[b.x+i,b.y-1]:[b.x+i,b.y+w]}
 function pushPorts(b,t,ports){const n=ports.length,s=(b.rr||0)%n;for(let k=0;k<n;k++){const i=(s+k)%n,[d,j]=ports[i],o=edgeTile(b,d,j),nb=at(o[0],o[1]);if(nb&&nb!==b&&accept(nb,t,opp(d))){b.rr=(i+1)%n;return true}}return false}
 function outPorts(b){return b.t==='deepdrill'?[[b.d,0],[opp(b.d),0],[b.d,1],[opp(b.d),1]]:b.t==='foundry'?[[b.d,0],[b.d,1],[b.d,2]]:null}
+function bCount(){let n=0;for(const b of S.bs.values())if(b.t!=='belt'&&b.t!=='junction'&&b.t!=='core')n++;return n}
 function drillCap(b){return b.t==='deepdrill'?4:2}
 function pushDir(b,t,d){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||nb===b)return false;return accept(nb,t,opp(d))}
 
 function deliver(t,quiet){
   stat('d',t);S.flags.del++;S.seen[t]=1;if(!quiet)sfx('core',CX,CY);
+  if(S.mode==='daily'&&S.time<DAILY_LEN)S.dscore=(S.dscore||0)+(VAL[t]||1);
   const m=MS[S.ms];
   if(m&&!m.launch&&m.req[t]&&(S.prog[t]||0)<m.req[t]){S.prog[t]=(S.prog[t]||0)+1;checkMs()}
   else addInv(t);
@@ -243,10 +262,10 @@ function launch(b){
 
 // ================= simulation =================
 function dayPhase(){return (S.time/DAY_LEN+0.18)%1}
-function daylight(){return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*1.3+0.5))}
+function daylight(){if(modOn('eternal'))return 1;return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*1.3+(modOn('longnight')?-.15:.5)))}
 
 function sim(dt){
-  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*(1+.25*relN('rails'));
+  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1);
   const day=daylight();
   let demand=0,solar=S.petals*petalKW(),cap=0;const comb=[];
   for(const b of S.bs.values()){
@@ -258,13 +277,13 @@ function sim(dt){
     else if(b.t==='filmarray')solar+=300*(.4+.6*day);
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)){cap+=B[b.t].gen;comb.push(b)}
   }
-  const gridOn=S.ms>=MS.length,gmul=1+.1*repLv('harmonics');solar*=gmul*stellarMul();cap*=gmul*burnPow();const base=coreKW()*gmul+solar;
+  const gridOn=S.ms>=MS.length,gmul=(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1);solar*=gmul*stellarMul();cap*=gmul*burnPow();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
   const sat0=demand>0?Math.min(1,gen/demand):1;
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load};
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
-  for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');c.energy+=B[c.t].burn*fuelMul();if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
+  for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');c.energy+=B[c.t].burn*fuelMul();if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
   if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick()}
   stepPulses(dt);seedTick(dt);trickleTick(dt);
 
@@ -287,7 +306,7 @@ function sim(dt){
       case 'smelter':case 'foundry':
         if(!b.run&&b.inN>0&&b.outN<(b.t==='foundry'?16:4)&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=SMELT_T[b.inT];stat('c',b.inT);b.inN--;if(!b.inN)b.inT=null}
         b.active=b.run;
-        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)/(b.ct||1);if(b.prog>=1){b.run=false;b.outT=b.cur;b.outN++;stat('p',b.cur);sfx('smelt',b.x+.5,b.y+.5)}}
+        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('smelt')/(b.ct||1);if(b.prog>=1){b.run=false;b.outT=b.cur;b.outN++;stat('p',b.cur);sfx('smelt',b.x+.5,b.y+.5)}}
         b.heat+=((b.run?sat:0)-b.heat)*Math.min(1,dt*2.5);
         if(b.outN>0&&(b.t==='foundry'?pushPorts(b,b.outT,outPorts(b)):pushDir(b,b.outT,b.d))){b.outN--;if(!b.outN)b.outT=null}
         break;
@@ -298,7 +317,7 @@ function sim(dt){
           if(ok){for(const k in r.in){b.buf[k]-=r.in[k];stat('c',k,r.in[k])}b.run=true;b.prog=0}
         }
         b.active=b.run;
-        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)/r.t;b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;b.outN+=r.out;stat('p',b.rec,r.out);if(Math.random()<dupP()){b.outN+=r.out;stat('p',b.rec,r.out)}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
+        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')/r.t;b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;b.outN+=r.out;stat('p',b.rec,r.out);if(Math.random()<dupP()){b.outN+=r.out;stat('p',b.rec,r.out)}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
         if(r&&b.outN>0&&pushDir(b,b.rec,b.d))b.outN--;
         break;}
       case 'batcher':{
@@ -331,8 +350,8 @@ function sim(dt){
         if(b.active){b.prog+=dt*sat*uplinkRate(b);while(b.prog>=1&&b.q.length){const t=b.q.shift();deliver(t);if(Math.random()<dupP())deliver(t,true);b.prog-=1}if(!b.q.length)b.prog=0}
         break;
       case 'ring':
-        b.active=b.n>0;b.ang+=dt*(b.active?sat*1.2:0.15);
-        if(b.active){b.prog+=dt*sat/2.5;if(b.prog>=1){b.prog=0;b.n--;stat('c','petal');launch(b)}}
+        {const need=modOn('lowg')?2:1;b.active=b.n>=need;b.ang+=dt*(b.active?sat*1.2:0.15);
+        if(b.active){b.prog+=dt*sat/2.5;if(b.prog>=1){b.prog=0;b.n-=need;stat('c','petal',need);launch(b)}}}
         break;
       case 'refinery':{
         const ratio=refRatio();b.active=b.n>0||b.run;
@@ -355,13 +374,13 @@ function sim(dt){
 }
 
 // ================= construction pulses & grid ladder =================
-function pulseSpd(){let v=11*(1+.3*relN('courier'));for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].spd)v*=RUNGS[i].spd;return v}
+function pulseSpd(){let v=11*rp('pulse')*(modOn('lowg')?2:1);for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].spd)v*=RUNGS[i].spd;return v}
 // Uplinks: 4 items/s beside the Core, slowing with distance, while power draw climbs 3 kW per tile
 function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
-function uplinkRate(b){return 4/(1+Math.max(0,coreDist(b)-3)/8)}
+function uplinkRate(b){return 4*rp('up')/(1+Math.max(0,coreDist(b)-3)/8)}
 function uplinkPw(b){return Math.round(60+3*coreDist(b))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)}
-function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.1*relN('gears'))}
+function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*rp('spd')}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -423,8 +442,9 @@ function climbFurnace(){
 
 // ================= ascension =================
 // Available once any Aether sits in storage. Starseeds = floor(√Aether in storage).
-function canAscend(){return S.ms>=MS.length&&(S.inv.aether||0)>=1}
-function ascSeeds(){return Math.floor(Math.sqrt(S.inv.aether||0))}
+function canAscend(){return isCamp()&&S.ms>=MS.length&&(S.inv.aether||0)>=1}
+function modSeedMul(){return S.mod&&MODS[S.mod]?MODS[S.mod].seeds:1}
+function ascSeeds(){return Math.floor(Math.sqrt(S.inv.aether||0)*rp('seeds')*modSeedMul())}
 function ascMenu(){
   const A=S.asc||{n:0,seeds:0};if(!canAscend()&&!A.n&&!lifeSeeds())return '';
   return `<div class="sec-label">Ascension${A.n?' · '+A.n+' so far':''}</div>
@@ -440,13 +460,15 @@ function showAscension(){
   const card=(title,eff,desc,right)=>`<div class="ms cur"><div class="ms-top"><h4>${title}</h4><span class="st">${eff}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${desc}</div>${right||''}</div></div>`;
   let h=`<div class="card-head"><h3>Ascension</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
   <p><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend · ${T.toLocaleString()} earned in all · ${n} ascension${n===1?'':'s'}</p>
+  ${S.mod&&MODS[S.mod]?`<p style="font-size:14px">This moon: <strong>${MODS[S.mod].n}</strong>. ${MODS[S.mod].d} Starseeds ×${MODS[S.mod].seeds} when you leave.</p>`:''}
   <div class="sec-label">Always on</div><div class="ms-list">
   ${card('Starseeds earned',T+' total',`Every Starseed you have ever earned: +1% ore in every tile (+${T}% now), and +1% chance that a Fabricator makes an extra batch or an Uplink beams an item twice (${Math.round(dupP()*100)}% now).`)}
   ${card('Ascensions',n+' so far',`Each ascension gives +1 Commander point and +20% Core power (${fmtW(coreKW())} now). Every 3rd ascension you choose a Relic; the next is at ascension ${(Math.floor(n/3)+1)*3}.`)}
   </div>`;
   if(S.relicPick)h+=`<div class="actions"><button class="btn primary" data-relicshow>Choose your Relic</button></div>`;
   const rc={};for(const r of S.relics||[])rc[r]=(rc[r]||0)+1;
-  if(Object.keys(rc).length)h+=`<div class="sec-label">Relics</div><div class="ms-list">${Object.keys(rc).map(k=>card(RELICS[k].n,rc[k]>1?'×'+rc[k]:'',RELICS[k].d)).join('')}</div>`;
+  if(META.crelics.length)for(const r of META.crelics)rc[r]=(rc[r]||0)+1;
+  if(Object.keys(rc).length)h+=`<div class="sec-label">Relics · ${Object.values(rc).reduce((a,b)=>a+b,0)}</div><div class="ms-list">${Object.keys(rc).sort((a,b)=>'lerc'.indexOf(RELICS[a].r)-'lerc'.indexOf(RELICS[b].r)).map(k=>card(relicTitle(k),(rc[k]>1?'×'+rc[k]+' · ':'')+RARITY[RELICS[k].r].n,relicText(k)+(RELICS[k].sig?' From the '+CHALLENGES[RELICS[k].sig].n+' challenge; works in every main game.':''))).join('')}</div>`;
   h+=`<div class="sec-label">Starseed shop</div><div class="ms-list">${Object.keys(SS).map(k=>{const u=SS[k],L=ssLv(k),mx=L>=u.max,lock=u.req&&!ssLv(u.req),c=mx?0:u.cost(L),ok=!mx&&!lock&&A.seeds>=c;
     let d=u.d;if(k==='trkT')d+=` Now: ${L?trickleItems().map(i=>ITEMS[i].n).join(', '):'nothing'}.${L<TRICKLE.length?' Next adds '+TRICKLE[L].map(i=>ITEMS[i].n).join(', ')+'.':''}`;
     if(k==='seedv'&&L)d+=` ${SEEDS.length} seed${SEEDS.length===1?'':'s'} on this moon.`;
@@ -455,23 +477,89 @@ function showAscension(){
     return card(`${u.n} · level ${L}`,u.eff(L),d,mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-ss="${k}">✦ ${c}</button>`)}).join('')}</div>`;
   const g=ascSeeds();
   h+=`<div class="sec-label">Ascend</div>`+(canAscend()?`<p style="font-size:14px">Start again on a new moon, at the start of the main game. You keep Ember shards, Nova shards and Nova upgrades, Starseeds and the shop, Relics, your Commander, and blueprints. Everything else resets: buildings, storage, research, Menu upgrades, petals and tiers. You get √(Aether in storage) Starseeds: ${(S.inv.aether||0).toLocaleString()} Aether gives ${g}.</p>
-  <div class="actions"><button class="btn primary" data-ascend>Ascend for +${g} Starseed${g===1?'':'s'}</button></div>`:'<p style="font-size:14px">Store some Aether to Ascend again.</p>');
+  <div class="actions"><button class="btn primary" data-ascend>Ascend for +${g} Starseed${g===1?'':'s'} →</button></div>`:'<p style="font-size:14px">Store some Aether to Ascend again.</p>');
   openModal(h);
 }
-function relicOffer(){const ks=Object.keys(RELICS),o=[];while(o.length<3){const k=ks[Math.random()*ks.length|0];if(!o.includes(k))o.push(k)}return o}
+function relicTitle(k){return `<span style="color:${RARITY[RELICS[k].r].col}">${RELICS[k].n}</span>`}
+// Three different Relics, weighted by rarity; challenge relics never come from here
+function relicOffer(rar){const ks=Object.keys(RELICS).filter(k=>!RELICS[k].sig&&(!rar||RELICS[k].r===rar)),o=[];
+  while(o.length<3&&o.length<ks.length){let tot=0;const pool=ks.filter(k=>!o.includes(k));for(const k of pool)tot+=RARITY[RELICS[k].r].w;let x=Math.random()*tot;for(const k of pool){x-=RARITY[RELICS[k].r].w;if(x<=0){o.push(k);break}}}return o}
+function relicCard(k,btn){return `<div class="ms cur"><div class="ms-top"><h4>${relicTitle(k)}</h4><span class="st" style="color:${RARITY[RELICS[k].r].col}">${RARITY[RELICS[k].r].n}${relN(k)?' · owned ×'+relN(k):''}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${relicText(k)}</div>${btn}</div></div>`}
 function showRelicPick(){
   const P=S.relicPick;if(!P)return;
-  openModal(`<span class="eyebrow">Ascension ${ascN()} · Relic</span><h1>Choose a Relic</h1><p>Relics are permanent and stack with each other.</p><div class="ms-list">${P.map(k=>`<div class="ms cur"><div class="ms-top"><h4>${RELICS[k].n}</h4>${relN(k)?`<span class="st">Owned ×${relN(k)}</span>`:''}</div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${RELICS[k].d}</div><button class="btn primary" style="flex:none;padding:0 16px" data-relic="${k}">Take</button></div></div>`).join('')}</div>`);
+  openModal(`<span class="eyebrow">Ascension ${ascN()} · Relic</span><h1>Choose a Relic</h1><p>Relics are permanent and stack with each other.</p><div class="ms-list">${P.map(k=>relicCard(k,`<button class="btn primary" style="flex:none;padding:0 16px" data-relic="${k}">Take</button>`)).join('')}</div>`);
 }
-function doAscend(){
-  const A=S.asc||{n:0,seeds:0,total:0},got=ascSeeds(),inv={iron:400,copper:200};
+function showMoonPick(){
+  const ks=Object.keys(MODS),o=[];while(o.length<3){const k=ks[Math.random()*ks.length|0];if(!o.includes(k))o.push(k)}
+  const g=n=>Math.floor(Math.sqrt(S.inv.aether||0)*rp('seeds')*modSeedMul());
+  openModal(`<span class="eyebrow">Ascension ${ascN()+1}</span><h1>Choose your next moon</h1><p>You get <strong>${g()} Starseed${g()===1?'':'s'}</strong> now. The moon you pick changes how many you earn when you leave it.</p><div class="ms-list">${o.map(k=>`<div class="ms cur"><div class="ms-top"><h4>${MODS[k].n}</h4><span class="st">Starseeds ×${MODS[k].seeds}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${MODS[k].d}</div><button class="btn primary" style="flex:none;padding:0 16px" data-moon="${k}">Go</button></div></div>`).join('')}
+  <div class="ms cur"><div class="ms-top"><h4>Plain moon</h4><span class="st">Starseeds ×1</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">No modifier.</div><button class="btn" style="flex:none;padding:0 16px" data-moon="">Go</button></div></div></div>
+  <div class="actions"><button class="btn" data-ascopen>Back</button></div>`);
+}
+function doAscend(mod){
+  const A=S.asc||{n:0,seeds:0,total:0},got=ascSeeds(),inv={iron:400,copper:200};mod=mod&&MODS[mod]?mod:null;
   for(const k of ['ember','nova'])if(S.inv[k]>0)inv[k]=S.inv[k];
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv,ms:TUT,prog:{},petals:0,gt:0,gavg:0,ft:0,favg:0,
     cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
     up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,nova:S.flags.nova,ascHint:1},refined:S.refined||0,seen:S.seen,bs:[],fromCode:1,
-    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:(A.n+1)%3===0?relicOffer():S.relicPick||null};
+    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:(A.n+1)%3===0?relicOffer():S.relicPick||null,mod};
   start(d);cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,'#d8b4ff',60);sfx('fanfare');
-  setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p><p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
+  setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p>${mod?`<p>This moon: <strong>${MODS[mod].n}</strong>. ${MODS[mod].d}</p>`:''}<p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
+}
+
+// ================= main menu, daily moon, challenges =================
+const DAILY_LEN=3600;
+// Daily score: each item delivered to the Core is worth roughly the raw ore that went into it
+const VAL=(()=>{const v={ferrite:1,cuprite:1,silica:1,carbon:1,aether:50,ember:5,nova:100};for(const o in SMELT)v[SMELT[o]]=2;
+  const calc=k=>{if(v[k]!=null)return v[k];const r=RECIPES[k];if(!r)return v[k]=1;v[k]=1;let s=0;for(const i in r.in)s+=calc(i)*r.in[i];return v[k]=Math.round((s/r.out+1)*10)/10};
+  for(const k in RECIPES)calc(k);return v})();
+function whenIdle(fn){const go=()=>{if(!elModal.hidden){setTimeout(go,800);return}fn()};setTimeout(go,600)}
+function fmtClock(s){s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')}
+function hashStr(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function dailyToday(){const n=new Date(),date=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`,seed=hashStr('halo-daily-'+date),ks=Object.keys(MODS);return{date,seed:seed%1e9,mod:ks[seed%ks.length]}}
+function runData(o){return{v:1,wv:3,dd2:1,seed:o.seed!=null?o.seed:(Math.random()*1e9|0),inv:Object.assign({iron:400,copper:200},o.inv||{}),ms:TUT,prog:{},petals:0,gt:0,gavg:0,up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,ascHint:1},seen:{},bs:[],fromCode:1,mode:o.mode,mod:o.mod||null,ch:o.ch||null,daily:o.daily||null}}
+function dailyData(){const T=dailyToday();return runData({mode:'daily',daily:T.date,seed:T.seed,mod:T.mod})}
+function chData(id){return runData({mode:'challenge',ch:id,inv:CHALLENGES[id].inv})}
+function readSlot(k){try{const s=localStorage.getItem(k);return s?JSON.parse(s):null}catch(_){return null}}
+function useSlot(k){if(S)save();CUR=k;META.last=k;saveMeta()}
+function startRun(k,d){useSlot(k);start(d);cam.x=CX;cam.y=CY;save();closeModal()}
+function playSlot(k){useSlot(k);const d=readSlot(k);start(d,!d);if(!d)save();closeModal();if(!d)showToast('New game started')}
+function slotLabel(k){if(k===DAILY_KEY)return 'Daily moon';if(k===CH_KEY){const d=readSlot(k);return 'Challenge'+(d&&d.ch&&CHALLENGES[d.ch]?': '+CHALLENGES[d.ch].n:'')}return 'Slot '+(SLOT_KEYS.indexOf(k)+1)}
+function slotSummary(d){if(!d)return 'Empty';const ms=d.ms||0;
+  return `${ms<TUT?`Tutorial ${ms+1}/${TUT}`:ms<MS.length?MS[ms].n:'Grid tier '+((d.gt||0)+1)}${d.asc&&d.asc.n?' · Ascension '+d.asc.n:''}${d.mod&&MODS[d.mod]?' · '+MODS[d.mod].n:''} · ${fmtAway(d.time||0)} played`}
+let titleArm={};
+function showTitle(){
+  const T=dailyToday(),dd=readSlot(DAILY_KEY),dToday=dd&&dd.daily===T.date,best=META.daily[T.date]||0,cd=readSlot(CH_KEY);
+  const row=(title,st,desc,btns)=>`<div class="ms cur"><div class="ms-top"><h4>${title}</h4><span class="st">${st}</span></div><div class="ms-unl">${desc}</div>${btns?`<div class="actions">${btns}</div>`:''}</div>`;
+  let h=`<span class="eyebrow">A moon, a star, a factory</span><h1>Halo Foundry</h1>
+  <div class="actions"><button class="btn primary" data-mm="cont">Continue · ${slotLabel(CUR)}</button></div>
+  <div class="sec-label">Main game</div><div class="ms-list">${SLOT_KEYS.map((k,i)=>{const d=readSlot(k);return row(`Slot ${i+1}${k===CUR?' · current':''}`,'',slotSummary(d),(d?`<button class="btn${k===CUR?'':' primary'}" data-slot="${i}">Play</button>`:'')+`<button class="btn${d?' danger':' primary'}" data-slotnew="${i}">${d?'New game':'Start'}</button>`)}).join('')}</div>
+  <div class="sec-label">Daily moon · ${T.date}</div><div class="ms-list">${row(MODS[T.mod].n,best?'Best '+Math.floor(best).toLocaleString():'No score yet',`Everyone gets the same moon today. Start at the main game and deliver as much as you can to the Core in ${DAILY_LEN/60} minutes of play; better parts score more. ${MODS[T.mod].d}${dToday?` In progress: ${Math.floor(dd.dscore||0).toLocaleString()} points, ${fmtClock(Math.max(0,DAILY_LEN-(dd.time||0)))} left.`:''}`,`<button class="btn primary" data-daily>${dToday?'Continue':'Play today’s moon'}</button>`)}</div>
+  <div class="sec-label">Challenges</div><p style="font-size:14px">Start at the main game with no bonuses and sign the Grid Charter under one rule. The first win in each lets you choose a Relic that works in every main game.</p><div class="ms-list">${Object.keys(CHALLENGES).map(id=>{const c=CHALLENGES[id],m=META.ch[id],cur=cd&&cd.ch===id;
+    return row(c.n,m&&m.done?`Won${m.best?' · best '+fmtClock(m.best):''}`:cur?'In progress':'',c.d+(m&&m.reward?` Reward: ${RELICS[m.reward].n}.`:''),`<button class="btn${cur?' primary':''}" data-chal="${id}">${cur?'Continue':'Start'}</button>`)}).join('')}</div>
+  <div class="sec-label">More</div><div class="actions"><button class="btn" data-savecode>Save code</button><button class="btn" data-news>What's new</button><button class="btn" data-help>How to play</button></div>`;
+  openModal(h);
+}
+// Win or lose a challenge; finish the daily; called from the HUD tick
+function runTick(){
+  const c=chal();
+  if(c&&!S.chWon&&!S.chFail){
+    if(c.limit&&S.time>c.limit){S.chFail=true;save();openModal(`<span class="eyebrow">Challenge · ${c.n}</span><h1>Out of time</h1><p>The Grid Charter wasn’t signed within ${fmtClock(c.limit)}. You can keep building here, or restart the run from the main menu.</p><div class="actions"><button class="btn" data-close>Keep building</button><button class="btn primary" data-chal="${S.ch}" data-fresh="1">Try again</button></div>`)}
+    else if(S.ms>=MS.length){S.chWon=true;const id=S.ch,m=META.ch[id]||{},first=!m.done;m.done=1;m.best=m.best?Math.min(m.best,S.time):S.time;META.ch[id]=m;saveMeta();save();
+      if(first){const sig=Object.keys(RELICS).find(k=>RELICS[k].sig===id);S.chOffer=[sig,...relicOffer('e').slice(0,2)];save();whenIdle(showChReward)}
+      else whenIdle(()=>openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Charter signed</h1><p>Time: <strong>${fmtClock(S.time)}</strong>. Best: ${fmtClock(m.best)}. You already took this challenge’s reward.</p><button class="btn primary" data-close>Nice</button>`))}
+  }
+  if(S.mode==='daily'&&S.daily){
+    if((S.dscore||0)>(META.daily[S.daily]||0)){META.daily[S.daily]=Math.floor(S.dscore);const ks=Object.keys(META.daily).sort();while(ks.length>30)delete META.daily[ks.shift()];saveMeta()}
+    if(!S.dEnd&&S.time>=DAILY_LEN){S.dEnd=true;save();whenIdle(()=>openModal(`<span class="eyebrow">Daily moon · ${S.daily}</span><h1>Time’s up</h1><p>You scored <strong>${Math.floor(S.dscore||0).toLocaleString()}</strong> points. Today’s best: ${Math.floor(META.daily[S.daily]||0).toLocaleString()}.</p><p>You can keep building; the score is final.</p><button class="btn primary" data-close>Keep building</button>`))}
+  }
+}
+function showChReward(){const c=chal(),o=S.chOffer;if(!c||!o)return;
+  openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Choose your reward</h1><p>Signed in ${fmtClock(S.time)}. Pick one Relic. It works in every main game, in every slot.</p><div class="ms-list">${o.map(k=>relicCard(k,`<button class="btn primary" style="flex:none;padding:0 16px" data-creward="${k}">Take</button>`)).join('')}</div>`)}
+function runLabel(){
+  if(S.mode==='daily')return S.dEnd?`Daily · final ${Math.floor(S.dscore||0).toLocaleString()}`:`Daily · ${fmtClock(DAILY_LEN-S.time)} · ${Math.floor(S.dscore||0).toLocaleString()} pts`;
+  const c=chal();if(c)return c.n+(S.chWon?' · won':S.chFail?' · out of time':c.limit?' · '+fmtClock(c.limit-S.time):'');
+  return '';
 }
 
 // ================= world gen =================
@@ -516,6 +604,12 @@ function genWorld(seed){
   for(let k=1;k<=4;k++)for(let i=0;i<(k===4?5:6);i++)outer(k,72,110,4.5,7.5,1.6);
   for(let k=1;k<=4;k++)for(let i=0;i<(k===4?6:8);i++)outer(k,110,150,6,9,2.2);
   for(let k=1;k<=4;k++)for(let i=0;i<10;i++)outer(k,150,260,7,11,3);
+  // moon modifiers that change the ground
+  const md=S&&S.mod;
+  if(md)for(let i=0;i<W*H;i++){const k=ORE[i];if(!k)continue;let m=1;
+    if(md==='rich')m=2;else if(md==='barren')m=.5;else if(md==='seeded')m=.3;else if(md==='carbon')m=k===4?3:k===2?.5:1;
+    else if(md==='frontier'&&Math.max(Math.abs(i%W+.5-CX),Math.abs(((i/W)|0)+.5-CY))<24){ORE[i]=0;RES[i]=0;continue}
+    RES[i]=Math.max(1,Math.round(RES[i]*m))}
   RES0=RES.slice();
   CHUNKS.clear();
   buildPatches();
@@ -607,13 +701,13 @@ function buildPatches(){
   refreshSeeds();
 }
 function refreshSeeds(){
-  if(!PATCHES.length)return;const pct=.1*ssLv('seedv');SEEDS=[];
+  if(!PATCHES.length)return;const pct=modOn('seeded')?1:.1*ssLv('seedv');SEEDS=[];
   for(const p of PATCHES){const on=p.h<pct;SEEDT[p.seed]=on?1:0;if(on){SEEDS.push(p);if(!ORE[p.seed]){ORE[p.seed]=p.k;RES[p.seed]=RES0[p.seed];const x=p.seed%W,y=(p.seed/W)|0;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}
 }
 // Once a second each seed tops tiles in its reach back up toward their starting amount, restoring mined-out tiles
 function seedTick(dt){
   seedAcc+=dt;if(seedAcc<1)return;const t=seedAcc;seedAcc=0;if(!SEEDS.length)return;
-  const R=2+ssLv('seedr'),rate=.0001*Math.pow(1.5,ssLv('seedg'))*t;let grew=false;
+  const R=2+ssLv('seedr'),rate=.0001*Math.pow(1.5,ssLv('seedg'))*rp('seed')*t;let grew=false;
   for(const p of SEEDS){const sx=p.seed%W,sy=(p.seed/W)|0;
     for(let y=sy-R;y<=sy+R;y++)for(let x=sx-R;x<=sx+R;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(PATCH[i]!==p.id||RES[i]>=RES0[i])continue;
       RES[i]=Math.min(RES0[i],RES[i]+RES0[i]*rate);if(!ORE[i]){ORE[i]=p.k;grew=true;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}
@@ -627,7 +721,7 @@ function drawSeeds(g,z){
 }
 // ---------- trickle production ----------
 function trickleItems(){return TRICKLE.slice(0,ssLv('trkT')).flat()}
-function trickleRate(){return 6*Math.pow(1.5,ssLv('trkR'))/60}
+function trickleRate(){return 6*Math.pow(1.5,ssLv('trkR'))*rp('trk')/60}
 function trickleTick(dt){const ks=trickleItems();if(!ks.length)return;S.trk=S.trk||{};const r=trickleRate()*dt;for(const k of ks){S.trk[k]=(S.trk[k]||0)+r;while(S.trk[k]>=1){S.trk[k]-=1;deliver(k,true)}}}
 // ---------- Core size ----------
 function coreWant(){return 3+2*ssLv('core')}
@@ -1076,7 +1170,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||S.unl.includes(t);
+const isUnl=t=>t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.map(t=>{
@@ -1089,6 +1183,7 @@ let tipOverride='',tipUntil=0;
 function setTool(t){
   if(t==='blueprints'){showBlueprints();return}
   ROUTE=null;
+  if(banned(t)){showToast(`${B[t].n} can’t be used ${chal()?'in this challenge':'on this moon'}`);return}
   if(!isUnl(t)){const i=MS.findIndex(m=>m.unl.includes(t));if(i>=0)showToast(`${B[t].n} unlocks with ${MS[i].n}`);else{const tk=Object.keys(TECH).find(k=>(TECH[k].unl||[]).includes(t));showToast(tk?`${B[t].n} comes from research: ${TECH[tk].n}`:`${B[t].n} is still locked`)}return}
   tool=(tool===t&&t!=='inspect')?'inspect':t;sfx('tick');
   const k=S.newT.indexOf(t);if(k>=0)S.newT.splice(k,1);
@@ -1139,6 +1234,7 @@ function hudTick(force){
     $('#goalEyebrow').textContent=cur?'Researching':'Research';$('#goalName').textContent=cur?techName(cur):'Tap to choose';
     $('#goalReqs').classList.toggle('rs',S.ms>=MS.length);$('#goalReqs').innerHTML=cur?techHudChips(cur):'<span class="req">Pick what to research next</span>';
   }
+  runTick();{const L=runLabel();if(L)$('#goalEyebrow').textContent=L}
   if(!S.flags.ascHint&&canAscend()){S.flags.ascHint=1;showBanner('Ascension unlocked','You have Aether in storage. Open Menu → Ascension to start a new moon and earn Starseeds.');save()}
   if(S.bs&&coreWant()>3){const c=coreB();if(c&&c.w<coreWant())growCore()}
   // grid and furnace ladder markers
@@ -1344,7 +1440,7 @@ function showMenu(){
   <div class="actions"><button class="btn" data-stats>Production</button><button class="btn" data-savecode>Save code</button></div>
   <div class="actions"><button class="btn${bneck?' primary':''}" data-bneck>Bottleneck markers: ${bneck?'on':'off'}</button></div>
   <div class="actions"><button class="btn" data-news>What's new</button><button class="btn" data-help>How to play</button></div>
-  <div class="actions"><button class="btn danger" data-reset>Start over</button></div>`);
+  <div class="actions"><button class="btn" data-mm="title">Main menu</button><button class="btn danger" data-reset>${isCamp()?'Start over':'Restart run'}</button></div>`);
 }
 function showFinale(){openModal(`<span class="eyebrow">Tutorial complete</span><h1>The halo is lit</h1><p>${PET_GOAL} sail petals now circle the star. From here on, conveyors need construction pulses too, and the Core can send a second pulse at once. Two milestones stand between you and the <strong>Grid Charter</strong>. After that, progress is measured in sustained power, and the ladder has no top.</p><button class="btn primary" data-close>Start the main game</button>`)}
 function testerOK(){try{return localStorage.getItem('halo-foundry-tester')==='1'}catch(_){return false}}
@@ -1364,14 +1460,26 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.tech){const id=b.dataset.tech;S.res.cur=S.res.cur===id?null:id;sfx('tick');showResearch();hudTick(true)}
   else if(b.hasAttribute('data-stats'))showStats();
   else if(b.dataset.cmd){const k=b.dataset.cmd,u=CMD[k];if(!u)return;if(u.max&&cmdLv(k)>=u.max)return;const ct=cmdCost(k);if(cmdPts()<ct){showToast(`Needs ${ct} Commander point${ct===1?'':'s'}. Complete Constellations to earn more.`);return}S.cmd=S.cmd||{};S.cmdSpent=(S.cmdSpent||0)+ct;S.cmd[k]=cmdLv(k)+1;save();showMenu();showToast(u.n+' is now level '+S.cmd[k])}
+  else if(b.dataset.mm==='cont')closeModal();
+  else if(b.dataset.mm==='title'){save();showTitle()}
+  else if(b.dataset.slot!=null){playSlot(SLOT_KEYS[+b.dataset.slot])}
+  else if(b.dataset.slotnew!=null){const k=SLOT_KEYS[+b.dataset.slotnew];if(readSlot(k)&&Date.now()-(titleArm[k]||0)>3000){titleArm[k]=Date.now();b.textContent='Tap again to erase';return}
+    useSlot(k);try{localStorage.removeItem(k)}catch(_){}start(null,true);save();closeModal();showToast('New game in Slot '+(+b.dataset.slotnew+1))}
+  else if(b.hasAttribute('data-daily')){const T=dailyToday(),dd=readSlot(DAILY_KEY);if(dd&&dd.daily===T.date)playSlot(DAILY_KEY);else startRun(DAILY_KEY,dailyData())}
+  else if(b.dataset.chal){const id=b.dataset.chal,cd=readSlot(CH_KEY);if(!CHALLENGES[id])return;
+    if(cd&&cd.ch===id&&!b.dataset.fresh){playSlot(CH_KEY);return}
+    if(cd&&!cd.chWon&&cd.ch!==id&&Date.now()-(titleArm.ch||0)>3000){titleArm.ch=Date.now();b.textContent='Tap again: replaces '+CHALLENGES[cd.ch].n;return}
+    startRun(CH_KEY,chData(id));showToast(CHALLENGES[id].n+': '+CHALLENGES[id].d)}
+  else if(b.dataset.creward){const k=b.dataset.creward;if(!S.chOffer||!S.chOffer.includes(k))return;META.crelics.push(k);META.ch[S.ch].reward=k;saveMeta();S.chOffer=null;save();closeModal();burst(CX,CY,'#f3c25a',50);sfx('fanfare');showToast(RELICS[k].n+' now works in every main game')}
   else if(b.hasAttribute('data-ascopen'))showAscension();
   else if(b.hasAttribute('data-relicshow'))showRelicPick();
-  else if(b.dataset.relic){const k=b.dataset.relic;if(!S.relicPick||!S.relicPick.includes(k)||!RELICS[k])return;S.relics=S.relics||[];S.relics.push(k);S.relicPick=null;save();closeModal();burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showToast(RELICS[k].n+': '+RELICS[k].d)}
+  else if(b.dataset.relic){const k=b.dataset.relic;if(!S.relicPick||!S.relicPick.includes(k)||!RELICS[k])return;S.relics=S.relics||[];S.relics.push(k);S.relicPick=null;save();closeModal();burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showToast(RELICS[k].n+': '+relicText(k))}
   else if(b.dataset.ss){const k=b.dataset.ss,u=SS[k];if(!u)return;const L=ssLv(k);if(L>=u.max)return;if(u.req&&!ssLv(u.req)){showToast('Needs '+SS[u.req].n+' first');return}const c=u.cost(L);if(S.asc.seeds<c){showToast(`Needs ${c} Starseeds`);return}
     S.asc.seeds-=c;S.ss=S.ss||{};S.ss[k]=L+1;if(k==='seedv')refreshSeeds();if(k==='core'&&!growCore())showToast('Clear the tiles around the Core and it will grow');save();showAscension();sfx('tick')}
   else if(b.dataset.nup){const k=b.dataset.nup,u=NUP[k];if(!u)return;const L=nupLv(k);if(L>=u.max)return;const c=u.cost(L);if((S.inv.nova||0)<c){showToast(`Needs ${c} Nova shard${c===1?'':'s'}`);return}
     S.inv.nova-=c;S.nup=S.nup||{};S.nup[k]=L+1;for(const q of S.bs.values())if(q.t==='deepdrill')q.dep=false;save();showMenu();showToast(u.n+' is now level '+S.nup[k])}
-  else if(b.hasAttribute('data-ascend')){if(!canAscend())return;if(Date.now()-(b._arm||0)<3000)doAscend();else{b._arm=Date.now();b.textContent='Tap again to Ascend'}}
+  else if(b.hasAttribute('data-ascend')){if(canAscend())showMoonPick()}
+  else if(b.dataset.moon!==undefined){if(canAscend())doAscend(b.dataset.moon||null)}
   else if(b.hasAttribute('data-savecode'))showSaveCode();
   else if(b.hasAttribute('data-bneck')){bneck=!bneck;try{localStorage.setItem('halo-foundry-bneck',bneck?'1':'0')}catch(_){}showMenu()}
   else if(b.hasAttribute('data-copycode')){const o=$('#codeOut'),v=o.value;if(!v.startsWith('HF'))return;const sel=()=>{o.focus();o.select();showToast('Code selected. Copy it from here.')};try{navigator.clipboard.writeText(v).then(()=>showToast('Save code copied'),sel)}catch(_){sel()}}
@@ -1385,7 +1493,7 @@ elCard.addEventListener('click',e=>{
   else if(b.hasAttribute('data-help'))showHelp();
   else if(b.hasAttribute('data-news'))showNews();
   else if(b.hasAttribute('data-reset')){
-    if(Date.now()-resetArm<3000){try{localStorage.removeItem(SAVE_KEY)}catch(_){}start(null,true);closeModal();showToast('New world generated')}
+    if(Date.now()-resetArm<3000){if(S.mode==='daily'){startRun(DAILY_KEY,dailyData());showToast('Daily moon restarted')}else if(S.mode==='challenge'){const c=S.ch;startRun(CH_KEY,chData(c));showToast('Challenge restarted')}else{try{localStorage.removeItem(CUR)}catch(_){}start(null,true);closeModal();showToast('New world generated')}}
     else{resetArm=Date.now();b.textContent='Tap again to wipe';setTimeout(()=>{if(b.isConnected)b.innerHTML='Start over'},3000)}
   }
 });
@@ -1690,15 +1798,16 @@ function eraseTo(sx,sy){
 // Spare power fills a Charge bank (MJ). Research draws Charge and items from storage together; it finishes when both are paid.
 // Ongoing research ("rep:<id>") can be done again and again; each level costs more and it keeps going on its own.
 let RES_OPEN=false,resN=0;
-function chargeCap(){let c=200;for(const b of S.bs.values())if(b.t==='capacitor'&&!b.bp)c+=B.capacitor.cap;return c}
+function chargeCap(){let c=200;for(const b of S.bs.values())if(b.t==='capacitor'&&!b.bp)c+=B.capacitor.cap;return Math.round(c*rp('cap'))}
 function repLv(k){return (S.res&&S.res.lv&&S.res.lv[k])||0}
 function isRep(id){return id.startsWith('rep:')}
 function techName(id){if(isRep(id)){const k=id.slice(4);return `${REPEAT[k].n} ${repLv(k)+1}`}return TECH[id].n}
 function techCost(id){
-  if(!isRep(id))return{mj:TECH[id].mj,items:TECH[id].items};
+  const md=1-Math.min(.5,relStat('mj')/100);
+  if(!isRep(id))return{mj:Math.round(TECH[id].mj*md),items:TECH[id].items};
   const k=id.slice(4),R=REPEAT[k],n=repLv(k),set=R.sets[n%R.sets.length],m=Math.pow(R.igrow,n),items={};
   for(const i in set)items[i]=Math.max(1,Math.round(set[i]*m));
-  return{mj:Math.round(R.mj*Math.pow(R.grow,n)),items};
+  return{mj:Math.round(R.mj*Math.pow(R.grow,n)*md),items};
 }
 function techOpen(N){return S.ms>=MS.length&&S.gt>=N.t-1}
 function techReady(id){if(isRep(id))return S.ms>=MS.length&&!!REPEAT[id.slice(4)];const N=TECH[id];return !S.res.done[id]&&techOpen(N)&&(N.req||[]).every(r=>S.res.done[r])}
@@ -1763,8 +1872,8 @@ function updateResearch(){
 // ================= offline progress =================
 // While you're away the factory earns a share of what it was delivering to the Core, without using ore or fuel.
 let AWAY=null,LAUNCHED=0;
-function offEff(){return Math.min(1,.2+.1*((S.up&&S.up.night)||0)+.1*relN('dream'))}
-function offCapH(){return 8+4*((S.up&&S.up.haul)||0)}
+function offEff(){return Math.min(1,.2+.1*((S.up&&S.up.night)||0)+relStat('off')/100)}
+function offCapH(){return 8+4*((S.up&&S.up.haul)||0)+relStat('haul')}
 function trackRates(d){
   // rolling ~3 minute average of deliveries to the Core and of spare power, per game-second
   const a=1/180;S.dr=S.dr||{};
@@ -1774,7 +1883,7 @@ function trackRates(d){
 }
 function fmtAway(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h}h ${m}m`:`${m} min`}
 function grantOffline(sec){
-  if(!S||sec<60)return;
+  if(!S||sec<60||!isCamp())return;
   const t=Math.min(sec,offCapH()*3600),e=offEff(),got={};let any=false;
   for(const k in (S.dr||{})){const n=Math.floor(S.dr[k]*t*e);if(n>0){addInv(k,n);got[k]=n;any=true}}
   let ch=0;if(S.ms>=MS.length&&S.dch>0){ch=Math.max(0,Math.min(chargeCap()-(S.charge||0),S.dch*t*e));S.charge=(S.charge||0)+ch;if(ch>=1)any=true}
@@ -1990,7 +2099,7 @@ function placeLayout(){
   const order=[...L.items].sort((p,q)=>((p.t==='belt'||p.t==='junction')?1:0)-((q.t==='belt'||q.t==='junction')?1:0));
   for(const e of order){const r=place(e.t,ax+e.dx,ay+e.dy,e.d);if(typeof r==='object'){ok++;if(e.rec&&(e.t==='fab'||e.t==='fab2'||e.t==='assembler'))r.rec=e.rec;if(e.filter&&e.t==='sorter')r.filter=e.filter;if(e.t==='splitter'&&e.pri!=null)r.pri=e.pri;if(e.ratio&&e.t==='batcher')r.ratio=Object.assign({},e.ratio)}else fail[r]=(fail[r]||0)+1}
   flushStroke();sfx(ok?'place':'err');
-  const why={seed:'seed tile',blocked:'no room',cost:'not enough materials',ore:'no ore in reach',frontier:'beyond the frontier'};
+  const why={banned:'not allowed',cap:'building limit',seed:'seed tile',blocked:'no room',cost:'not enough materials',ore:'no ore in reach',frontier:'beyond the frontier'};
   const sk=Object.keys(fail).map(k=>`${fail[k]} ${why[k]||k}`).join(', ');
   showToast(`Placed ${ok} of ${L.items.length}`+(sk?` · skipped: ${sk}`:''));
   PASTE.ax=null;updatePasteBar();hudTick(true);
@@ -2040,6 +2149,8 @@ function tap(sx,sy){
   const r=place(tool,px,py,rot);sfx(typeof r==='object'?'place':'err');
   if(r==='blocked')showToast('No room here');
   else if(r==='ore')showToast('Drills need ore within reach');
+  else if(r==='banned')showToast(`${B[tool].n} can’t be used ${chal()?'in this challenge':'on this moon'}`);
+  else if(r==='cap')showToast(`Building limit reached: ${chal().cap} buildings, not counting conveyors`);
   else if(r==='seed')showToast('That’s a seed tile. Nothing can be built on it, but drills next to it can mine the ore it regrows.');
   else if(r==='frontier')showToast('Beyond the frontier. Climb grid tiers to open more of the moon.');
   else if(r==='cost')showToast('Need '+missing(costOf(tool))+' more');
@@ -2049,20 +2160,20 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
-function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()))}catch(_){}}
-function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null}catch(_){return null}}
+function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}}
+function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
 function start(data,forceNew){
   let d=forceNew?null:(data&&data.v?data:load());
   const seed=d?d.seed:(Math.random()*1e9|0);
-  S=fresh(seed);genWorld(seed);
+  S=fresh(seed);if(d){S.mode=d.mode||'campaign';S.mod=d.mod&&MODS[d.mod]?d.mod:null;S.ch=d.ch&&CHALLENGES[d.ch]?d.ch:null;S.daily=d.daily||null}genWorld(seed);
   place('core',191,191,0,true);
   if(d){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick:null;S.trk=ob(d.trk,{});refreshSeeds();
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick:null;S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;refreshSeeds();
     // players who earned buildings from the old grid ladder get the matching research for free
     for(const id in TECH){const N=TECH[id];if(S.res.done[id]||(!(N.unl||[]).length&&!(N.rec||[]).length))continue;if((N.unl||[]).every(t=>S.unl.includes(t))&&(N.rec||[]).every(k=>S.rec.includes(k)))S.res.done[id]=1}
     S.refined=d.refined||0;speed=testerOK()?(d.speed||1):1;
@@ -2073,7 +2184,7 @@ function start(data,forceNew){
     if(d.cam){cam.x=d.cam.x+OFF;cam.y=d.cam.y+OFF;cam.z=d.cam.z}
   }else{cam.x=CX;cam.y=CY;cam.z=Math.max(18,Math.min(36,Math.min(VW,VH)/20))}
   growCore();tool='inspect';sel=null;elSheet.hidden=true;recalc();dirty=false;buildDock();updateRot();hudTick(true);
-  if(d&&d.savedAt&&!d.fromCode)setTimeout(()=>grantOffline((Date.now()-d.savedAt)/1000),400);
+  if(d&&d.savedAt&&!d.fromCode){const away=(Date.now()-d.savedAt)/1000;whenIdle(()=>grantOffline(away))}
   return !d;
 }
 
@@ -2092,15 +2203,17 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={showTitle,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch};
 let booted=false;
 function boot(data){
   if(booted)return;booted=true;
   resize();makeStars();makeSprites();makeBuildingIcons();
   const isNew=start(data);
-  if(S.relicPick)setTimeout(()=>{if(elModal.hidden&&S.relicPick)showRelicPick()},1500);
   let seenIntro=false;try{seenIntro=!!localStorage.getItem(SAVE_KEY+'-intro')}catch(_){}
   if(isNew&&!seenIntro){showWelcome();try{localStorage.setItem(SAVE_KEY+'-intro','1')}catch(_){}}
+  else showTitle();
+  if(S.relicPick)whenIdle(()=>{if(S.relicPick)showRelicPick()});
+  if(S.chOffer)whenIdle(showChReward);
   const sn=seenN();
   if(isNew||sn>=LATEST)markSeen();
   else setTimeout(()=>{const go=()=>{if(!elModal.hidden){setTimeout(go,1000);return}showNews(sn||LATEST-1)};go()},900);

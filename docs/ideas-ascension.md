@@ -16,7 +16,10 @@ Brainstormed 2026-10-19.
 - Lifetime Starseeds: +1% ore per tile each; +1% Fabricator (all types) and Uplink duplication each, capped at 100%. Anti-scaling still to do.
 - Per ascension: +1 Commander point, +20% Core power. Relic every 3rd ascension, pick 1 of 3 (`RELICS`, stackable).
 - Nova workshop (`NUP`): Deep Drill bore (+20% speed), reach (+1 tile each side, max 2), thrift (×0.85 ore used), cooling (−25% power, max 3). Permanent.
-- Not built yet: moon modifiers (planned at 1st ascension), challenges (5th), growing non-depleted veins.
+- Moon modifiers (`MODS`): pick 1 of 3 or a plain moon on every ascension; Starseed multiplier applies when leaving that moon.
+- Relics: 51 (`RELICS`, rarity weights in `RARITY`); 6 are challenge-only and live in META.crelics, applying to every main-game slot.
+- Challenges (`CHALLENGES`) and the Daily moon are separate slots starting at the main game with no bonuses; no offline progress there.
+- Not built yet: growing non-depleted veins, puzzles, Commander mode, endless frontier, daily leaderboard (local best only).
 
 ## Original brainstorm
 
