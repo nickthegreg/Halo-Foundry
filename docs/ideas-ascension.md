@@ -60,7 +60,7 @@ Brainstormed 2026-10-19. Nothing here is in the game yet; pick a direction befor
 - **Uplink duplication:** a chance that an item beamed by an Uplink arrives as two.
 - **Fabricator duplication:** a chance a craft makes an extra output.
 - **Growing veins:** ore tiles that aren't depleted slowly gain ore over time, above their starting amount.
-- **Tiberium seeds:** every ore patch has one seed tile that never runs out. Ore slowly spreads back out from it to depleted tiles, so a mined-out patch always recovers eventually. Show the seed so players can build around it.
+- **Tiberium seeds:** every ore patch has one seed tile that never runs out. Ore slowly spreads back out from it to depleted tiles, so a mined-out patch always recovers eventually. The seed tile is unbuildable (no drills or anything else on it), and clearly marked so players plan around it. Drills next to it still mine the regrowing tiles around it.
 
 ## Design notes
 - First ascension should pay off fast: second run reaches Grid Charter in roughly a third of the time.
