@@ -127,9 +127,37 @@ const CMD={
   ember:{n:'Ember',d:'Carbon and Aether burn 10% longer per point.'},
   architect:{n:'Architect',max:10,d:'Buildings cost 5% less per point, up to 50% off.'}
 };
+// Starseed shop: permanent perks bought with Starseeds. They survive Ascension.
+const SS={
+  seedv:{n:'Seed veins',max:10,cost:L=>Math.round(3*Math.pow(1.5,L)),d:'Each level gives 10% more ore patches a seed tile. A seed tile never runs out, can’t be built on, and slowly regrows the ore around it, even on tiles that were mined out.',eff:L=>`${L*10}% of patches`},
+  seedg:{n:'Seed growth',req:'seedv',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Seeds regrow ore 50% faster per level.',eff:L=>`×${Math.pow(1.5,L).toFixed(2)} speed`},
+  seedr:{n:'Seed reach',req:'seedv',max:3,cost:L=>[4,8,16][L],d:'Seeds regrow ore one tile farther out per level, from 2 tiles around the seed up to 5.',eff:L=>`${2+L} tiles out`},
+  core:{n:'Core size',max:2,cost:L=>[8,20][L],d:'The Core grows to 5×5, then 7×7, so more lines can feed it. It grows as soon as the tiles around it are clear.',eff:L=>`${3+2*L}×${3+2*L}`},
+  trkT:{n:'Trickle: items',max:5,cost:L=>[2,4,8,16,32][L],d:'The Core makes items on its own, as if they were delivered. Each level adds better items.',eff:L=>`tier ${L}`},
+  trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`}
+};
+const TRICKLE=[['iron','copper'],['glass','gear','wire'],['circuit','steel'],['lens','motor','frame'],['prism','processor','coil']];
+// Relics: one is chosen from three every 3rd ascension. They stack.
+const RELICS={
+  gears:{n:'Relic of Gears',d:'Every machine works 10% faster.'},
+  rails:{n:'Relic of Rails',d:'Conveyors move 25% faster.'},
+  dawn:{n:'Relic of Dawn',d:'Solar power and the halo make 20% more.'},
+  hearth:{n:'Relic of the Hearth',d:'Combustors, Turbine Halls and Reactors make 20% more power.'},
+  courier:{n:'Relic of the Courier',d:'Construction pulses travel 30% faster.'},
+  cinder:{n:'Relic of Cinders',d:'Ember shards drop 50% more often.'},
+  lode:{n:'Relic of the Lode',d:'Ore patches hold 25% more ore.'},
+  dream:{n:'Relic of Dreams',d:'+10% offline output, up to 100%.'}
+};
+// Nova workshop: permanent Deep Drill upgrades bought with Nova shards
+const NUP={
+  bore:{n:'Nova bore',max:10,cost:L=>1+L,d:'Deep Drills mine 20% faster per level.',eff:L=>`+${L*20}% speed`},
+  reach:{n:'Nova reach',max:2,cost:L=>[3,8][L],d:'Deep Drills reach one tile farther in every direction: 6×6, then 8×8, then 10×10.',eff:L=>`${6+2*L}×${6+2*L}`},
+  thrift:{n:'Nova thrift',max:5,cost:L=>2+L,d:'Deep Drills use up ore 15% slower per level, so patches last longer.',eff:L=>`×${Math.pow(.85,L).toFixed(2)} ore used`},
+  cool:{n:'Nova cooling',max:3,cost:L=>1+L,d:'Deep Drills draw 25% less power per level.',eff:L=>`${40*(1-.25*L)} kW each`}
+};
 function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-2;return{kw:6000*Math.pow(3,k),n:'Overclock '+k,oc:1,d:'Every machine works 10% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
 
-export {CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
