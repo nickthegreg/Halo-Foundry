@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:15,date:'2026-10-21',title:'Slower seed regrowth',items:[
+    'Seed tiles now regrow ore 80% slower. A mined-out tile takes about 14 hours to refill fully at base speed. Seed growth upgrades still speed it up by 50% per level.'
+  ]},
   {n:14,date:'2026-10-21',title:'Clearer blueprints',items:[
     'Name your blueprints: you’re asked for a name when you save one, with a suggestion based on what it makes, and you can Rename them any time.',
     'The blueprint list now shows what’s inside: each building with its count, what the Fabricators make, Sorter filters and Batcher ratios, and the full cost to place it. Costs you can’t afford yet turn orange.',

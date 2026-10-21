@@ -707,7 +707,7 @@ function refreshSeeds(){
 // Once a second each seed tops tiles in its reach back up toward their starting amount, restoring mined-out tiles
 function seedTick(dt){
   seedAcc+=dt;if(seedAcc<1)return;const t=seedAcc;seedAcc=0;if(!SEEDS.length)return;
-  const R=2+ssLv('seedr'),rate=.0001*Math.pow(1.5,ssLv('seedg'))*rp('seed')*t;let grew=false;
+  const R=2+ssLv('seedr'),rate=.00002*Math.pow(1.5,ssLv('seedg'))*rp('seed')*t;let grew=false;
   for(const p of SEEDS){const sx=p.seed%W,sy=(p.seed/W)|0;
     for(let y=sy-R;y<=sy+R;y++)for(let x=sx-R;x<=sx+R;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(PATCH[i]!==p.id||RES[i]>=RES0[i])continue;
       RES[i]=Math.min(RES0[i],RES[i]+RES0[i]*rate);if(!ORE[i]){ORE[i]=p.k;grew=true;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}

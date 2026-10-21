@@ -12,7 +12,7 @@ Brainstormed 2026-10-19.
 - Commander cost per path level: 1 + floor(level / 2).
 - Nova shards: 1% per Aether burned in a Reactor, first-find popup. No use yet.
 - Starseed shop (built 2026-10-21, data in `SS` in game.js): Seed veins (10%/level of patches, max 10), Seed growth (×1.5/level), Seed reach (2→5 tiles), Core size (5×5, 7×7; grows when the ring is clear), Trickle items (5 tiers in `TRICKLE`), Trickle rate (6/min ×1.5/level).
-- Seeds: richest tile of each 4-connected patch; on if hash < Seed veins %. Regrow 0.01% of start amount per tile per second × growth, capped at the start amount. Unbuildable (except buildings already there).
+- Seeds: richest tile of each 4-connected patch; on if hash < Seed veins %. Regrow 0.002% of start amount per tile per second (cut 80% on 2026-10-21) × growth, capped at the start amount. Unbuildable (except buildings already there).
 - Lifetime Starseeds: +1% ore per tile each; +1% Fabricator (all types) and Uplink duplication each, capped at 100%. Anti-scaling still to do.
 - Per ascension: +1 Commander point, +20% Core power. Relic every 3rd ascension, pick 1 of 3 (`RELICS`, stackable).
 - Nova workshop (`NUP`): Deep Drill bore (+20% speed), reach (+1 tile each side, max 2), thrift (×0.85 ore used), cooling (−25% power, max 3). Permanent.
