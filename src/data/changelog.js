@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:25,date:'2026-10-22',title:'Harder challenges',items:[
+    'Challenges have real goals now. Solar only, One thread, Speedrun, Deep roots and Minimalist: refine your first Aether. Speedrun still gives you 2 hours.',
+    'Hand-fed: deliver 1,000 of every item up to Aether to the Core, 23 kinds including raw ore, all by conveyor. Tap the top bar during the run to see each item’s progress.',
+    'One thread now bans Batchers too.',
+    'Challenges you’ve already won stay won. Runs in progress switch to the new goal.'
+  ]},
   {n:24,date:'2026-10-22',title:'Relic balance',items:[
     'Cinder Charm now gives +25% Ember drops (was +50%). Green Sprout now makes seeds regrow 20% faster (was 25%).',
     'Challenge Relics are half as strong: Sunbound Sigil, Loom of One Thread, Hands of the Maker, Hourglass Eternal, Deep Crown and Minimalist’s Seal. Ones you already own change too.'

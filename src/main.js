@@ -1,4 +1,4 @@
-import {RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {CHANGELOG,LATEST} from './data/changelog.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
@@ -236,6 +236,7 @@ function pushDir(b,t,d){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||nb==
 function deliver(t,quiet){
   stat('d',t);S.flags.del++;S.seen[t]=1;if(!quiet)sfx('core',CX,CY);
   if(S.mode==='daily'&&S.time<DAILY_LEN)S.dscore=(S.dscore||0)+(VAL[t]||1);
+  if(S.ch==='handfed'&&EVERY_ITEMS.includes(t)){S.chd=S.chd||{};S.chd[t]=(S.chd[t]||0)+1}
   const m=MS[S.ms];
   if(m&&!m.launch&&m.req[t]&&(S.prog[t]||0)<m.req[t]){S.prog[t]=(S.prog[t]||0)+1;checkMs()}
   else addInv(t);
@@ -538,9 +539,9 @@ function showTitle(){
   <div class="actions"><button class="btn primary" data-mm="cont">Continue · ${slotLabel(CUR)}</button></div>
   <div class="sec-label">Main game</div><div class="ms-list">${SLOT_KEYS.map((k,i)=>{const d=readSlot(k);return row(`Slot ${i+1}${k===CUR?' · current':''}`,'',slotSummary(d),(d?`<button class="btn${k===CUR?'':' primary'}" data-slot="${i}">Play</button>`:'')+`<button class="btn${d?' danger':' primary'}" data-slotnew="${i}">${d?'New game':'Start'}</button>`)}).join('')}</div>
   <div class="sec-label">Daily moon · ${T.date}</div><div class="ms-list">${row(MODS[T.mod].n,best?'Best '+Math.floor(best).toLocaleString():'No score yet',`Everyone gets the same moon today. Start at the main game and deliver as much as you can to the Core in ${DAILY_LEN/60} minutes of play; better parts score more. ${MODS[T.mod].d}${dToday?` In progress: ${Math.floor(dd.dscore||0).toLocaleString()} points, ${fmtClock(Math.max(0,DAILY_LEN-(dd.time||0)))} left.`:''}`,`<button class="btn primary" data-daily>${dToday?'Continue':'Play today’s moon'}</button>`)}</div>
-  <div class="sec-label">Challenges</div><p style="font-size:14px">Start from the tutorial with no bonuses and sign the Grid Charter under one rule. The first win in each earns that challenge’s own Legendary Relic, which works in every main game.</p><div class="ms-list">${Object.keys(CHALLENGES).map(id=>{const c=CHALLENGES[id],m=META.ch[id],cur=cd&&cd.ch===id;
+  <div class="sec-label">Challenges</div><p style="font-size:14px">Start from the tutorial with no bonuses and reach the goal under one rule. The first win in each earns that challenge’s own Legendary Relic, which works in every main game.</p><div class="ms-list">${Object.keys(CHALLENGES).map(id=>{const c=CHALLENGES[id],m=META.ch[id],cur=cd&&cd.ch===id;
     const sig=Object.keys(RELICS).find(k=>RELICS[k].sig===id);
-    return row(c.n,m&&m.done?`Won${m.best?' · best '+fmtClock(m.best):''}`:cur?'In progress':'',c.d+` Reward: <span style="color:${RARITY.l.col}">${RELICS[sig].n}</span> (${relicText(sig).replace(/\.$/,'').toLowerCase()})${m&&m.done?' ✓':''}.`,`<button class="btn${cur?' primary':''}" data-chal="${id}">${cur?'Continue':'Start'}</button>`)}).join('')}</div>
+    return row(c.n,m&&m.done?`Won${m.best?' · best '+fmtClock(m.best):''}`:cur?'In progress':'',c.d+` <strong>Goal:</strong> ${chGoalText(c)} Reward: <span style="color:${RARITY.l.col}">${RELICS[sig].n}</span> (${relicText(sig).replace(/\.$/,'').toLowerCase()})${m&&m.done?' ✓':''}.`,`<button class="btn${cur?' primary':''}" data-chal="${id}">${cur?'Continue':'Start'}</button>`)}).join('')}</div>
   <div class="sec-label">More</div><div class="actions"><button class="btn" data-savecode>Save code</button><button class="btn" data-news>What's new</button><button class="btn" data-help>How to play</button></div>`;
   openModal(h);
 }
@@ -548,22 +549,28 @@ function showTitle(){
 function runTick(){
   const c=chal();
   if(c&&!S.chWon&&!S.chFail){
-    if(c.limit&&S.time>c.limit){S.chFail=true;save();openModal(`<span class="eyebrow">Challenge · ${c.n}</span><h1>Out of time</h1><p>The Grid Charter wasn’t signed within ${fmtClock(c.limit)}. You can keep building here, or restart the run from the main menu.</p><div class="actions"><button class="btn" data-close>Keep building</button><button class="btn primary" data-chal="${S.ch}" data-fresh="1">Try again</button></div>`)}
-    else if(S.ms>=MS.length){S.chWon=true;const id=S.ch,m=META.ch[id]||{},first=!m.done;m.done=1;m.best=m.best?Math.min(m.best,S.time):S.time;META.ch[id]=m;saveMeta();save();
+    if(c.limit&&S.time>c.limit){S.chFail=true;save();openModal(`<span class="eyebrow">Challenge · ${c.n}</span><h1>Out of time</h1><p>The goal wasn’t reached within ${fmtClock(c.limit)}. You can keep building here, or restart the run from the main menu.</p><div class="actions"><button class="btn" data-close>Keep building</button><button class="btn primary" data-chal="${S.ch}" data-fresh="1">Try again</button></div>`)}
+    else if(chGoalDone()){S.chWon=true;const id=S.ch,m=META.ch[id]||{},first=!m.done;m.done=1;m.best=m.best?Math.min(m.best,S.time):S.time;META.ch[id]=m;saveMeta();save();
       if(first){const sig=Object.keys(RELICS).find(k=>RELICS[k].sig===id);if(sig&&!META.crelics.includes(sig))META.crelics.push(sig);m.reward=sig;saveMeta();save();
-        whenIdle(()=>{burst(CX,CY,'#f3c25a',50);sfx('fanfare');openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Relic earned</h1><p>Signed in ${fmtClock(S.time)}. This challenge’s Relic is yours, and it works in every main game, in every slot.</p><div class="ms-list">${relicCard(sig,'')}</div><button class="btn primary" data-close>Claim</button>`)})}
-      else whenIdle(()=>openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Charter signed</h1><p>Time: <strong>${fmtClock(S.time)}</strong>. Best: ${fmtClock(m.best)}. You already took this challenge’s reward.</p><button class="btn primary" data-close>Nice</button>`))}
+        whenIdle(()=>{burst(CX,CY,'#f3c25a',50);sfx('fanfare');openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Relic earned</h1><p>Finished in ${fmtClock(S.time)}. This challenge’s Relic is yours, and it works in every main game, in every slot.</p><div class="ms-list">${relicCard(sig,'')}</div><button class="btn primary" data-close>Claim</button>`)})}
+      else whenIdle(()=>openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Goal reached</h1><p>Time: <strong>${fmtClock(S.time)}</strong>. Best: ${fmtClock(m.best)}. You already took this challenge’s reward.</p><button class="btn primary" data-close>Nice</button>`))}
   }
   if(S.mode==='daily'&&S.daily){
     if((S.dscore||0)>(META.daily[S.daily]||0)){META.daily[S.daily]=Math.floor(S.dscore);const ks=Object.keys(META.daily).sort();while(ks.length>30)delete META.daily[ks.shift()];saveMeta()}
     if(!S.dEnd&&S.time>=DAILY_LEN){S.dEnd=true;save();whenIdle(()=>openModal(`<span class="eyebrow">Daily moon · ${S.daily}</span><h1>Time’s up</h1><p>You scored <strong>${Math.floor(S.dscore||0).toLocaleString()}</strong> points. Today’s best: ${Math.floor(META.daily[S.daily]||0).toLocaleString()}.</p><p>You can keep building; the score is final.</p><button class="btn primary" data-close>Keep building</button>`))}
   }
 }
+function chGoalText(c){return c.goal==='every'?`Deliver ${EVERY_N.toLocaleString()} of every item up to Aether to the Core (${EVERY_ITEMS.length} kinds, raw ore included).`:'Refine your first Aether.'}
+function everyDone(){let n=0;for(const k of EVERY_ITEMS)if(((S.chd||{})[k]||0)>=EVERY_N)n++;return n}
+function chGoalDone(){const c=chal();if(!c)return false;return c.goal==='every'?everyDone()>=EVERY_ITEMS.length:(S.refined||0)>=1}
+function chProgress(){const c=chal();return c.goal==='every'?`${everyDone()}/${EVERY_ITEMS.length}`:`Aether ${Math.min(1,S.refined||0)}/1`}
+function showChGoal(){const c=chal();if(!c)return;const d=S.chd||{};
+  openModal(`<div class="card-head"><h3>${c.n}</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><p>${c.d}</p><p><strong>Goal:</strong> ${chGoalText(c)}</p>${c.goal==='every'?`<div class="ms-req">${EVERY_ITEMS.map(k=>{const h=d[k]||0;return `<span class="req${h>=EVERY_N?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(Math.min(h,EVERY_N))}/${fmtN(EVERY_N)}<i style="width:${Math.min(100,h/EVERY_N*100)}%"></i></span>`}).join('')}</div>`:`<p>${(S.refined||0)>=1?'Done!':'Research Aether refining, build a Refinery and feed it ore.'}</p>`}${c.limit?`<p>Time left: <strong>${fmtClock(c.limit-S.time)}</strong></p>`:''}`)}
 function showChReward(){const c=chal(),o=S.chOffer;if(!c||!o)return;
   openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Choose your reward</h1><p>Signed in ${fmtClock(S.time)}. Pick one Relic. It works in every main game, in every slot.</p><div class="ms-list">${o.map(k=>relicCard(k,`<button class="btn primary" style="flex:none;padding:0 16px" data-creward="${k}">Take</button>`)).join('')}</div>`)}
 function runLabel(){
   if(S.mode==='daily')return S.dEnd?`Daily · final ${Math.floor(S.dscore||0).toLocaleString()}`:`Daily · ${fmtClock(DAILY_LEN-S.time)} · ${Math.floor(S.dscore||0).toLocaleString()} pts`;
-  const c=chal();if(c)return c.n+(S.chWon?' · won':S.chFail?' · out of time':c.limit?' · '+fmtClock(c.limit-S.time):'');
+  const c=chal();if(c)return c.n+(S.chWon?' · won':S.chFail?' · out of time':' · '+chProgress()+(c.limit?' · '+fmtClock(c.limit-S.time):''));
   return '';
 }
 
@@ -1560,7 +1567,7 @@ elCard.addEventListener('click',e=>{
     else{resetArm=Date.now();b.textContent='Tap again to wipe';setTimeout(()=>{if(b.isConnected)b.innerHTML='Start over'},3000)}
   }
 });
-$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=showMilestones;
+$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>chal()&&!S.chWon&&S.ms>=MS.length?showChGoal():S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=showMilestones;
 $('#powerBox').onclick=showStats;$('#ladBox').onclick=showMilestones;$('#mapBtn').onclick=showMap;
 
 // ================= audio: generative music + positional effects =================
@@ -2249,7 +2256,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
@@ -2262,7 +2269,7 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick:null;S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;refreshSeeds();
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick:null;S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;S.chd=d.chd&&typeof d.chd==='object'?d.chd:{};refreshSeeds();
     // players who earned buildings from the old grid ladder get the matching research for free
     for(const id in TECH){const N=TECH[id];if(S.res.done[id]||(!(N.unl||[]).length&&!(N.rec||[]).length))continue;if((N.unl||[]).every(t=>S.unl.includes(t))&&(N.rec||[]).every(k=>S.rec.includes(k)))S.res.done[id]=1}
     S.refined=d.refined||0;speed=testerOK()?(d.speed||1):1;

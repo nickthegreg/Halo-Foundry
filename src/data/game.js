@@ -213,15 +213,18 @@ const MODS={
   seeded:{n:'Seeded moon',seeds:1.15,d:'Every ore patch has a seed tile, but patches start with 30% of their ore.'},
   frontier:{n:'Frontier moon',seeds:1.2,d:'No ore within 24 tiles of the Core, but the map starts at 192×192.'}
 };
-// Challenges: a separate run from the start of the tutorial. Sign the Grid Charter to win, then choose a reward.
+// Challenges: a separate run from the start of the tutorial. Win by reaching the goal: refine 1 Aether, or (Hand-fed) deliver 1,000 of every item.
 const CHALLENGES={
-  solar:{n:'Solar only',ban:['combustor','turbine','reactor'],d:'No Combustors, Turbine Halls or Reactors.'},
-  nosplit:{n:'One thread',ban:['splitter','sorter'],d:'No Splitters or Sorters.'},
-  handfed:{n:'Hand-fed',ban:['uplink'],d:'No Uplinks: every item reaches the Core by conveyor.'},
-  speed:{n:'Speedrun',limit:7200,d:'Sign the Grid Charter within 2 hours of play.'},
-  deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:1,steel:6,circuit:4},d:'No basic Drills. Deep Drills are unlocked from the start, and you begin with exactly enough for one. Every other Deep Drill’s Ember shards come from burning carbon.'},
-  minimal:{n:'Minimalist',cap:150,d:'At most 150 buildings, not counting conveyors and crossings.'}
+  solar:{n:'Solar only',ban:['combustor','turbine','reactor'],goal:'aether',d:'No Combustors, Turbine Halls or Reactors.'},
+  nosplit:{n:'One thread',ban:['splitter','sorter','batcher'],goal:'aether',d:'No Splitters, Sorters or Batchers.'},
+  handfed:{n:'Hand-fed',ban:['uplink'],goal:'every',d:'No Uplinks: every item reaches the Core by conveyor.'},
+  speed:{n:'Speedrun',limit:7200,goal:'aether',d:'Everything is allowed, but you have 2 hours of play.'},
+  deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:1,steel:6,circuit:4},goal:'aether',d:'No basic Drills. Deep Drills are unlocked from the start, and you begin with exactly enough for one. Every other Deep Drill’s Ember shards come from burning carbon.'},
+  minimal:{n:'Minimalist',cap:150,goal:'aether',d:'At most 150 buildings, not counting conveyors and crossings.'}
 };
+// Hand-fed goal: 1,000 of every item up to (not including) Aether delivered to the Core
+const EVERY_ITEMS=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','wafer','film','composite','coil','photonic'];
+const EVERY_N=1000;
 // Nova workshop: permanent Deep Drill upgrades bought with Nova shards
 const NUP={
   bore:{n:'Nova bore',max:10,cost:L=>1+L,d:'Deep Drills mine 20% faster per level.',eff:L=>`+${L*20}% speed`},
@@ -234,4 +237,4 @@ function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).to
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
 
-export {RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
