@@ -145,7 +145,7 @@ const TRICKLE=[['iron','copper'],['glass','gear','wire'],['circuit','steel'],['l
 const RARITY={c:{n:'Common',w:60,col:'#b8b0e6'},r:{n:'Rare',w:28,col:'#6fd0ff'},e:{n:'Epic',w:10,col:'#d08cff'},l:{n:'Legendary',w:2,col:'#f3c25a'}};
 const RELICS={
   courier:{n:'Courier Wings',r:'c',fx:{pulse:30}},
-  cinder:{n:'Cinder Charm',r:'c',fx:{ember:50}},
+  cinder:{n:'Cinder Charm',r:'c',fx:{ember:25}},
   cog:{n:'Cog of Haste',r:'c',fx:{spd:5}},
   grease:{n:'Greased Rails',r:'c',fx:{belt:10}},
   pane:{n:'Sunlit Pane',r:'c',fx:{solar:10}},
@@ -160,7 +160,7 @@ const RELICS={
   bellows:{n:'Smelter’s Bellows',r:'c',fx:{smelt:10}},
   ratchet:{n:'Fitter’s Ratchet',r:'c',fx:{fab:10}},
   fuse:{n:'Slow Fuse',r:'c',fx:{fuel:10}},
-  sprout:{n:'Green Sprout',r:'c',fx:{seed:25}},
+  sprout:{n:'Green Sprout',r:'c',fx:{seed:20}},
   gears:{n:'Relic of Gears',r:'r',fx:{spd:10}},
   rails:{n:'Relic of Rails',r:'r',fx:{belt:25}},
   dawn:{n:'Relic of Dawn',r:'r',fx:{solar:20}},
@@ -190,12 +190,12 @@ const RELICS={
   seam:{n:'Infinite Seam',r:'l',fx:{seed:100,ore:30}},
   seedcrown:{n:'Seedbearer’s Crown',r:'l',fx:{seeds:25,dup:5}},
   // Challenge relics: only earned by finishing that challenge
-  sunsigil:{n:'Sunbound Sigil',r:'l',sig:'solar',fx:{solar:50,petal:25}},
-  loom:{n:'Loom of One Thread',r:'l',sig:'nosplit',fx:{belt:40,fab:20}},
-  hands:{n:'Hands of the Maker',r:'l',sig:'handfed',fx:{up:50,dup:5}},
-  eternity:{n:'Hourglass Eternal',r:'l',sig:'speed',fx:{spd:25,pulse:50}},
-  deepcrown:{n:'Deep Crown',r:'l',sig:'deeponly',fx:{drill:40,nova:50}},
-  seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:15,fab:25}}
+  sunsigil:{n:'Sunbound Sigil',r:'l',sig:'solar',fx:{solar:25,petal:12.5}},
+  loom:{n:'Loom of One Thread',r:'l',sig:'nosplit',fx:{belt:20,fab:10}},
+  hands:{n:'Hands of the Maker',r:'l',sig:'handfed',fx:{up:25,dup:2.5}},
+  eternity:{n:'Hourglass Eternal',r:'l',sig:'speed',fx:{spd:12.5,pulse:25}},
+  deepcrown:{n:'Deep Crown',r:'l',sig:'deeponly',fx:{drill:20,nova:25}},
+  seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:7.5,fab:12.5}}
 };
 const FX_TEXT={spd:'machines {v}% faster',belt:'conveyors {v}% faster',solar:'solar and halo +{v}%',burn:'burner power +{v}%',pulse:'pulses {v}% faster',ember:'Ember drops +{v}%',ore:'+{v}% ore per tile',off:'+{v}% offline output',haul:'+{v} h offline time',dup:'+{v}% duplication',core:'Core power +{v}%',cap:'Charge storage +{v}%',petal:'+{v}% power per petal',drill:'drills {v}% faster',seed:'seeds regrow {v}% faster',trk:'trickle {v}% faster',smelt:'smelting {v}% faster',fab:'fabricating {v}% faster',up:'Uplinks {v}% faster',cost:'buildings {v}% cheaper',fuel:'fuel burns {v}% longer',mj:'research needs {v}% less Charge',nova:'Nova drops +{v}%',seeds:'+{v}% Starseeds when you Ascend',refine:'Refineries need {v}% less ore'};
 function relicText(k){const f=RELICS[k].fx;const t=Object.keys(f).map(q=>FX_TEXT[q].replace('{v}',f[q])).join(', ');return t.charAt(0).toUpperCase()+t.slice(1)+'.'}

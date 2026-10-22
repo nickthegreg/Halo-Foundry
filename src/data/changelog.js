@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:24,date:'2026-10-22',title:'Relic balance',items:[
+    'Cinder Charm now gives +25% Ember drops (was +50%). Green Sprout now makes seeds regrow 20% faster (was 25%).',
+    'Challenge Relics are half as strong: Sunbound Sigil, Loom of One Thread, Hands of the Maker, Hourglass Eternal, Deep Crown and Minimalist’s Seal. Ones you already own change too.'
+  ]},
   {n:23,date:'2026-10-22',title:'Challenge rewards',items:[
     'Each challenge now awards its own Legendary Relic on your first win, with no random picks. The main menu shows which Relic each challenge gives before you start.'
   ]},
