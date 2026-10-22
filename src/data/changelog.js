@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:20,date:'2026-10-22',title:'Batchers keep their stock',items:[
+    'Batchers now keep everything they’re holding when you reload, including sets that were partway out the door.'
+  ]},
   {n:19,date:'2026-10-22',title:'Drills only mine what they can send',items:[
     'Drills and Deep Drills now only mine when something is connected to an output and there’s room to send ore on. They hold at most 1 ore (Deep Drills 2) instead of 2 and 4, and show “Nothing to output into” when nothing is connected.',
     'Deep veins no longer applies to carbon. Ferrite, cuprite and silica patches still last 1.5× longer per level.'
