@@ -218,8 +218,8 @@ const CHALLENGES={
   solar:{n:'Solar only',ban:['combustor','turbine','reactor'],d:'No Combustors, Turbine Halls or Reactors.'},
   nosplit:{n:'One thread',ban:['splitter','sorter'],d:'No Splitters or Sorters.'},
   handfed:{n:'Hand-fed',ban:['uplink'],d:'No Uplinks: every item reaches the Core by conveyor.'},
-  speed:{n:'Speedrun',limit:10800,d:'Sign the Grid Charter within 3 hours of play.'},
-  deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:40,steel:30,circuit:20},d:'No basic Drills. Deep Drills are unlocked from the start, with 40 Ember shards, 30 steel and 20 circuits to build them.'},
+  speed:{n:'Speedrun',limit:7200,d:'Sign the Grid Charter within 2 hours of play.'},
+  deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:3,steel:6,circuit:4},d:'No basic Drills. Deep Drills are unlocked from the start, and you begin with exactly enough for one. Every other Deep Drill’s Ember shards come from burning carbon.'},
   minimal:{n:'Minimalist',cap:150,d:'At most 150 buildings, not counting conveyors and crossings.'}
 };
 // Nova workshop: permanent Deep Drill upgrades bought with Nova shards
