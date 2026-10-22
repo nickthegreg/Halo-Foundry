@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:18,date:'2026-10-22',title:'Sorter sides and tutorial challenges',items:[
+    'Sorters: choose which side your chosen item leaves from: ahead, left or right. Everything else uses the other two sides. The bright arrow shows the chosen side, and blueprints keep the setting.',
+    'Challenges now start from the beginning of the tutorial instead of Heavy Industry. Speedrun’s limit is now 3 hours to match.',
+    'Deep roots now starts with Deep Drills unlocked plus 30 steel and 20 circuits, since there are no basic Drills to get going.',
+    'Challenges you’ve already started keep going where you left off.'
+  ]},
   {n:17,date:'2026-10-21',title:'Building bar on PC',items:[
     'On a computer you can now scroll the building bar with the mouse wheel, click and drag it sideways, or use the ‹ › arrows at its ends.'
   ]},

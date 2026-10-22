@@ -47,7 +47,7 @@ const B={
   fab2:{n:'Fabricator Mk II',cost:{composite:10,servo:4,circuit:30},pw:110,dir:1,w:2,mult:2.5,d:'Runs Fabricator recipes 2.5× as fast. Feed it from any side; output leaves its bright edge.'},
   foundry:{n:'Foundry',cost:{composite:20,frame:20,steel:100},pw:160,dir:1,w:3,mult:4,d:'Smelts ore 4× as fast as a Smelter and holds far more. One ore type at a time, from any side. Output leaves through three slots on its bright edge.'},
   splitter:{n:'Splitter',cost:{iron:4,copper:2},dir:1,d:'Takes in items and shares them forward, left and right in turn.'},
-  sorter:{n:'Sorter',cost:{iron:4,circuit:2},dir:1,d:'Your chosen item goes straight ahead. Everything else leaves through the sides.'},
+  sorter:{n:'Sorter',cost:{iron:4,circuit:2},dir:1,d:'Your chosen item leaves through the side you pick: ahead, left or right. Everything else leaves through the other two.'},
   batcher:{n:'Batcher',cost:{iron:10,gear:6,circuit:2},dir:1,w:2,d:'Holds up to 50 of each item and sends them out in the ratio you set, in whole sets, from two output slots on its bright edge at the same time. Pick a recipe to copy its ratio.'},
   combustor:{n:'Combustor',cost:{iron:14,copper:6},gen:150,burn:6,dir:1,d:'Burns carbon for up to 150 kW, only as much as the grid needs. About 1 in 50 carbon leaves an Ember shard, pushed out of its bright edge.'},
   solar:{n:'Sun Leaf',cost:{glass:6,circuit:3},gen:45,d:'Up to 45 kW in daylight. Nothing at night.'},
@@ -213,13 +213,13 @@ const MODS={
   seeded:{n:'Seeded moon',seeds:1.15,d:'Every ore patch has a seed tile, but patches start with 30% of their ore.'},
   frontier:{n:'Frontier moon',seeds:1.2,d:'No ore within 24 tiles of the Core, but the map starts at 192×192.'}
 };
-// Challenges: a separate run from the main game's start. Sign the Grid Charter to win, then choose a reward.
+// Challenges: a separate run from the start of the tutorial. Sign the Grid Charter to win, then choose a reward.
 const CHALLENGES={
   solar:{n:'Solar only',ban:['combustor','turbine','reactor'],d:'No Combustors, Turbine Halls or Reactors.'},
   nosplit:{n:'One thread',ban:['splitter','sorter'],d:'No Splitters or Sorters.'},
   handfed:{n:'Hand-fed',ban:['uplink'],d:'No Uplinks: every item reaches the Core by conveyor.'},
-  speed:{n:'Speedrun',limit:7200,d:'Sign the Grid Charter within 2 hours of play.'},
-  deeponly:{n:'Deep roots',ban:['drill'],inv:{ember:40},d:'No basic Drills. You start with 40 Ember shards for Deep Drills.'},
+  speed:{n:'Speedrun',limit:10800,d:'Sign the Grid Charter within 3 hours of play.'},
+  deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:40,steel:30,circuit:20},d:'No basic Drills. Deep Drills are unlocked from the start, with 40 Ember shards, 30 steel and 20 circuits to build them.'},
   minimal:{n:'Minimalist',cap:150,d:'At most 150 buildings, not counting conveyors and crossings.'}
 };
 // Nova workshop: permanent Deep Drill upgrades bought with Nova shards

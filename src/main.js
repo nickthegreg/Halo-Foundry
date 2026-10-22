@@ -109,7 +109,7 @@ function init(t){
     case 'refinery':return{n:0,run:false,prog:0,outN:0,ang:0};
     case 'reactor':return{fuel:0,energy:0,load:0,heat:0,ang:0};
     case 'splitter':return{hold:null,rr:0,pri:null};
-    case 'sorter':return{hold:null,filter:null,rr:0};
+    case 'sorter':return{hold:null,filter:null,rr:0,sd:0};
     case 'batcher':return{st:{},ratio:{},q:[[],[]],rr:0,alt:0};
     case 'combustor':return{fuel:0,energy:0,load:0,heat:0,ember:0};
     case 'turbine':return{fuel:0,energy:0,load:0,heat:0,ang:0};
@@ -341,8 +341,9 @@ function sim(dt){
         break;
       case 'sorter':
         if(b.hold){
-          if(!b.filter||b.hold===b.filter){if(pushDir(b,b.hold,b.d))b.hold=null}
-          else{const ds=[(b.d+3)&3,(b.d+1)&3];for(let k=0;k<2;k++){const i=(b.rr+k)%2;if(pushDir(b,b.hold,ds[i])){b.hold=null;b.rr=(i+1)%2;break}}}
+          const all=[b.d,(b.d+3)&3,(b.d+1)&3],sd=b.sd||0,pick=all[sd],rest=all.filter((_,i)=>i!==sd);
+          if(!b.filter||b.hold===b.filter){if(pushDir(b,b.hold,pick))b.hold=null}
+          else{for(let k=0;k<2;k++){const i=(b.rr+k)%2;if(pushDir(b,b.hold,rest[i])){b.hold=null;b.rr=(i+1)%2;break}}}
         }
         break;
       case 'uplink':
@@ -517,9 +518,9 @@ function whenIdle(fn){const go=()=>{if(!elModal.hidden){setTimeout(go,800);retur
 function fmtClock(s){s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')}
 function hashStr(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function dailyToday(){const n=new Date(),date=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`,seed=hashStr('halo-daily-'+date),ks=Object.keys(MODS);return{date,seed:seed%1e9,mod:ks[seed%ks.length]}}
-function runData(o){return{v:1,wv:3,dd2:1,seed:o.seed!=null?o.seed:(Math.random()*1e9|0),inv:Object.assign({iron:400,copper:200},o.inv||{}),ms:TUT,prog:{},petals:0,gt:0,gavg:0,up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,ascHint:1},seen:{},bs:[],fromCode:1,mode:o.mode,mod:o.mod||null,ch:o.ch||null,daily:o.daily||null}}
+function runData(o){return{v:1,wv:3,dd2:1,seed:o.seed!=null?o.seed:(Math.random()*1e9|0),inv:Object.assign(o.ms===0?{iron:160,copper:80}:{iron:400,copper:200},o.inv||{}),ms:o.ms!=null?o.ms:TUT,unl:o.unl?['belt','junction','drill','smelter',...o.unl]:undefined,prog:{},petals:0,gt:0,gavg:0,up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,ascHint:1},seen:{},bs:[],fromCode:1,mode:o.mode,mod:o.mod||null,ch:o.ch||null,daily:o.daily||null}}
 function dailyData(){const T=dailyToday();return runData({mode:'daily',daily:T.date,seed:T.seed,mod:T.mod})}
-function chData(id){return runData({mode:'challenge',ch:id,inv:CHALLENGES[id].inv})}
+function chData(id){const c=CHALLENGES[id];return runData({mode:'challenge',ch:id,ms:0,inv:c.inv,unl:c.unl})}
 function readSlot(k){try{const s=localStorage.getItem(k);return s?JSON.parse(s):null}catch(_){return null}}
 function useSlot(k){if(S)save();CUR=k;META.last=k;saveMeta()}
 function startRun(k,d){useSlot(k);start(d);cam.x=CX;cam.y=CY;save();closeModal()}
@@ -535,7 +536,7 @@ function showTitle(){
   <div class="actions"><button class="btn primary" data-mm="cont">Continue · ${slotLabel(CUR)}</button></div>
   <div class="sec-label">Main game</div><div class="ms-list">${SLOT_KEYS.map((k,i)=>{const d=readSlot(k);return row(`Slot ${i+1}${k===CUR?' · current':''}`,'',slotSummary(d),(d?`<button class="btn${k===CUR?'':' primary'}" data-slot="${i}">Play</button>`:'')+`<button class="btn${d?' danger':' primary'}" data-slotnew="${i}">${d?'New game':'Start'}</button>`)}).join('')}</div>
   <div class="sec-label">Daily moon · ${T.date}</div><div class="ms-list">${row(MODS[T.mod].n,best?'Best '+Math.floor(best).toLocaleString():'No score yet',`Everyone gets the same moon today. Start at the main game and deliver as much as you can to the Core in ${DAILY_LEN/60} minutes of play; better parts score more. ${MODS[T.mod].d}${dToday?` In progress: ${Math.floor(dd.dscore||0).toLocaleString()} points, ${fmtClock(Math.max(0,DAILY_LEN-(dd.time||0)))} left.`:''}`,`<button class="btn primary" data-daily>${dToday?'Continue':'Play today’s moon'}</button>`)}</div>
-  <div class="sec-label">Challenges</div><p style="font-size:14px">Start at the main game with no bonuses and sign the Grid Charter under one rule. The first win in each lets you choose a Relic that works in every main game.</p><div class="ms-list">${Object.keys(CHALLENGES).map(id=>{const c=CHALLENGES[id],m=META.ch[id],cur=cd&&cd.ch===id;
+  <div class="sec-label">Challenges</div><p style="font-size:14px">Start from the tutorial with no bonuses and sign the Grid Charter under one rule. The first win in each lets you choose a Relic that works in every main game.</p><div class="ms-list">${Object.keys(CHALLENGES).map(id=>{const c=CHALLENGES[id],m=META.ch[id],cur=cd&&cd.ch===id;
     return row(c.n,m&&m.done?`Won${m.best?' · best '+fmtClock(m.best):''}`:cur?'In progress':'',c.d+(m&&m.reward?` Reward: ${RELICS[m.reward].n}.`:''),`<button class="btn${cur?' primary':''}" data-chal="${id}">${cur?'Continue':'Start'}</button>`)}).join('')}</div>
   <div class="sec-label">More</div><div class="actions"><button class="btn" data-savecode>Save code</button><button class="btn" data-news>What's new</button><button class="btn" data-help>How to play</button></div>`;
   openModal(h);
@@ -933,8 +934,7 @@ function drawMachine(g,b,x,y,s){
       g.beginPath();g.arc(cx,cy,s*.08,0,7);g.fillStyle=b.hold?'#f3c25a':'#7d75b4';g.fill();break;}
     case 'sorter':{
       base(g,x,y,s,'#403c66',.1);
-      arrowTri(g,cx,cy,b.d,s*.38,s*.1,'#f3c25a');
-      arrowTri(g,cx,cy,(b.d+1)&3,s*.38,s*.07,'#8a83b8');arrowTri(g,cx,cy,(b.d+3)&3,s*.38,s*.07,'#8a83b8');
+      {const all=[b.d,(b.d+3)&3,(b.d+1)&3],pk=all[b.sd||0];for(const d of all)arrowTri(g,cx,cy,d,s*.38,s*(d===pk?.1:.07),d===pk?'#f3c25a':'#8a83b8')}
       if(b.filter){const q=s*.36;g.drawImage(SPR[b.filter],cx-q/2,cy-q/2,q,q)}
       else{g.beginPath();g.arc(cx,cy,s*.12,0,7);g.strokeStyle='#8a83b8';g.lineWidth=s*.04;g.stroke()}
       break;}
@@ -1337,7 +1337,8 @@ function renderSheet(){
   }
   if(b.t==='splitter'){const opts=[[null,'Even'],[0,'Forward'],[1,'Left'],[2,'Right']];ctrl=`<div class="sec-label">Priority output</div><div class="seg">${opts.map(([v,n])=>`<button data-pri="${v==null?'':v}" class="${(b.pri==null?null:b.pri)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">The priority side gets every item it can take. The other sides only get the overflow when it backs up.</p>`}
   if(b.t==='sorter'){
-    ctrl=`<div class="sec-label">Send forward</div><div class="grid items"><button class="opt${!b.filter?' on':''}" data-filter="" aria-label="Everything">All</button>${ITEM_ORDER.map(k=>`<button class="opt${b.filter===k?' on':''}" data-filter="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`;
+    const so=[[0,'Forward'],[1,'Left'],[2,'Right']];
+    ctrl=`<div class="sec-label">Chosen item leaves</div><div class="seg">${so.map(([v,n])=>`<button data-sd="${v}" class="${(b.sd||0)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">Everything else leaves through the other two sides, taking turns.</p><div class="sec-label">Chosen item</div><div class="grid items"><button class="opt${!b.filter?' on':''}" data-filter="" aria-label="Everything">All</button>${ITEM_ORDER.map(k=>`<button class="opt${b.filter===k?' on':''}" data-filter="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`;
   }
   const acts=b.t==='core'?'':`<div class="actions">${d.dir?`<button class="btn" data-act="rot">${SVG.rot}Rotate</button>`:''}<button class="btn danger" data-act="del">${SVG.trash}Remove</button></div>`;
   elSheet.innerHTML=`<div class="sh-head"><img src="${ICON_B[b.t]}" alt=""><div class="sh-title"><h2>${d.n}</h2><span class="pill" id="shStatus"></span></div><button class="x" data-act="close" aria-label="Close">${SVG.x}</button></div>
@@ -1361,6 +1362,7 @@ elSheet.addEventListener('click',e=>{
   else if(el.dataset.preset){batUnq(b);b.ratio=Object.assign({},RECIPES[el.dataset.preset].in);for(const k in b.st)if(!b.ratio[k]&&b.st[k]>0){addInv(k,b.st[k]);b.st[k]=0}renderSheet();sfx('tick')}
   else if(el.dataset.rq){batUnq(b);const k=el.dataset.rq,v=Math.max(0,Math.min(20,(b.ratio[k]||0)+(+el.dataset.dv)));if(v)b.ratio[k]=v;else delete b.ratio[k];renderSheet();sfx('tick')}
   else if(el.dataset.act==='clearratio'){batUnq(b);b.ratio={};renderSheet();sfx('tick')}
+  else if(el.dataset.sd!==undefined){b.sd=+el.dataset.sd||0;renderSheet();sfx('tick')}
   else if(el.dataset.pri!==undefined){b.pri=el.dataset.pri===''?null:+el.dataset.pri;renderSheet();sfx('tick')}
   else if(el.dataset.filter!==undefined){b.filter=el.dataset.filter||null;renderSheet()}
 });
@@ -2083,7 +2085,7 @@ elSheet.addEventListener('click',e=>{
 function captureLayout(bs){
   bs=bs.filter(q=>q&&q.t!=='core');let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
   bs.forEach(q=>{x0=Math.min(x0,q.x);y0=Math.min(y0,q.y);x1=Math.max(x1,q.x+q.w);y1=Math.max(y1,q.y+q.w)});
-  return{w:x1-x0,h:y1-y0,items:bs.map(q=>({t:q.t,dx:q.x-x0,dy:q.y-y0,d:q.d,w:q.w,rec:q.rec||null,filter:q.filter||null,pri:q.pri!=null?q.pri:null,ratio:q.ratio&&Object.keys(q.ratio).length?Object.assign({},q.ratio):null}))};
+  return{w:x1-x0,h:y1-y0,items:bs.map(q=>({t:q.t,dx:q.x-x0,dy:q.y-y0,d:q.d,w:q.w,rec:q.rec||null,filter:q.filter||null,sd:q.sd||0,pri:q.pri!=null?q.pri:null,ratio:q.ratio&&Object.keys(q.ratio).length?Object.assign({},q.ratio):null}))};
 }
 function rotLayout(L){return{w:L.h,h:L.w,items:L.items.map(e=>Object.assign({},e,{dx:L.h-(e.dy+e.w),dy:e.dx,d:(e.d+1)&3}))}}
 function loadBPS(){try{return JSON.parse(localStorage.getItem('halo-foundry-bps')||'[]')}catch(_){return[]}}
@@ -2140,7 +2142,7 @@ function placeLayout(){
   const L=PASTE.L,ax=PASTE.ax,ay=PASTE.ay;if(ax==null){showToast('Tap the ground first to position it');return}
   let ok=0;const fail={};G.stroke=[];
   const order=[...L.items].sort((p,q)=>((p.t==='belt'||p.t==='junction')?1:0)-((q.t==='belt'||q.t==='junction')?1:0));
-  for(const e of order){const r=place(e.t,ax+e.dx,ay+e.dy,e.d);if(typeof r==='object'){ok++;if(e.rec&&(e.t==='fab'||e.t==='fab2'||e.t==='assembler'))r.rec=e.rec;if(e.filter&&e.t==='sorter')r.filter=e.filter;if(e.t==='splitter'&&e.pri!=null)r.pri=e.pri;if(e.ratio&&e.t==='batcher')r.ratio=Object.assign({},e.ratio)}else fail[r]=(fail[r]||0)+1}
+  for(const e of order){const r=place(e.t,ax+e.dx,ay+e.dy,e.d);if(typeof r==='object'){ok++;if(e.rec&&(e.t==='fab'||e.t==='fab2'||e.t==='assembler'))r.rec=e.rec;if(e.filter&&e.t==='sorter')r.filter=e.filter;if(e.t==='sorter'&&e.sd)r.sd=e.sd;if(e.t==='splitter'&&e.pri!=null)r.pri=e.pri;if(e.ratio&&e.t==='batcher')r.ratio=Object.assign({},e.ratio)}else fail[r]=(fail[r]||0)+1}
   flushStroke();sfx(ok?'place':'err');
   const why={banned:'not allowed',cap:'building limit',seed:'seed tile',blocked:'no room',cost:'not enough materials',ore:'no ore in reach',frontier:'beyond the frontier'};
   const sk=Object.keys(fail).map(k=>`${fail[k]} ${why[k]||k}`).join(', ');
@@ -2202,7 +2204,7 @@ function tap(sx,sy){
 
 // ================= save / load =================
 function serialize(){
-  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}bs.push(a)}
+  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push({r:b.ratio});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
   return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}}
@@ -2223,7 +2225,7 @@ function start(data,forceNew){
     const OFF=d.wv?0:128,mapI=k=>OFF?(((k/128)|0)+128)*W+(k%128)+128:k;
     if(d.res)for(let i=0;i<d.res.length;i+=2){const k=mapI(d.res[i]);RES[k]=d.res[i+1];if(RES[k]<=0&&ORE[k])deplete(k)}
     const BL=(d.bs||[]).slice();if(!d.dd2)BL.sort((p,q)=>(p[0]==='deepdrill')-(q[0]==='deepdrill'));
-    for(const a of BL){if(!B[a[0]])continue;let b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(a[0]==='deepdrill'&&!d.dd2)for(const [ox,oy] of [[-1,0],[0,-1],[-1,-1]]){if(typeof b==='object')break;b=place(a[0],a[1]+OFF+ox,a[2]+OFF+oy,a[3],true,a[4])}if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){if(a[4].r)b.ratio=a[4].r;else b.ratio=a[4]}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0))}if(a[5]===1){b.bp=true;S.pq.push([b.id])}}}
+    for(const a of BL){if(!B[a[0]])continue;let b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(a[0]==='deepdrill'&&!d.dd2)for(const [ox,oy] of [[-1,0],[0,-1],[-1,-1]]){if(typeof b==='object')break;b=place(a[0],a[1]+OFF+ox,a[2]+OFF+oy,a[3],true,a[4])}if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='sorter'&&a[6])b.sd=a[6];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){if(a[4].r)b.ratio=a[4].r;else b.ratio=a[4]}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0))}if(a[5]===1){b.bp=true;S.pq.push([b.id])}}}
     if(d.cam){cam.x=d.cam.x+OFF;cam.y=d.cam.y+OFF;cam.z=d.cam.z}
   }else{cam.x=CX;cam.y=CY;cam.z=Math.max(18,Math.min(36,Math.min(VW,VH)/20))}
   growCore();tool='inspect';sel=null;elSheet.hidden=true;recalc();dirty=false;buildDock();updateRot();hudTick(true);
