@@ -565,7 +565,7 @@ function everyDone(){let n=0;for(const k of EVERY_ITEMS)if(((S.chd||{})[k]||0)>=
 function chGoalDone(){const c=chal();if(!c)return false;return c.goal==='every'?everyDone()>=EVERY_ITEMS.length:(S.refined||0)>=1}
 function chProgress(){const c=chal();return c.goal==='every'?`${everyDone()}/${EVERY_ITEMS.length}`:`Aether ${Math.min(1,S.refined||0)}/1`}
 function showChGoal(){const c=chal();if(!c)return;const d=S.chd||{};
-  openModal(`<div class="card-head"><h3>${c.n}</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><p>${c.d}</p><p><strong>Goal:</strong> ${chGoalText(c)}</p>${c.goal==='every'?`<div class="ms-req">${EVERY_ITEMS.map(k=>{const h=d[k]||0;return `<span class="req${h>=EVERY_N?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(Math.min(h,EVERY_N))}/${fmtN(EVERY_N)}<i style="width:${Math.min(100,h/EVERY_N*100)}%"></i></span>`}).join('')}</div>`:`<p>${(S.refined||0)>=1?'Done!':'Research Aether refining, build a Refinery and feed it ore.'}</p>`}${c.limit?`<p>Time left: <strong>${fmtClock(c.limit-S.time)}</strong></p>`:''}`)}
+  openModal(`<div class="card-head"><h3>${c.n}</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><p>${c.d}</p><p><strong>Goal:</strong> ${chGoalText(c)}</p>${c.goal==='every'?`<div class="ms-req">${EVERY_ITEMS.map(k=>{const h=d[k]||0;return `<span class="req${h>=EVERY_N?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(Math.min(h,EVERY_N))}/${fmtN(EVERY_N)}<i style="width:${Math.min(100,h/EVERY_N*100)}%"></i></span>`}).join('')}</div>`:`<p>${(S.refined||0)>=1?'Done!':'Research Aether refining, build a Refinery and feed it ore.'}</p>`}${c.limit?`<p>Time left: <strong>${fmtClock(c.limit-S.time)}</strong></p>`:''}${S.ms>=MS.length?'<div class="actions"><button class="btn primary" data-research>Back to research</button></div>':''}`)}
 function showChReward(){const c=chal(),o=S.chOffer;if(!c||!o)return;
   openModal(`<span class="eyebrow">Challenge won · ${c.n}</span><h1>Choose your reward</h1><p>Signed in ${fmtClock(S.time)}. Pick one Relic. It works in every main game, in every slot.</p><div class="ms-list">${o.map(k=>relicCard(k,`<button class="btn primary" style="flex:none;padding:0 16px" data-creward="${k}">Take</button>`)).join('')}</div>`)}
 function runLabel(){
@@ -1541,6 +1541,8 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.creward){const k=b.dataset.creward;if(!S.chOffer||!S.chOffer.includes(k))return;META.crelics.push(k);META.ch[S.ch].reward=k;saveMeta();S.chOffer=null;save();closeModal();burst(CX,CY,'#f3c25a',50);sfx('fanfare');showToast(RELICS[k].n+' now works in every main game')}
   else if(b.dataset.bpren)showBpName(+b.dataset.bpren);
   else if(b.hasAttribute('data-bplist'))showBlueprints();
+  else if(b.hasAttribute('data-chgoal'))showChGoal();
+  else if(b.hasAttribute('data-research'))showResearch();
   else if(b.hasAttribute('data-ascopen'))showAscension();
   else if(b.hasAttribute('data-relicshow'))showRelicPick();
   else if(b.dataset.relic){const k=b.dataset.relic;if(!S.relicPick||!S.relicPick.includes(k)||!RELICS[k])return;S.relics=S.relics||[];S.relics.push(k);S.relicPick=null;save();closeModal();burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showToast(RELICS[k].n+': '+relicText(k))}
@@ -1567,7 +1569,7 @@ elCard.addEventListener('click',e=>{
     else{resetArm=Date.now();b.textContent='Tap again to wipe';setTimeout(()=>{if(b.isConnected)b.innerHTML='Start over'},3000)}
   }
 });
-$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>chal()&&!S.chWon&&S.ms>=MS.length?showChGoal():S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=showMilestones;
+$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=showMilestones;
 $('#powerBox').onclick=showStats;$('#ladBox').onclick=showMilestones;$('#mapBtn').onclick=showMap;
 
 // ================= audio: generative music + positional effects =================
@@ -1917,6 +1919,7 @@ function techCard(id,title,desc,status,cls,canGo){
 function showResearch(){
   const tiers=[...new Set(Object.values(TECH).map(N=>N.t))].sort((a,b)=>a-b),open=S.ms>=MS.length;
   let h=`<div class="card-head"><h3>Research</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
+  ${chal()?`<div class="ms cur"><div class="ms-top"><h4>Challenge · ${chal().n}</h4><span class="st">${S.chWon?'Won':S.chFail?'Out of time':chProgress()}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${chGoalText(chal())}</div><button class="btn" style="flex:none;padding:0 14px" data-chgoal>Goal</button></div></div>`:''}
   <div class="ms cur"><div class="ms-top"><h4>Charge</h4><span class="st" id="rsRate"></span></div><div class="meter"><b id="rsBar"></b></div><div class="ms-unl" id="rsCharge"></div></div>
   <p>Research spends stored Charge and items from storage. Spare power refills Charge, so a bigger grid researches faster. Progress is kept if you switch.</p><div class="ms-list">`;
   if(!open)h+='<p><strong>Research opens with the Grid Charter milestone.</strong></p>';

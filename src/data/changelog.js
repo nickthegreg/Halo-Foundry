@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:26,date:'2026-10-22',title:'Research fix in challenges',items:[
+    'Fixed: in a challenge, tapping the top bar opened the goal instead of Research. It opens Research again, with the challenge goal at the top and a Goal button for the full breakdown.'
+  ]},
   {n:25,date:'2026-10-22',title:'Harder challenges',items:[
     'Challenges have real goals now. Solar only, One thread, Speedrun, Deep roots and Minimalist: refine your first Aether. Speedrun still gives you 2 hours.',
     'Hand-fed: deliver 1,000 of every item up to Aether to the Core, 23 kinds including raw ore, all by conveyor. Tap the top bar during the run to see each item’s progress.',
