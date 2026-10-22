@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:19,date:'2026-10-22',title:'Drills only mine what they can send',items:[
+    'Drills and Deep Drills now only mine when something is connected to an output and there’s room to send ore on. They hold at most 1 ore (Deep Drills 2) instead of 2 and 4, and show “Nothing to output into” when nothing is connected.',
+    'Deep veins no longer applies to carbon. Ferrite, cuprite and silica patches still last 1.5× longer per level.'
+  ]},
   {n:18,date:'2026-10-22',title:'Sorter sides and tutorial challenges',items:[
     'Sorters: choose which side your chosen item leaves from: ahead, left or right. Everything else uses the other two sides. The bright arrow shows the chosen side, and blueprints keep the setting.',
     'Challenges now start from the beginning of the tutorial instead of Heavy Industry. Speedrun is still 2 hours.',

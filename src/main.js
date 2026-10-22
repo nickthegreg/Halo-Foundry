@@ -48,7 +48,7 @@ const UPG={
   belt:{n:'Conveyor speed',d:'Conveyors and Crossings move items 20% faster per level.',cost:L=>tierCost(BELT_COST,6,L),eff:L=>`+${L*20}% now, +${(L+1)*20}% next`},
   night:{n:'Night shift',max:8,d:'Your factory earns more while you’re away: +10% offline output per level, up to 100%.',cost:L=>NIGHT_COST[Math.min(L,NIGHT_COST.length-1)],eff:L=>`${Math.min(100,20+L*10)}% now${L<8?`, ${20+(L+1)*10}% next`:''}`},
   haul:{n:'Long haul',max:10,d:'Offline time counts longer: +4 hours per level, from 8 hours up to 48.',cost:L=>tierCost(HAUL_COST,4,L),eff:L=>`${8+4*L} h now${L<10?`, ${12+4*L} h next`:''}`},
-  vein:{n:'Deep veins',d:'Drills pull more from every tile, so patches last 1.5× longer per level.',cost:L=>tierCost(VEIN_COST,7,L),eff:L=>`×${Math.pow(1.5,L).toFixed(2)} now, ×${Math.pow(1.5,L+1).toFixed(2)} next`}
+  vein:{n:'Deep veins',d:'Drills pull more from every tile, so ferrite, cuprite and silica patches last 1.5× longer per level. Carbon isn’t affected.',cost:L=>tierCost(VEIN_COST,7,L),eff:L=>`×${Math.pow(1.5,L).toFixed(2)} now, ×${Math.pow(1.5,L+1).toFixed(2)} next`}
 };
 function ssLv(k){return (S&&S.ss&&S.ss[k])||0}
 function nupLv(k){return (S&&S.nup&&S.nup[k])||0}
@@ -76,7 +76,8 @@ function coreKW(){return CORE_GEN*(1+.2*ascN())*rp('core')}
 function drillR(t){return B[t].r+(t==='deepdrill'?nupLv('reach'):0)}
 function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)}
 function oreUse(b){return (b.t==='deepdrill'?.5*Math.pow(.85,nupLv('thrift')):1)*(modOn('thin')?2:1)}
-function veinMul(){return Math.pow(1.5,(S.up&&S.up.vein)||0)*(1+.01*lifeSeeds())*rp('ore')}
+// Deep veins doesn't apply to carbon
+function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+.01*lifeSeeds())*rp('ore')}
 // Every Menu upgrade level compounds the halo: ×1.01 per level
 function upTotal(){let n=0;for(const k in (S.up||{}))n+=S.up[k]||0;return n}
 function haloMul(){return Math.pow(1.01,upTotal())}
@@ -228,7 +229,8 @@ function edgeTile(b,d,i){const w=b.w||1;return d===1?[b.x+w,b.y+i]:d===3?[b.x-1,
 function pushPorts(b,t,ports){const n=ports.length,s=(b.rr||0)%n;for(let k=0;k<n;k++){const i=(s+k)%n,[d,j]=ports[i],o=edgeTile(b,d,j),nb=at(o[0],o[1]);if(nb&&nb!==b&&accept(nb,t,opp(d))){b.rr=(i+1)%n;return true}}return false}
 function outPorts(b){return b.t==='deepdrill'?[[b.d,0],[opp(b.d),0],[b.d,1],[opp(b.d),1]]:b.t==='foundry'?[[b.d,0],[b.d,1],[b.d,2]]:null}
 function bCount(){let n=0;for(const b of S.bs.values())if(b.t!=='belt'&&b.t!=='junction'&&b.t!=='core')n++;return n}
-function drillCap(b){return b.t==='deepdrill'?4:2}
+function drillCap(b){return b.t==='deepdrill'?2:1}
+function drillHasOut(b){const ts=b.t==='deepdrill'?outPorts(b).map(([d,j])=>edgeTile(b,d,j)):[outTile(b,b.d)];return ts.some(([x,y])=>{const q=at(x,y);return q&&q!==b&&!q.bp})}
 function pushDir(b,t,d){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||nb===b)return false;return accept(nb,t,opp(d))}
 
 function deliver(t,quiet){
@@ -292,7 +294,7 @@ function sim(dt){
     switch(b.t){
       case 'drill':case 'deepdrill':{
         const P=ORE_P[b.ore];
-        b.active=b.out<drillCap(b)&&!b.dep&&!b.wait;
+        b.active=b.out<drillCap(b)&&!b.dep&&!b.wait&&drillHasOut(b);
         if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){const mo=mineOne(b);if(mo<0){b.prog=1;b.wait=true;b.active=false}else if(mo){b.prog-=1;b.out++;stat('p',b.ore);sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
         if(b.out>0&&(b.t==='deepdrill'?pushPorts(b,b.ore,outPorts(b)):pushDir(b,b.ore,b.d)))b.out--;
         break;}
@@ -738,9 +740,9 @@ function deplete(i){ORE[i]=0;RES[i]=0;const x=i%W,y=(i/W)|0,c=CHUNKS.get(((y/CH)
 function forReach(b,fn){const k=ORE_KEYS.indexOf(b.ore),r=drillR(b.t),w=b.w||1;for(let y=b.y-r;y<=b.y+w-1+r;y++)for(let x=b.x-r;x<=b.x+w-1+r;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(ORE[i]===k&&RES[i]>0&&!(SEEDT&&SEEDT[i]))fn(i)}}
 function seededTile(i){const p=PATCH&&PATCH[i]>=0?PATCHES[PATCH[i]]:null;return !!(p&&SEEDT[p.seed])}
 // 1 = mined, 0 = nothing left in reach, -1 = a seeded patch is regrowing but no tile holds a whole unit yet
-function mineOne(b){let bi=-1,bv=0;forReach(b,i=>{if(RES[i]>bv){bv=RES[i];bi=i}});if(bi<0)return 0;const use=oreUse(b)/veinMul();
+function mineOne(b){let bi=-1,bv=0;forReach(b,i=>{if(RES[i]>bv){bv=RES[i];bi=i}});if(bi<0)return 0;const use=oreUse(b)/veinMul(b.ore);
   if(bv<use&&seededTile(bi))return -1;RES[bi]-=use;if(RES[bi]<=.001){if(seededTile(bi))RES[bi]=Math.max(0,RES[bi]);deplete(bi)}return 1}
-function reachLeft(b){let n=0;forReach(b,i=>n+=RES[i]);return Math.round(n*veinMul()/oreUse(b))}
+function reachLeft(b){let n=0;forReach(b,i=>n+=RES[i]);return Math.round(n*veinMul(b.ore)/oreUse(b))}
 function resDiff(){const o=[];if(!RES)return o;for(let i=0;i<RES.length;i++)if(RES[i]!==RES0[i])o.push(i,Math.max(0,Math.round(RES[i]*10)/10));return o}
 function makeStars(){
   const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d'),R=mulberry(7);
@@ -1279,7 +1281,7 @@ function status(b){
   const lp=PW.sat<.999,pct=Math.round(PW.sat*100)+'%';
   switch(b.t){
     case 'belt':return['ok',(b.rate||0)>.05?`Moving ${(b.rate||0).toFixed(1)} items/s of ${(BV/SP).toFixed(1)} max`:b.items.length?`Holding ${b.items.length}, not moving`:'Empty'];
-    case 'drill':case 'deepdrill':return b.wait?['warn','Waiting for ore to regrow']:b.dep?['bad','Ore in reach used up']:b.out>=drillCap(b)?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
+    case 'drill':case 'deepdrill':return !b.dep&&!drillHasOut(b)?['warn','Nothing to output into']:b.wait?['warn','Waiting for ore to regrow']:b.dep?['bad','Ore in reach used up']:b.out>=drillCap(b)?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
     case 'junction':{const n=b.lanes[0].length+b.lanes[1].length;return['ok',n?`Carrying ${n}`:'Empty']}
     case 'smelter':case 'foundry':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];
@@ -2183,7 +2185,7 @@ function tap(sx,sy){
   if(tool==='paste'&&PASTE){PASTE.ax=x-Math.floor(PASTE.L.w/2);PASTE.ay=y-Math.floor(PASTE.L.h/2);updatePasteBar();sfx('tick');return}
   if(tool==='select'){if(b&&b.t!=='core'){SELB=[b.id];openSelSheet();sfx('tick')}else closeSheet();return}
   if(tool==='belt'&&beltMode==='route'){routeTap(x,y);return}
-  if(tool==='inspect'){if(b)openSheet(b);else{closeSheet();const o=oreAt(x,y);if(o)showToast(ITEMS[o].n+' · about '+Math.round(RES[y*W+x]*veinMul())+' left on this tile')}return}
+  if(tool==='inspect'){if(b)openSheet(b);else{closeSheet();const o=oreAt(x,y);if(o)showToast(ITEMS[o].n+' · about '+Math.round(RES[y*W+x]*veinMul(o))+' left on this tile')}return}
   if(tool==='remove'){if(b){if(b.t==='core')showToast('The Core stays');else{removeB(b);sfx('remove');tapFx={x,y,t:.4,c:'#ff7378'}}}return}
   if(b){
     if(b.t===tool&&B[tool].dir){b.d=(b.d+1)&3;syncRot(b.d);dirty=true;tapFx={x:b.x,y:b.y,t:.4,c:'#f3c25a'}}
