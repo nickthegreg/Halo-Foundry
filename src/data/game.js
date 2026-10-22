@@ -41,7 +41,7 @@ const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'Moves items one tile at a time. Drag to lay a line that follows your finger. Dragging across another conveyor adds a Crossing.'},
   junction:{n:'Crossing',cost:{iron:3,copper:2},d:'Two conveyor lines pass over each other here. Items leave on the side opposite where they came in.'},
   drill:{n:'Drill',cost:{iron:8,copper:4},pw:12,dir:1,r:1,d:'Mines one ore type from the 3×3 area around it and pushes it out of its bright edge. Patches run dry over time.'},
-  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:3},pw:40,dir:1,w:2,r:2,mult:2.5,d:'A 2×2 drill that mines the 6×6 area around it at 2.5× speed and uses up ore half as fast. Ore leaves through two slots on its bright edge and two on the back. Each one costs more Ember shards than the last.'},
+  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:1},pw:40,dir:1,w:2,r:2,mult:2.5,d:'A 2×2 drill that mines the 6×6 area around it at 2.5× speed and uses up ore half as fast. Ore leaves through two slots on its bright edge and two on the back. Each one costs more Ember shards than the last.'},
   smelter:{n:'Smelter',cost:{iron:10},pw:25,dir:1,d:'Melts ferrite, cuprite or silica into ingots and glass. Takes ore from any side.'},
   fab:{n:'Fabricator',cost:{iron:12,copper:8},pw:35,dir:1,d:'Builds the recipe you pick. Feed it the inputs from any side.'},
   fab2:{n:'Fabricator Mk II',cost:{composite:10,servo:4,circuit:30},pw:110,dir:1,w:2,mult:2.5,d:'Runs Fabricator recipes 2.5× as fast. Feed it from any side; output leaves its bright edge.'},
@@ -219,7 +219,7 @@ const CHALLENGES={
   nosplit:{n:'One thread',ban:['splitter','sorter'],d:'No Splitters or Sorters.'},
   handfed:{n:'Hand-fed',ban:['uplink'],d:'No Uplinks: every item reaches the Core by conveyor.'},
   speed:{n:'Speedrun',limit:7200,d:'Sign the Grid Charter within 2 hours of play.'},
-  deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:3,steel:6,circuit:4},d:'No basic Drills. Deep Drills are unlocked from the start, and you begin with exactly enough for one. Every other Deep Drill’s Ember shards come from burning carbon.'},
+  deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:1,steel:6,circuit:4},d:'No basic Drills. Deep Drills are unlocked from the start, and you begin with exactly enough for one. Every other Deep Drill’s Ember shards come from burning carbon.'},
   minimal:{n:'Minimalist',cap:150,d:'At most 150 buildings, not counting conveyors and crossings.'}
 };
 // Nova workshop: permanent Deep Drill upgrades bought with Nova shards

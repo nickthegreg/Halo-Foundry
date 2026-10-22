@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:21,date:'2026-10-22',title:'Cheaper first Deep Drills',items:[
+    'Deep Drills now start at 1 Ember shard and climb Fibonacci-style: 1, 1, 2, 3, 5, 8, 13… (was 3, 5, 8, 13…).'
+  ]},
   {n:20,date:'2026-10-22',title:'Batchers keep their stock',items:[
     'Batchers now keep everything they’re holding when you reload, including sets that were partway out the door.'
   ]},

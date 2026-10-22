@@ -36,8 +36,8 @@ function canAfford(c){for(const k in c)if((S.inv[k]||0)<c[k])return false;return
 function pay(c,sg){for(const k in c)S.inv[k]=(S.inv[k]||0)+sg*c[k]}
 function missing(c){const m=[];for(const k in c){const h=S.inv[k]||0;if(h<c[k])m.push((c[k]-h)+' '+ITEMS[k].s)}return m.join(', ')}
 function countOf(t){let n=0;for(const b of S.bs.values())if(b.t===t)n++;return n}
-// Anything priced in Ember shards climbs Fibonacci-style with each one you own: 3, 5, 8, 13…
-function costOf(t,n){const c=Object.assign({},B[t].cost||{});if(c.ember){let a=c.ember,b=Math.round(c.ember*5/3);const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a}const off=Math.min(.5,.05*cmdLv('architect')+relStat('cost')/100);if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
+// Anything priced in Ember shards climbs Fibonacci-style with each one you own: 1, 1, 2, 3, 5, 8…
+function costOf(t,n){const c=Object.assign({},B[t].cost||{});if(c.ember){let a=c.ember,b=c.ember;const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a}const off=Math.min(.5,.05*cmdLv('architect')+relStat('cost')/100);if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
 // Upgrade costs: hand-set early levels, then each further level costs the last one times `grow`
 function tierCost(T,grow,L){if(L<T.length)return T[L];const c={},m=Math.pow(grow,L-T.length+1),last=T[T.length-1];for(const k in last)c[k]=Math.round(last[k]*m/10)*10;return c}
 const BELT_COST=[{ember:5},{ember:50},{ember:500},{ember:5000},{aether:1000},{aether:4000,ember:20000},{aether:20000,ember:80000,servo:2000}];
