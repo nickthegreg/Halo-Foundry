@@ -1180,8 +1180,19 @@ function buildDock(){
     const lk=!isUnl(t),ic=SVG[t]||`<img src="${ICON_B[t]}" alt="">`;
     return `<button class="tool${tool===t?' on':''}${lk?' locked':''}${S.newT.includes(t)?' new':''}" id="tool-${t}" data-t="${t}" aria-pressed="${tool===t}">${ic}<span>${toolName(t)}</span>${lk?SVG.lock:''}</button>`;
   }).join('');
+  setTimeout(toolArrows,0);
 }
-elTools.addEventListener('click',e=>{const bt=e.target.closest('.tool');if(bt)setTool(bt.dataset.t)});
+elTools.addEventListener('click',e=>{if(toolDrag.moved){toolDrag.moved=false;return}const bt=e.target.closest('.tool');if(bt)setTool(bt.dataset.t)});
+// Desktop: mouse wheel and click-and-drag scroll the building bar sideways; arrow buttons appear when it overflows
+const toolDrag={on:false,x:0,sl:0,moved:false};
+elTools.addEventListener('wheel',e=>{const d=Math.abs(e.deltaY)>Math.abs(e.deltaX)?e.deltaY:e.deltaX;if(!d||elTools.scrollWidth<=elTools.clientWidth)return;e.preventDefault();elTools.scrollLeft+=d*(e.deltaMode===1?32:1);toolArrows()},{passive:false});
+elTools.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button!==0)return;toolDrag.on=true;toolDrag.x=e.clientX;toolDrag.sl=elTools.scrollLeft;toolDrag.moved=false});
+window.addEventListener('pointermove',e=>{if(!toolDrag.on)return;const dx=e.clientX-toolDrag.x;if(!toolDrag.moved&&Math.abs(dx)>6){toolDrag.moved=true;elTools.classList.add('dragging')}if(toolDrag.moved){elTools.scrollLeft=toolDrag.sl-dx;toolArrows()}});
+window.addEventListener('pointerup',()=>{if(!toolDrag.on)return;toolDrag.on=false;elTools.classList.remove('dragging');if(toolDrag.moved)setTimeout(()=>{toolDrag.moved=false},0)});
+function toolArrows(){const mx=elTools.scrollWidth-elTools.clientWidth;$('#toolsL').hidden=elTools.scrollLeft<=4;$('#toolsR').hidden=mx<=4||elTools.scrollLeft>=mx-4}
+elTools.addEventListener('scroll',toolArrows);window.addEventListener('resize',toolArrows);
+$('#toolsL').onclick=()=>{elTools.scrollBy({left:-elTools.clientWidth*.7,behavior:'smooth'})};
+$('#toolsR').onclick=()=>{elTools.scrollBy({left:elTools.clientWidth*.7,behavior:'smooth'})};
 let tipOverride='',tipUntil=0;
 function setTool(t){
   if(t==='blueprints'){showBlueprints();return}

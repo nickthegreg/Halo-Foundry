@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:17,date:'2026-10-21',title:'Building bar on PC',items:[
+    'On a computer you can now scroll the building bar with the mouse wheel, click and drag it sideways, or use the ‹ › arrows at its ends.'
+  ]},
   {n:16,date:'2026-10-21',title:'Seed fix',items:[
     'Fixed: Drills on a drained seeded patch kept mining at full speed. They now only mine ore that has actually regrown, and show “Waiting for ore to regrow” in between.'
   ]},
