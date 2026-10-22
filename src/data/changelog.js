@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:22,date:'2026-10-22',title:'🎃 Happy Halloween!',items:[
+    'Happy Halloween from Halo Foundry! A spooky new ground style is here: crooked gravestones, glowing jack-o’-lanterns, dead trees, toadstools, scattered bones, cobwebs, creeping mist, and bats fluttering overhead.',
+    'Turn it on in Menu → Ground → Halloween. It only changes the look: your ore, buildings and save stay the same.'
+  ]},
   {n:21,date:'2026-10-22',title:'Cheaper first Deep Drills',items:[
     'Deep Drills now start at 1 Ember shard and climb Fibonacci-style: 1, 1, 2, 3, 5, 8, 13… (was 3, 5, 8, 13…).'
   ]},

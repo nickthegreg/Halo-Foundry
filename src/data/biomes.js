@@ -7,6 +7,8 @@ export const BIOMES={
   desert:{n:'Desert',base:'#a98b62',spent:'#8c7150',spentDot:'rgba(255,236,200,.12)',blob:['rgba(110,60,20,','rgba(255,228,175,'],blobA:[.05,.10],
     speck:['rgba(255,242,215,.12)','rgba(90,50,18,.13)'],grid:'rgba(70,40,12,.11)',deco:'dunes',sky:'#2e2117',fog:'rgba(46,30,16,.55)'},
   grass:{n:'Grassland',base:'#4c7238',spent:'#665a42',spentDot:'rgba(230,210,170,.10)',blob:['rgba(15,45,12,','rgba(185,225,120,'],blobA:[.05,.10],
-    speck:['rgba(215,245,165,.09)','rgba(14,40,12,.16)'],grid:'rgba(12,40,8,.13)',deco:'grass',sky:'#132018',fog:'rgba(12,26,14,.56)'}
+    speck:['rgba(215,245,165,.09)','rgba(14,40,12,.16)'],grid:'rgba(12,40,8,.13)',deco:'grass',sky:'#132018',fog:'rgba(12,26,14,.56)'},
+  spooky:{n:'Halloween',base:'#261b30',spent:'#1b1322',spentDot:'rgba(255,140,40,.06)',blob:['rgba(0,0,0,','rgba(255,110,25,'],blobA:[.04,.07],
+    speck:['rgba(255,190,120,.05)','rgba(0,0,0,.18)'],grid:'rgba(255,150,60,.07)',deco:'spooky',sky:'#140b1c',fog:'rgba(14,6,20,.66)'}
 };
 export const BIOME_KEYS=Object.keys(BIOMES);
