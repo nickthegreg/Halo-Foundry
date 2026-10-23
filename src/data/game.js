@@ -132,10 +132,10 @@ const CROWN={
 const CONST_REQ=[10,25,50,100,200];
 function constReq(i){return i<CONST_REQ.length?CONST_REQ[i]:200*Math.pow(2,i-CONST_REQ.length+1)}
 const CMD={
-  industrialist:{n:'Industrialist',d:'Every machine works 5% faster per point.'},
-  stellar:{n:'Stellar',d:'Sun Leaves, Film Arrays, Prism Collectors and the halo make 10% more power per point.'},
-  ember:{n:'Ember',d:'Carbon and Aether burn 10% longer per point.'},
-  architect:{n:'Architect',max:10,d:'Buildings cost 5% less per point, up to 50% off.'}
+  industrialist:{n:'Industrialist',d:'Every machine works 5% faster per point. Candy Defense: your commander moves and attacks 8% faster.'},
+  stellar:{n:'Stellar',d:'Sun Leaves, Film Arrays, Prism Collectors and the halo make 10% more power per point. Candy Defense: your commander hits 15% harder.'},
+  ember:{n:'Ember',d:'Carbon and Aether burn 10% longer per point. Candy Defense: your commander has 15% more health.'},
+  architect:{n:'Architect',max:10,d:'Buildings cost 5% less per point, up to 50% off. Candy Defense: your commander and grunts carry 10% more sugar.'}
 };
 // Starseed shop: permanent perks bought with Starseeds. They survive Ascension.
 const SS={

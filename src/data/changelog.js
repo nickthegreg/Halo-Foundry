@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:29,date:'2026-10-22',title:'🎃 Candy Defense, rebuilt',items:[
+    'Candy Defense is now its own mode: open it from the main menu. It no longer uses anything from your main game.',
+    'You start on a floating island in a thunderstorm, with a candy box to protect. Send your commander and Grunts to mine candy geysers for sugar, and lay free bridge pieces across the sky to reach them.',
+    'Build a Sun Workshop to unlock Generators (power), Disc Throwers (hit walkers and flyers) and Sun Cannons (turn to aim; deadly to walkers, poor against flyers). Monsters attack anything in their way, so everything has health.',
+    'Your Commander levels from the main game power up your commander here: Industrialist for speed, Stellar for damage, Ember for health, Architect for income.'
+  ]},
   {n:28,date:'2026-10-22',title:'🎃 Candy Defense, Aether husks, Starseed balance',items:[
     'Happy Halloween! New event: Candy Defense. Open it from the in-game Menu. Skeletons, zombies, bats, ghosts, vampires and the Pumpkin King come for your candy bucket in ever-stronger waves. Build turrets and Ammo Presses from your main game’s storage; presses keep the turrets around them loaded. It runs while you play. When the bucket is emptied you earn Candy for the waves you held, and the field starts over. Spend Candy in the Candy shop when the event ends.',
     'Aether Reactors now leave an Aether husk for each Aether they burn, pushed out of their bright edge. Husks can’t ride Uplinks. Starseeds now count husks in storage: √(Aether + 3 × husks). Lattice cores need a husk each, and later Conveyor speed levels use them too.',
