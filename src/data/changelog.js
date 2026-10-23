@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:30,date:'2026-10-22',title:'Candy Defense: bosses and altars',items:[
+    'You start with 1,500 sugar. Grunts cost 400, Generators 400, Disc Throwers 200 and Sun Cannons 500.',
+    'If your commander falls, the island is lost, just like the candy box.',
+    'The Pumpkin King comes every 10th wave. Defeated, it floats where it fell. Grunts haul it home when they can reach it, and your commander can sacrifice it at an Altar for a boon that lasts the rest of the island.',
+    'No music in Candy Defense now, just wind, rain and thunder.'
+  ]},
   {n:29,date:'2026-10-22',title:'🎃 Candy Defense, rebuilt',items:[
     'Candy Defense is now its own mode: open it from the main menu. It no longer uses anything from your main game.',
     'You start on a floating island in a thunderstorm, with a candy box to protect. Send your commander and Grunts to mine candy geysers for sugar, and lay free bridge pieces across the sky to reach them.',

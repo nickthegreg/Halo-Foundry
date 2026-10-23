@@ -1806,6 +1806,13 @@ const SFX={
   },
   fanfare:(c,t,o)=>[0,4,7,12].forEach((k,i)=>{tone(c,t+i*.13,o,'sine',mf(72+k),mf(72+k),1.4,.12);tone(c,t+i*.13,o,'sine',mf(72+k)*2.756,mf(72+k)*2.756,.6,.03)})
 };
+// Candy Defense has no music, just a storm: wind and rain under the thunder
+let DEFAMB=null;
+function defAudio(on){const c=AU.ctx;if(!c)return;const t=c.currentTime;AU.music.gain.setTargetAtTime(on?0:AU.mv*.45,t,.4);
+  if(on&&!DEFAMB&&AU.noise){const s=c.createBufferSource();s.buffer=AU.noise;s.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=650;const f2=c.createBiquadFilter();f2.type='highpass';f2.frequency.value=90;
+    const gn=c.createGain();gn.gain.value=0;gn.gain.setTargetAtTime(.09,t,1.2);const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=.07;lg.gain.value=.035;lfo.connect(lg);lg.connect(gn.gain);
+    s.connect(f);f.connect(f2);f2.connect(gn);gn.connect(AU.sfx);s.start();lfo.start();DEFAMB={s,gn,lfo}}
+  if(!on&&DEFAMB){const A2=DEFAMB;DEFAMB=null;A2.gn.gain.setTargetAtTime(0,t,.3);setTimeout(()=>{try{A2.s.stop();A2.lfo.stop()}catch(_){}},1500)}}
 SFX.thunder=(c,t,o)=>{swell(c,t,o,'lowpass',90,40,3.2,.55,.6,.08);swell(c,t+.05,o,'lowpass',400,120,1.2,.25,.8,.04);tone(c,t,o,'sine',48,30,2.2,.18)};
 SFX.core=(c,t,o)=>{tone(c,t,o,'sine',260,170,.06,.05);hiss(c,t,o,'bandpass',900,700,.035,.03,2)};
 const SFX_GAP={launch:.3,drill:.08,core:.06,smelt:.12,craft:.08,build:.04,lay:.03,pulse:.1,tick:.03,place:.03};
@@ -2359,7 +2366,7 @@ function frame(now){
 }
 // Test hook, only on a local dev server
 if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch};
-const DEF=makeDefense({sfx:k=>sfx(k),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
+const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 let booted=false;
 function boot(data){
   if(booted)return;booted=true;
