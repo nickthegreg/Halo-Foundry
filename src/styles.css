@@ -98,6 +98,11 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 .bprow .chip .cn{font-family:var(--f-body,inherit);font-size:11.5px;color:var(--muted);margin-left:4px}
 .bprow .chip.short{color:var(--warn)}
 .bprow .chip.lockchip{opacity:.5}
+.evhelp{font-size:13.5px;color:var(--muted)}.evhelp summary{cursor:pointer;color:var(--text);font-size:14px}.evhelp p{margin:6px 0 0}
+.evfield{flex:none;margin:6px 0;display:flex;justify-content:center}
+.evtools{flex:none;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.evtools::-webkit-scrollbar{display:none}
+.evtools button{flex:none;min-height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--raise);color:var(--text);font:inherit;font-size:13.5px;white-space:nowrap}
+.evtools button.on{background:var(--sun);color:var(--sun-ink);border-color:var(--sun)}
 .bpwarn{font-size:13px;color:var(--warn);margin:6px 0 0}
 .band{pointer-events:auto;background:linear-gradient(to top,rgba(30,27,54,.97),rgba(38,34,64,.86));border-top:1px solid var(--line);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 6px)}
 .tools{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:7px max(12px,env(safe-area-inset-right,0px)) 2px max(12px,env(safe-area-inset-left,0px));max-width:1000px;margin:0 auto}

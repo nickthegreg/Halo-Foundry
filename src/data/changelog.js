@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:28,date:'2026-10-22',title:'🎃 Candy Defense, Aether husks, Starseed balance',items:[
+    'Happy Halloween! New event: Candy Defense. Open it from the in-game Menu. Skeletons, zombies, bats, ghosts, vampires and the Pumpkin King come for your candy bucket in ever-stronger waves. Build turrets and Ammo Presses from your main game’s storage; presses keep the turrets around them loaded. It runs while you play. When the bucket is emptied you earn Candy for the waves you held, and the field starts over. Spend Candy in the Candy shop when the event ends.',
+    'Aether Reactors now leave an Aether husk for each Aether they burn, pushed out of their bright edge. Husks can’t ride Uplinks. Starseeds now count husks in storage: √(Aether + 3 × husks). Lattice cores need a husk each, and later Conveyor speed levels use them too.',
+    'Starseeds’ passive bonus now has diminishing returns: about +1% ore and duplication per seed at first, flattening toward +100% ore and +25% duplication.',
+    'You now choose a Relic on every ascension, not every third.',
+    'Conveyor speed level 5 now costs 10 Aether (was 1,000).'
+  ]},
   {n:27,date:'2026-10-22',title:'Lattice Crowns, burning Aether pays, scarcer silica',items:[
     'Launch Rings now take Lattice cores too. Each one in orbit adds 1 MW of solar, and Halo mirrors still boosts petals. Lattice cores have their own tiers, Crowns, at 5, 10, 25, 50 and 100 in orbit (then doubling). Each Crown gives a Crown point for new upgrades in Menu → Crown: Resonance, Forge, Weave, Overdrive and Distill.',
     'Burning Aether now pays: Starseeds = √(Aether stored + 3 × Aether burned in Reactors), and every grid and furnace tier you reach adds 5% more.',

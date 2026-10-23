@@ -5,12 +5,12 @@ const opp=d=>(d+2)&3;
 const BELT_V=1.75, SP=0.34, DAY_LEN=300, PET_GOAL=40, CORE_GEN=120;
 const SAVE_KEY='halo-foundry-v2';
 
-const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','ember','nova','wafer','film','composite','coil','photonic','lattice'];
+const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice'];
 const ITEMS={
   ferrite:{n:'Ferrite ore',s:'ferrite'},cuprite:{n:'Cuprite ore',s:'cuprite'},silica:{n:'Silica sand',s:'silica'},carbon:{n:'Carbon',s:'carbon'},
   iron:{n:'Iron ingot',s:'iron'},copper:{n:'Copper ingot',s:'copper'},glass:{n:'Glass',s:'glass'},
   gear:{n:'Gear',s:'gear'},wire:{n:'Wire',s:'wire'},circuit:{n:'Circuit',s:'circuit'},steel:{n:'Steel',s:'steel'},
-  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'},nova:{n:'Nova shard',s:'nova'}
+  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'},nova:{n:'Nova shard',s:'nova'},husk:{n:'Aether husk',s:'husk'}
 };
 const ORE_KEYS=[null,'ferrite','cuprite','silica','carbon'];
 const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silica:['#b3a9da','#f6f2ff'],carbon:['#3c3552','#b3a5ef']};
@@ -35,7 +35,7 @@ const RECIPES={
   composite:{in:{steel:2,glass:3},out:1,t:3},
   coil:{in:{copper:4,iron:1},out:1,t:1.5},
   photonic:{in:{wafer:2,wire:6,lens:1},out:1,t:4,at:'asm'},
-  lattice:{in:{photonic:2,composite:2,servo:1},out:1,t:8,at:'asm'}
+  lattice:{in:{photonic:2,composite:2,servo:1,husk:1},out:1,t:8,at:'asm'}
 };
 const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'Moves items one tile at a time. Drag to lay a line that follows your finger. Dragging across another conveyor adds a Crossing.'},
@@ -60,7 +60,7 @@ const B={
   relay:{n:'Pulse Relay',cost:{steel:10,circuit:10,lens:4},pw:30,d:'Construction pulses for blueprints closer to this relay than to the Core launch from here. Pulses move at 40% speed outside the starting area, so relays out there save a lot of time.'},
   assembler:{n:'Assembler',cost:{frame:20,circuit:40,motor:10},pw:150,dir:1,w:3,d:'A large factory for advanced parts: Processors and Servos. Feed it from any side. Output leaves its bright edge.'},
   refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether. Starts at 1,000 ore per Aether and needs 1 ore less for every 1,000 Aether you have ever made, down to 50.'},
-  reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:10000,burn:120,w:3,d:'Burns one Aether every 2 minutes for 10 MW. Takes Aether from any side.'},
+  reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:10000,burn:120,w:3,dir:1,d:'Burns one Aether every 2 minutes for 10 MW. Takes Aether from any side. Each Aether burned leaves an Aether husk, pushed out of its bright edge; if four pile up, the Reactor stops. Husks can’t ride Uplinks: belt them to where they’re needed.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
 };
 const MS=[
@@ -147,7 +147,7 @@ const SS={
   trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`}
 };
 const TRICKLE=[['iron','copper'],['glass','gear','wire'],['circuit','steel'],['lens','motor','frame'],['prism','processor','coil']];
-// Relics: permanent bonuses that stack. One is chosen from three every 3rd ascension; rarer ones turn up less often.
+// Relics: permanent bonuses that stack. One is chosen from three every ascension; rarer ones turn up less often.
 // fx keys are percentages unless noted: spd machines, belt conveyors, solar solar+halo, burn burners, pulse pulses, ember Ember drops,
 // ore ore per tile, off offline output (points), haul offline hours (h), dup duplication (points), core Core power, cap Charge storage,
 // petal kW per petal, drill drill speed, seed seed regrowth, trk trickle rate, smelt smelting, fab fabricating, up Uplink rate,
