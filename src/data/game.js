@@ -17,7 +17,7 @@ const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silic
 const SMELT={ferrite:'iron',cuprite:'copper',silica:'glass'};
 const SMELT_T={ferrite:0.8,cuprite:0.45,silica:1.6};
 // rate = ore/s per Drill; lo/hi = ore per tile. Cuprite and ferrite are fast and shallow; carbon is slow and deep.
-const ORE_P={ferrite:{rate:1.2,lo:220,hi:340},cuprite:{rate:1.8,lo:110,hi:190},silica:{rate:0.8,lo:500,hi:700},carbon:{rate:0.22,lo:3500,hi:5000}};
+const ORE_P={ferrite:{rate:1.2,lo:220,hi:340},cuprite:{rate:1.8,lo:110,hi:190},silica:{rate:0.4,lo:250,hi:350},carbon:{rate:0.22,lo:3500,hi:5000}};
 const RECIPES={
   gear:{in:{iron:2},out:1,t:0.6},
   wire:{in:{copper:1},out:3,t:0.4},
@@ -52,7 +52,7 @@ const B={
   combustor:{n:'Combustor',cost:{iron:14,copper:6},gen:150,burn:6,dir:1,d:'Burns carbon for up to 150 kW, only as much as the grid needs. About 1 in 50 carbon leaves an Ember shard, pushed out of its bright edge.'},
   solar:{n:'Sun Leaf',cost:{glass:6,circuit:3},gen:45,d:'Up to 45 kW in daylight. Nothing at night.'},
   uplink:{n:'Uplink',cost:{steel:8,circuit:6},pw:60,d:'Beams whatever you feed it straight to the Core. Up to 4 items a second next to the Core, slower and hungrier for power the farther away it stands.'},
-  ring:{n:'Launch Ring',cost:{steel:30,motor:10,lens:20},pw:120,w:3,d:'Feed it sail petals. Each one is flung into orbit around the star and adds 8 kW to the grid for good.'},
+  ring:{n:'Launch Ring',cost:{steel:30,motor:10,lens:20},pw:120,w:3,d:'Feed it sail petals or Lattice cores. Each one is flung into orbit around the star for good: a petal adds 8 kW, a Lattice core 1 MW.'},
   turbine:{n:'Turbine Hall',cost:{steel:40,motor:10,circuit:30},gen:1200,burn:1.5,w:3,d:'Burns carbon for up to 1.2 MW, twice as efficiently as a Combustor. Takes carbon from any side. Ember shards go straight to storage.'},
   filmarray:{n:'Film Array',cost:{film:30,frame:6,circuit:15},gen:300,w:2,d:'Up to 300 kW in daylight and 120 kW at night: the most power per tile of any solar, and the best at night.'},
   capacitor:{n:'Capacitor Bank',cost:{coil:30,composite:6,steel:20},w:2,cap:400,d:'Stores 400 MJ more Charge for research.'},
@@ -117,7 +117,17 @@ const FRUNGS=[
   {kw:30000,n:'Forge Star',fuel:.15,d:'Every unit of carbon and Aether burns 15% longer.'},
   {kw:120000,n:'Crucible',pow:.15,d:'Combustors, Turbine Halls and Aether Reactors make 15% more power.'}
 ];
-function frung(i){if(i<FRUNGS.length)return FRUNGS[i];const k=i-FRUNGS.length+1,f=k%2===1;return{kw:120000*Math.pow(4,k),n:'Furnace '+(i+1),[f?'fuel':'pow']:.1,d:f?'Every unit of fuel burns 10% longer.':'Burners make 10% more power.'}}
+function frung(i){if(i<FRUNGS.length)return FRUNGS[i];const k=i-FRUNGS.length+1,f=k%2===1;return{kw:120000*Math.pow(3,k),n:'Furnace '+(i+1),[f?'fuel':'pow']:.1,d:f?'Every unit of fuel burns 10% longer.':'Burners make 10% more power.'}}
+// Crowns: tiers for Lattice cores in orbit. Each one earns a Crown point for the Crown upgrades below.
+const CROWN_REQ=[5,10,25,50,100];
+function crownReq(i){return i<CROWN_REQ.length?CROWN_REQ[i]:100*Math.pow(2,i-CROWN_REQ.length+1)}
+const CROWN={
+  resonance:{n:'Resonance',d:'Lattice cores in orbit make 25% more power per point.'},
+  forge:{n:'Forge',d:'Combustors, Turbine Halls and Aether Reactors make 10% more power per point.'},
+  weave:{n:'Weave',d:'Solar and the halo make 10% more power per point.'},
+  overdrive:{n:'Overdrive',d:'Every machine works 5% faster per point.'},
+  distill:{n:'Distill',max:5,d:'Refineries need 5% less ore per point, up to 25%.'}
+};
 // Constellations: tiers for sail petals in orbit. Each one earns a Commander point.
 const CONST_REQ=[10,25,50,100,200];
 function constReq(i){return i<CONST_REQ.length?CONST_REQ[i]:200*Math.pow(2,i-CONST_REQ.length+1)}
@@ -237,4 +247,4 @@ function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).to
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
 
-export {EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};

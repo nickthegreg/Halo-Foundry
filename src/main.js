@@ -1,4 +1,4 @@
-import {EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {CHANGELOG,LATEST} from './data/changelog.js';
 import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,nearestTone,scaleNotes,voice} from './data/music.js';
@@ -11,7 +11,7 @@ let STOPPED=false;window.__haloStop=()=>{STOPPED=true;try{window.__haloCtx&&wind
 let BV=1.75;
 function mapLim(){let m=modOn('frontier')?96:64;for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].map)m=Math.max(m,RUNGS[i].map);return m}
 function inLim(x,y){const L=mapLim();return x>=192-L&&y>=192-L&&x<192+L&&y<192+L}
-function refRatio(){return Math.max(50,Math.round((1000-Math.floor((S.refined||0)/1000))*(1-Math.min(.5,relStat('refine')/100))))}
+function refRatio(){return Math.max(50,Math.round((1000-Math.floor((S.refined||0)/1000))*(1-Math.min(.5,relStat('refine')/100+.05*crownLv('distill')))))}
 
 // ================= rng =================
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -81,6 +81,7 @@ function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+
 // Every Menu upgrade level compounds the halo: ×1.01 per level
 function upTotal(){let n=0;for(const k in (S.up||{}))n+=S.up[k]||0;return n}
 function haloMul(){return Math.pow(1.01,upTotal())}
+function latticeKW(){return 1000*(1+.25*crownLv('resonance'))*haloMul()}
 function petalKW(){return (S.res&&S.res.done.mirrors?24:8)*haloMul()*rp('petal')}
 // Constellations and Commander points
 function constN(p){let i=0;while(p>=constReq(i))i++;return i}
@@ -89,11 +90,15 @@ function cmdLevels(c){let n=0;for(const k in (c||{}))n+=c[k]||0;return n}
 // Points: banked from earlier moons plus Constellations on this one, minus what's been spent. Each level of a path costs more.
 function cmdPts(){return Math.max(0,(S.cmdBank||0)+ascN()+constN(S.petals)-(S.cmdSpent||0))}
 function cmdCost(k){return 1+Math.floor(cmdLv(k)/2)}
+function crownN(){let i=0;while((S.lat||0)>=crownReq(i))i++;return i}
+function crownLv(k){return (S&&S.crown&&S.crown[k])||0}
+function crownPts(){return Math.max(0,(S.crownBank||0)+crownN()-(S.crownSpent||0))}
+function crownCost(k){return 1+Math.floor(crownLv(k)/2)}
 function roman(n){const T=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];let s='';for(const [v,c] of T)while(n>=v){s+=c;n-=v}return s}
-function stellarMul(){return (1+.1*cmdLv('stellar'))*rp('solar')}
+function stellarMul(){return (1+.1*cmdLv('stellar'))*(1+.1*crownLv('weave'))*rp('solar')}
 // Furnace ladder perks, summed over every tier reached
 function fPerk(k){let v=0;for(let i=0;i<(S.ft||0);i++)v+=frung(i)[k]||0;return v}
-function burnPow(){return (1+fPerk('pow'))*rp('burn')}
+function burnPow(){return (1+fPerk('pow'))*(1+.1*crownLv('forge'))*rp('burn')}
 function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
 function emberChance(){return .02*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
 function toolTip(t){const d=B[t];return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))}${d.pw?' · '+d.pw+' kW':''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
@@ -104,7 +109,7 @@ function init(t){
   switch(t){
     case 'belt':return{items:[],vin:0};
     case 'drill':case 'deepdrill':return{prog:0,out:0,ang:0,dep:false};
-    case 'junction':return{lanes:[[],[]]};
+    case 'junction':return{lanes:[[],[],[],[]]};
     case 'smelter':case 'foundry':return{inT:null,inN:0,outT:null,outN:0,prog:0,run:false,cur:null,heat:0};
     case 'fab':case 'fab2':case 'assembler':return{rec:null,buf:{},outN:0,prog:0,run:false,ang:0};
     case 'refinery':return{n:0,run:false,prog:0,outN:0,ang:0};
@@ -115,7 +120,7 @@ function init(t){
     case 'combustor':return{fuel:0,energy:0,load:0,heat:0,ember:0};
     case 'turbine':return{fuel:0,energy:0,load:0,heat:0,ang:0};
     case 'uplink':return{q:[],prog:0,ph:0};
-    case 'ring':return{n:0,prog:0,ang:0};
+    case 'ring':return{n:0,l:0,prog:0,ang:0};
     default:return{ang:0};
   }
 }
@@ -154,7 +159,7 @@ function contents(b){
     case 'combustor':add('carbon',b.fuel);add('ember',b.ember);break;
     case 'turbine':add('carbon',b.fuel);break;
     case 'uplink':o.push(...b.q);break;
-    case 'ring':add('petal',b.n);break;
+    case 'ring':add('petal',b.n);add('lattice',b.l||0);break;
   }
   return o;
 }
@@ -198,14 +203,14 @@ function accept(nb,t,side){
       if(side===nb.d)return false;
       const L=nb.items[nb.items.length-1];if(L&&L.p<SP)return false;
       nb.items.push({t,p:0,f:side});return true;}
-    case 'junction':{const lane=nb.lanes[side&1],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:0,d:opp(side)});return true;}
+    case 'junction':{const lane=nb.lanes[side],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:0,d:opp(side)});return true;}
     case 'smelter':case 'foundry':
       if(!SMELT[t]||nb.inN>=(nb.t==='foundry'?30:6)||(nb.inN>0&&nb.inT!==t))return false;
       nb.inT=t;nb.inN++;return true;
     case 'fab':case 'fab2':case 'assembler':{
       if(!nb.rec)return false;const need=RECIPES[nb.rec].in[t];if(!need)return false;
       const c=nb.buf[t]||0;if(c>=Math.max(need*2,4))return false;nb.buf[t]=c+1;return true;}
-    case 'splitter':case 'sorter':if(nb.hold)return false;nb.hold=t;return true;
+    case 'splitter':case 'sorter':if(nb.hold)return false;nb.hold=t;nb.hf=side;return true;
     case 'batcher':{
       if(side===nb.d)return false;const has=Object.keys(nb.ratio).length;
       if(has&&!nb.ratio[t])return false;
@@ -216,7 +221,7 @@ function accept(nb,t,side){
     case 'reactor':if(t!=='aether'||nb.fuel>=4)return false;nb.fuel++;return true;
     case 'refinery':if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n++;stat('c',t);return true;
     case 'uplink':if(nb.q.length>=6)return false;nb.q.push(t);return true;
-    case 'ring':if(t!=='petal'||nb.n>=4)return false;nb.n++;return true;
+    case 'ring':if((t!=='petal'&&t!=='lattice')||nb.n+(nb.l||0)>=4)return false;if(t==='lattice')nb.l=(nb.l||0)+1;else nb.n++;return true;
     case 'core':deliver(t);return true;
   }
   return false;
@@ -255,6 +260,11 @@ function checkMs(){
   else showBanner('Milestone complete · '+m.n,names.length?('Unlocked: '+names.join(', ')+'.'):'Keep going. The next step is in the top bar.');
   buildDock();save();
 }
+function launchLattice(b){
+  const c0=crownN();S.lat=(S.lat||0)+1;LAUNCHED_L++;sfx('launch',b.x+1.5,b.y+1.5);
+  PARTS.push({k:'lattice',x:b.x+1.5,y:b.y+1.5,vx:(Math.random()-.5)*.4,vy:-1.2,life:3.2,max:3.2});
+  if(crownN()>c0){const n=crownN();burst(CX,CY,'#c99bff',50);sfx('fanfare');showBanner('Crown '+roman(n)+' complete',`${S.lat} Lattice cores in orbit. +1 Crown point: spend it in Menu → Crown. Next Crown at ${crownReq(n)}.`);save()}
+}
 function launch(b){
   const c0=constN(S.petals);S.petals++;LAUNCHED++;sfx('launch',b.x+1.5,b.y+1.5);
   if(constN(S.petals)>c0){const n=constN(S.petals);burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showBanner('Constellation '+roman(n)+' complete',`${S.petals} petals in orbit. +1 Commander point: spend it in Menu → Commander. Next constellation at ${constReq(n)}.`);save()}
@@ -270,7 +280,7 @@ function daylight(){if(modOn('eternal'))return 1;return Math.max(0,Math.min(1,Ma
 function sim(dt){
   S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1);
   const day=daylight();
-  let demand=0,solar=S.petals*petalKW(),cap=0;const comb=[];
+  let demand=0,solar=S.petals*petalKW()+(S.lat||0)*latticeKW(),cap=0;const comb=[];
   for(const b of S.bs.values()){
     if(b.bp)continue;
     if(b.t==='relay')b.active=true;
@@ -286,7 +296,7 @@ function sim(dt){
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load};
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
-  for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');c.energy+=B[c.t].burn*fuelMul();if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
+  for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor')S.aburn=(S.aburn||0)+1;c.energy+=B[c.t].burn*fuelMul();if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
   if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick()}
   stepPulses(dt);seedTick(dt);trickleTick(dt);
 
@@ -340,13 +350,13 @@ function sim(dt){
         }
         break;}
       case 'splitter':
-        if(b.hold){const ds=[b.d,(b.d+3)&3,(b.d+1)&3];if(b.pri!=null&&pushDir(b,b.hold,ds[b.pri]))b.hold=null;else for(let k=0;k<3;k++){const i=(b.rr+k)%3;if(i===b.pri)continue;if(pushDir(b,b.hold,ds[i])){b.hold=null;b.rr=(i+1)%3;break}}}
+        if(b.hold){const ds=[b.d,(b.d+3)&3,(b.d+1)&3],bk=b.hf;if(b.pri!=null&&ds[b.pri]!==bk&&pushDir(b,b.hold,ds[b.pri]))b.hold=null;else for(let k=0;k<3;k++){const i=(b.rr+k)%3;if(i===b.pri||ds[i]===bk)continue;if(pushDir(b,b.hold,ds[i])){b.hold=null;b.rr=(i+1)%3;break}}}
         break;
       case 'sorter':
         if(b.hold){
           const all=[b.d,(b.d+3)&3,(b.d+1)&3],sd=b.sd||0,pick=all[sd],rest=all.filter((_,i)=>i!==sd);
           if(!b.filter||b.hold===b.filter){if(pushDir(b,b.hold,pick))b.hold=null}
-          else{for(let k=0;k<2;k++){const i=(b.rr+k)%2;if(pushDir(b,b.hold,rest[i])){b.hold=null;b.rr=(i+1)%2;break}}}
+          else{for(let k=0;k<2;k++){const i=(b.rr+k)%2;if(rest[i]===b.hf&&rest[1-i]!==b.hf)continue;if(pushDir(b,b.hold,rest[i])){b.hold=null;b.rr=(i+1)%2;break}}}
         }
         break;
       case 'uplink':
@@ -354,8 +364,8 @@ function sim(dt){
         if(b.active){b.prog+=dt*sat*uplinkRate(b);while(b.prog>=1&&b.q.length){const t=b.q.shift();deliver(t);if(Math.random()<dupP())deliver(t,true);b.prog-=1}if(!b.q.length)b.prog=0}
         break;
       case 'ring':
-        {const need=modOn('lowg')?2:1;b.active=b.n>=need;b.ang+=dt*(b.active?sat*1.2:0.15);
-        if(b.active){b.prog+=dt*sat/2.5;if(b.prog>=1){b.prog=0;b.n-=need;stat('c','petal',need);launch(b)}}}
+        {const need=modOn('lowg')?2:1,lat=(b.l||0)>=need;b.active=lat||b.n>=need;b.ang+=dt*(b.active?sat*1.2:0.15);
+        if(b.active){b.prog+=dt*sat/(lat?5:2.5);if(b.prog>=1){b.prog=0;if(lat){b.l-=need;stat('c','lattice',need);launchLattice(b)}else{b.n-=need;stat('c','petal',need);launch(b)}}}}
         break;
       case 'refinery':{
         const ratio=refRatio();b.active=b.n>0||b.run;
@@ -384,7 +394,7 @@ function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
 function uplinkRate(b){return 4*rp('up')/(1+Math.max(0,coreDist(b)-3)/8)}
 function uplinkPw(b){return Math.round(60+3*coreDist(b))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)}
-function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*rp('spd')}
+function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -446,13 +456,19 @@ function climbFurnace(){
 
 // ================= ascension =================
 // Available once any Aether sits in storage. Starseeds = floor(√Aether in storage).
-function canAscend(){return isCamp()&&S.ms>=MS.length&&(S.inv.aether||0)>=1}
+function canAscend(){return isCamp()&&S.ms>=MS.length&&((S.inv.aether||0)>=1||(S.aburn||0)>=1)}
 function modSeedMul(){return S.mod&&MODS[S.mod]?MODS[S.mod].seeds:1}
-function ascSeeds(){return Math.floor(Math.sqrt(S.inv.aether||0)*rp('seeds')*modSeedMul())}
+function seedTierMul(){return 1+.05*((S.gt||0)+(S.ft||0))}
+function ascSeeds(){return Math.floor(Math.sqrt((S.inv.aether||0)+3*(S.aburn||0))*seedTierMul()*rp('seeds')*modSeedMul())}
 function ascMenu(){
   const A=S.asc||{n:0,seeds:0};if(!canAscend()&&!A.n&&!lifeSeeds())return '';
   return `<div class="sec-label">Ascension${A.n?' · '+A.n+' so far':''}</div>
   <div class="actions" style="align-items:center"><p style="flex:1;font-size:14px"><strong>${(A.seeds||0).toLocaleString()} Starseeds</strong> to spend${S.relicPick?' · <strong>a Relic to choose</strong>':''}${canAscend()?' · ready to Ascend':''}</p><button class="btn${canAscend()||S.relicPick?' primary':''}" style="flex:none;padding:0 16px" data-ascopen>Open</button></div>`;
+}
+function crownMenu(){
+  if(!(S.lat||0)&&!crownPts()&&!Object.keys(S.crown||{}).length)return '';
+  return `<div class="sec-label">Crown · ${crownPts()} point${crownPts()===1?'':'s'} to spend</div><p style="font-size:14px">Earn a Crown point for every Crown of Lattice cores in orbit. Next at ${crownReq(crownN())} cores (${S.lat||0} now). Points and levels carry over when you Ascend.</p><div class="ms-list">${Object.keys(CROWN).map(k=>{const u=CROWN[k],L=crownLv(k),mx=u.max&&L>=u.max,ct=crownCost(k),ok=!mx&&crownPts()>=ct;
+    return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4>${mx?'<span class="st">Maxed</span>':''}</div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-crown="${k}">+1 · ${ct} pt${ct===1?'':'s'}</button>`}</div></div>`}).join('')}</div>`;
 }
 function novaMenu(){
   const have=S.inv.nova||0;if(!have&&!S.flags.nova&&!Object.keys(S.nup||{}).length)return '';
@@ -480,7 +496,7 @@ function showAscension(){
     if(lock)d+=` Needs ${SS[u.req].n} first.`;
     return card(`${u.n} · level ${L}`,u.eff(L),d,mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-ss="${k}">✦ ${c}</button>`)}).join('')}</div>`;
   const g=ascSeeds();
-  h+=`<div class="sec-label">Ascend</div>`+(canAscend()?`<p style="font-size:14px">Start again on a new moon, at the start of the main game. You keep Ember shards, Nova shards and Nova upgrades, Starseeds and the shop, Relics, your Commander, and blueprints. Everything else resets: buildings, storage, research, Menu upgrades, petals and tiers. You get √(Aether in storage) Starseeds: ${(S.inv.aether||0).toLocaleString()} Aether gives ${g}.</p>
+  h+=`<div class="sec-label">Ascend</div>`+(canAscend()?`<p style="font-size:14px">Start again on a new moon, at the start of the main game. You keep Ember shards, Nova shards and Nova upgrades, Starseeds and the shop, Relics, your Commander, and blueprints. Everything else resets: buildings, storage, research, Menu upgrades, petals and tiers. Starseeds = √(Aether in storage + 3 × Aether burned in Reactors on this moon), +5% for every grid and furnace tier reached. Right now: ${(S.inv.aether||0).toLocaleString()} stored and ${(S.aburn||0).toLocaleString()} burned, ×${seedTierMul().toFixed(2)}, gives ${g}.</p>
   <div class="actions"><button class="btn primary" data-ascend>Ascend for +${g} Starseed${g===1?'':'s'} →</button></div>`:'<p style="font-size:14px">Store some Aether to Ascend again.</p>');
   openModal(h);
 }
@@ -495,7 +511,7 @@ function showRelicPick(){
 }
 function showMoonPick(){
   const ks=Object.keys(MODS),o=[];while(o.length<3){const k=ks[Math.random()*ks.length|0];if(!o.includes(k))o.push(k)}
-  const g=n=>Math.floor(Math.sqrt(S.inv.aether||0)*rp('seeds')*modSeedMul());
+  const g=()=>ascSeeds();
   openModal(`<span class="eyebrow">Ascension ${ascN()+1}</span><h1>Choose your next moon</h1><p>You get <strong>${g()} Starseed${g()===1?'':'s'}</strong> now. The moon you pick changes how many you earn when you leave it.</p><div class="ms-list">${o.map(k=>`<div class="ms cur"><div class="ms-top"><h4>${MODS[k].n}</h4><span class="st">Starseeds ×${MODS[k].seeds}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${MODS[k].d}</div><button class="btn primary" style="flex:none;padding:0 16px" data-moon="${k}">Go</button></div></div>`).join('')}
   <div class="ms cur"><div class="ms-top"><h4>Plain moon</h4><span class="st">Starseeds ×1</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">No modifier.</div><button class="btn" style="flex:none;padding:0 16px" data-moon="">Go</button></div></div></div>
   <div class="actions"><button class="btn" data-ascopen>Back</button></div>`);
@@ -504,7 +520,7 @@ function doAscend(mod){
   const A=S.asc||{n:0,seeds:0,total:0},got=ascSeeds(),inv={iron:400,copper:200};mod=mod&&MODS[mod]?mod:null;
   for(const k of ['ember','nova'])if(S.inv[k]>0)inv[k]=S.inv[k];
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv,ms:TUT,prog:{},petals:0,gt:0,gavg:0,ft:0,favg:0,
-    cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
+    cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,crown:S.crown||{},crownBank:(S.crownBank||0)+crownN(),crownSpent:S.crownSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
     up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,nova:S.flags.nova,ascHint:1},refined:S.refined||0,seen:S.seen,bs:[],fromCode:1,
     ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:(A.n+1)%3===0?relicOffer():S.relicPick||null,mod};
   start(d);cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,'#d8b4ff',60);sfx('fanfare');
@@ -584,7 +600,7 @@ function genWorld(seed){
       if(x<1||y<1||x>=LW-1||y>=LW-1)continue;
       const dx=x+.5-bx,dy=y+.5-by,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
       const rr=r*(0.84+0.16*Math.sin(a*3+p1)+0.1*Math.sin(a*5+p2));
-      if(d<rr&&Math.max(Math.abs(x+.5-lcx),Math.abs(y+.5-lcy))>3.6){const i=(y+oy)*W+x+ox;ORE[i]=k;RES[i]=Math.round((P.lo+R()*(P.hi-P.lo))*(1.25-0.5*d/rr)*rich)}
+      if(d<rr&&Math.max(Math.abs(x+.5-lcx),Math.abs(y+.5-lcy))>3.6){const i=(y+oy)*W+x+ox,v=Math.round((P.lo+R()*(P.hi-P.lo))*(1.25-0.5*d/rr)*rich);if(k===3&&d>=rr*.82)continue;ORE[i]=k;RES[i]=v}
     }
   };
   // Inner 128×128 starting region (kept identical to earlier versions so saves line up)
@@ -928,10 +944,10 @@ function drawMachine(g,b,x,y,s){
       base(g,x,y,s,'#322e4e',.03);
       g.fillStyle='#211e33';g.fillRect(x+s*.03,cy-s*.29,s*.94,s*.58);
       g.fillStyle='#4c4774';g.fillRect(x+s*.03,cy-s*.22,s*.94,s*.44);
-      drawLane(g,b.lanes[1],cx,cy,s);
+      drawLane(g,b.lanes[1],cx,cy,s);drawLane(g,b.lanes[3],cx,cy,s);
       rr(g,cx-s*.31,y+s*.03,s*.62,s*.94,s*.1);g.fillStyle='#3a3557';g.fill();g.strokeStyle='#6a6299';g.lineWidth=Math.max(1,s*.035);g.stroke();
       g.strokeStyle='rgba(243,194,90,.4)';g.lineWidth=Math.max(1,s*.03);g.beginPath();g.moveTo(cx-s*.21,y+s*.12);g.lineTo(cx-s*.21,y+s*.88);g.moveTo(cx+s*.21,y+s*.12);g.lineTo(cx+s*.21,y+s*.88);g.stroke();
-      drawLane(g,b.lanes[0],cx,cy,s);
+      drawLane(g,b.lanes[0],cx,cy,s);drawLane(g,b.lanes[2],cx,cy,s);
       break;}
     case 'smelter':{
       base(g,x,y,s,'#4a405e');const h=b.heat;
@@ -1068,8 +1084,8 @@ function drawMachine(g,b,x,y,s){
       g.restore();
       g.beginPath();g.arc(c3x,c3y,s*.95,0,7);g.strokeStyle='rgba(243,194,90,.8)';g.lineWidth=s*.09;g.stroke();
       if(b.active){g.beginPath();g.arc(c3x,c3y,s*.95,-1.5708,-1.5708+6.283*b.prog);g.strokeStyle='#fff4c4';g.lineWidth=s*.12;g.stroke()}
-      if(b.n>0){const q=s*.9;g.drawImage(SPR.petal,c3x-q/2,c3y-q/2,q,q);glow(b.x+1.5,b.y+1.5,2.4,'#f3c25a',.55)}
-      for(let i=0;i<4;i++){g.beginPath();g.arc(c3x-s*.45+i*s*.3,c3y+s*1.22,s*.06,0,7);g.fillStyle=i<b.n?'#f3c25a':'#3a3452';g.fill()}
+      if(b.l>0||b.n>0){const q=s*.9;g.drawImage(SPR[b.l>0?'lattice':'petal'],c3x-q/2,c3y-q/2,q,q);glow(b.x+1.5,b.y+1.5,2.4,b.l>0?'#c99bff':'#f3c25a',.55)}
+      for(let i=0;i<4;i++){g.beginPath();g.arc(c3x-s*.45+i*s*.3,c3y+s*1.22,s*.06,0,7);g.fillStyle=i<(b.l||0)?'#c99bff':i<(b.l||0)+b.n?'#f3c25a':'#3a3452';g.fill()}
       break;}
   }
 }
@@ -1171,8 +1187,8 @@ function render(rdt){
   }
   for(let i=PARTS.length-1;i>=0;i--){
     const p=PARTS[i];p.life-=rdt;if(p.life<=0){PARTS.splice(i,1);continue}
-    if(p.k==='petal'){p.vy-=rdt*5;p.x+=p.vx*rdt;p.y+=p.vy*rdt;if(Math.random()<.7)PARTS.push({k:'spark',x:p.x,y:p.y+.2,vx:(Math.random()-.5)*.6,vy:Math.random()*.6,life:.7,max:.7,c:'#f3c25a'});
-      const a=Math.min(1,p.life/p.max*2);g.globalAlpha=a;const R=z*1.4;g.drawImage(glowSpr('#f3c25a'),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2);g.globalAlpha=1;g.globalCompositeOperation='source-over';const q=z*.6;g.drawImage(SPR.petal,w2sx(p.x)-q/2,w2sy(p.y)-q/2,q,q);g.globalCompositeOperation='lighter'}
+    if(p.k==='petal'||p.k==='lattice'){const pc=p.k==='lattice'?'#c99bff':'#f3c25a';p.vy-=rdt*5;p.x+=p.vx*rdt;p.y+=p.vy*rdt;if(Math.random()<.7)PARTS.push({k:'spark',x:p.x,y:p.y+.2,vx:(Math.random()-.5)*.6,vy:Math.random()*.6,life:.7,max:.7,c:pc});
+      const a=Math.min(1,p.life/p.max*2);g.globalAlpha=a;const R=z*1.4;g.drawImage(glowSpr(pc),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2);g.globalAlpha=1;g.globalCompositeOperation='source-over';const q=z*.6;g.drawImage(SPR[p.k],w2sx(p.x)-q/2,w2sy(p.y)-q/2,q,q);g.globalCompositeOperation='lighter'}
     else{p.x+=p.vx*rdt;p.y+=p.vy*rdt;g.globalAlpha=p.life/p.max;const R=z*.18;g.drawImage(glowSpr(p.c),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2)}
   }
   g.globalAlpha=1;g.globalCompositeOperation='source-over';
@@ -1330,7 +1346,7 @@ function status(b){
   switch(b.t){
     case 'belt':return['ok',(b.rate||0)>.05?`Moving ${(b.rate||0).toFixed(1)} items/s of ${(BV/SP).toFixed(1)} max`:b.items.length?`Holding ${b.items.length}, not moving`:'Empty'];
     case 'drill':case 'deepdrill':return !b.dep&&!drillHasOut(b)?['warn','Nothing to output into']:b.wait?['warn','Waiting for ore to regrow']:b.dep?['bad','Ore in reach used up']:b.out>=drillCap(b)?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
-    case 'junction':{const n=b.lanes[0].length+b.lanes[1].length;return['ok',n?`Carrying ${n}`:'Empty']}
+    case 'junction':{const n=b.lanes.reduce((a,l)=>a+l.length,0);return['ok',n?`Carrying ${n}`:'Empty']}
     case 'smelter':case 'foundry':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];
     case 'reactor':return b.load>.01?['ok',`Running · ${fmtW(b.load*10000)}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs Aether'];
@@ -1345,7 +1361,7 @@ function status(b){
     case 'relay':return['ok','Pulse origin'];
     case 'solar':return PW.day>0?['ok',`Making ${Math.round(45*PW.day)} kW`]:['warn','Night'];
     case 'uplink':return b.q.length?(lp?['warn','Low power · '+pct]:['ok','Sending']):['ok','Idle'];
-    case 'ring':return b.n?(lp?['warn','Low power · '+pct]:['ok','Launching']):['warn','Waiting for petals'];
+    case 'ring':return b.n||b.l?(lp?['warn','Low power · '+pct]:['ok',b.l?'Launching Lattice cores':'Launching']):['warn','Waiting for petals or Lattice cores'];
     case 'core':return['ok','Online · '+fmtW(coreKW())];
   }
   return['ok',''];
@@ -1353,7 +1369,7 @@ function status(b){
 function bufRow(b){
   const cnt=a=>{const o={};a.forEach(t=>o[t]=(o[t]||0)+1);return Object.keys(o).map(k=>chip(k,o[k])).join('')};
   switch(b.t){
-    case 'junction':{const a=[...b.lanes[0],...b.lanes[1]].map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
+    case 'junction':{const a=b.lanes.flat().map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
     case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}/s</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
@@ -1364,7 +1380,7 @@ function bufRow(b){
     case 'turbine':return `<div class="flow"><span class="lbl">Fuel</span>${chip('carbon',b.fuel+'/20')}</div>`;
     case 'combustor':return `<div class="flow"><span class="lbl">Fuel</span>${chip('carbon',b.fuel+'/8')}<span class="lbl">Byproduct</span>${chip('ember',b.ember+'/5')}</div>`;
     case 'uplink':return `<div class="flow"><span class="lbl">${uplinkRate(b).toFixed(2)} items/s · ${uplinkPw(b)} kW · ${Math.round(coreDist(b))} tiles from Core</span></div>`+(b.q.length?`<div class="flow"><span class="lbl">Queue</span>${cnt(b.q)}</div>`:'');
-    case 'ring':return `<div class="flow"><span class="lbl">Loaded</span>${chip('petal',b.n+'/4')}<span class="lbl">· ${S.petals} launched</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
+    case 'ring':return `<div class="flow"><span class="lbl">Loaded</span>${chip('petal',b.n)}${chip('lattice',b.l||0)}<span class="lbl">of 4 · ${S.petals} petals and ${S.lat||0} Lattice cores in orbit</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'belt':return b.items.length?`<div class="flow">${cnt(b.items.map(i=>i.t))}</div>`:'';
   }
   return '';
@@ -1452,11 +1468,15 @@ function showMilestones(){
     h+=`<div class="ms ${cls}"><div class="ms-top"><h4>Tier ${i+1} · ${r.n}</h4><span class="st">${done?'Reached':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}">${BOLT}${cur?fmtW(S.gavg)+' / ':''}${fmtW(r.kw)} sustained<i style="width:${f*100}%"></i></span></div><div class="ms-unl">${r.d}</div></div>`;
   }
   h+=sec('Furnace ladder · coal and Aether');
+  h+='<p style="font-size:14px">Every furnace tier also makes machines 5% faster. Grid and furnace tiers each add 5% to the Starseeds you get when you Ascend.</p>';
   const ft=S.ft||0,ftop=ft+3;
   for(let i=0;i<ftop;i++){
     const r=frung(i),done=i<ft,cur=i===ft&&S.ms>=MS.length,cls=done?'done':cur?'cur':'future',f=done?1:cur?Math.min(1,(S.favg||0)/r.kw):0;
     h+=`<div class="ms ${cls}"><div class="ms-top"><h4>Furnace ${i+1} · ${r.n}</h4><span class="st">${done?'Reached':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}">${BOLT}${cur?fmtW(S.favg||0)+' / ':''}${fmtW(r.kw)} sustained<i style="width:${f*100}%"></i></span></div><div class="ms-unl">${r.d}</div></div>`;
   }
+  h+=sec('Crowns · Lattice cores in orbit');
+  {const cn=crownN();for(let i=0;i<cn+2;i++){const q=crownReq(i),done=i<cn,cur=i===cn,prev=i?crownReq(i-1):0,f=done?1:cur?Math.max(0,Math.min(1,((S.lat||0)-prev)/(q-prev))):0;
+    h+=`<div class="ms ${done?'done':cur?'cur':'future'}"><div class="ms-top"><h4>Crown ${roman(i+1)}</h4><span class="st">${done?'Complete':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}"><img src="${ICON.lattice}" alt="Lattice core">${cur?(S.lat||0)+' / ':''}${q} cores<i style="width:${f*100}%"></i></span></div><div class="ms-unl">+1 Crown point. Each Lattice core in orbit adds ${fmtW(latticeKW())} of solar.</div></div>`}}
   h+=sec('Constellations · sail petals in orbit');
   const cn=constN(S.petals);
   for(let i=0;i<cn+3;i++){
@@ -1495,6 +1515,7 @@ function showMenu(){
   <div class="sec-label">Halo</div><p style="font-size:14px">Each sail petal gives <strong>${petalKW().toFixed(1)} kW</strong> before other bonuses: ×${haloMul().toFixed(2)} from ${upTotal()} upgrade level${upTotal()===1?'':'s'} (+1% each, compounding).</p>
   <div class="sec-label">Commander · ${cmdPts()} point${cmdPts()===1?'':'s'} to spend</div><p style="font-size:14px">Earn a point for every Constellation of sail petals in orbit. Next at ${constReq(constN(S.petals))} petals (${S.petals} now). Points and levels carry over when you Ascend.</p><div class="ms-list">${Object.keys(CMD).map(k=>{const u=CMD[k],L=cmdLv(k),mx=u.max&&L>=u.max,ct=cmdCost(k),ok=!mx&&cmdPts()>=ct;
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4>${mx?'<span class="st">Maxed</span>':''}</div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-cmd="${k}">+1 · ${ct} pt${ct===1?'':'s'}</button>`}</div></div>`}).join('')}</div>
+  ${crownMenu()}
   ${novaMenu()}
   ${ascMenu()}
   <div class="sec-label">Ground</div><div class="seg">${BIOME_KEYS.map(k=>`<button data-biome="${k}" class="${BIOME===k?'on':''}">${BIOMES[k].n}</button>`).join('')}</div>
@@ -1548,6 +1569,7 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.relic){const k=b.dataset.relic;if(!S.relicPick||!S.relicPick.includes(k)||!RELICS[k])return;S.relics=S.relics||[];S.relics.push(k);S.relicPick=null;save();closeModal();burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showToast(RELICS[k].n+': '+relicText(k))}
   else if(b.dataset.ss){const k=b.dataset.ss,u=SS[k];if(!u)return;const L=ssLv(k);if(L>=u.max)return;if(u.req&&!ssLv(u.req)){showToast('Needs '+SS[u.req].n+' first');return}const c=u.cost(L);if(S.asc.seeds<c){showToast(`Needs ${c} Starseeds`);return}
     S.asc.seeds-=c;S.ss=S.ss||{};S.ss[k]=L+1;if(k==='seedv')refreshSeeds();if(k==='core'&&!growCore())showToast('Clear the tiles around the Core and it will grow');save();showAscension();sfx('tick')}
+  else if(b.dataset.crown){const k=b.dataset.crown,u=CROWN[k];if(!u)return;if(u.max&&crownLv(k)>=u.max)return;const ct=crownCost(k);if(crownPts()<ct){showToast(`Needs ${ct} Crown point${ct===1?'':'s'}. Launch more Lattice cores.`);return}S.crown=S.crown||{};S.crownSpent=(S.crownSpent||0)+ct;S.crown[k]=crownLv(k)+1;save();showMenu();showToast(u.n+' is now level '+S.crown[k])}
   else if(b.dataset.nup){const k=b.dataset.nup,u=NUP[k];if(!u)return;const L=nupLv(k);if(L>=u.max)return;const c=u.cost(L);if((S.inv.nova||0)<c){showToast(`Needs ${c} Nova shard${c===1?'':'s'}`);return}
     S.inv.nova-=c;S.nup=S.nup||{};S.nup[k]=L+1;for(const q of S.bs.values())if(q.t==='deepdrill')q.dep=false;save();showMenu();showToast(u.n+' is now level '+S.nup[k])}
   else if(b.hasAttribute('data-ascend')){if(canAscend())showMoonPick()}
@@ -1944,7 +1966,7 @@ function updateResearch(){
 
 // ================= offline progress =================
 // While you're away the factory earns a share of what it was delivering to the Core, without using ore or fuel.
-let AWAY=null,LAUNCHED=0;
+let AWAY=null,LAUNCHED=0,LAUNCHED_L=0;
 function offEff(){return Math.min(1,.2+.1*((S.up&&S.up.night)||0)+relStat('off')/100)}
 function offCapH(){return 8+4*((S.up&&S.up.haul)||0)+relStat('haul')}
 function trackRates(d){
@@ -1952,6 +1974,7 @@ function trackRates(d){
   const a=1/180;S.dr=S.dr||{};
   for(const k of new Set([...Object.keys(S.dr),...Object.keys(d)])){const v=(S.dr[k]||0)*(1-a)+(d[k]||0)*a;if(v<1e-4)delete S.dr[k];else S.dr[k]=v}
   S.lr=(S.lr||0)*(1-a)+LAUNCHED*a;LAUNCHED=0;if(S.lr<1e-5)S.lr=0;
+  S.llr=(S.llr||0)*(1-a)+LAUNCHED_L*a;LAUNCHED_L=0;if(S.llr<1e-5)S.llr=0;
   S.dch=(S.dch||0)*(1-a)+(S.ms>=MS.length?Math.max(0,PW.gen-PW.demand)/1000:0)*a;
 }
 function fmtAway(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h}h ${m}m`:`${m} min`}
@@ -1963,11 +1986,13 @@ function grantOffline(sec){
   // Launch Rings keep flinging petals at the same share of their recent rate
   let pl=0,cg=0;if(S.lr>0){pl=Math.floor(S.lr*t*e);if(pl>0){const c0=constN(S.petals);S.petals+=pl;cg=constN(S.petals)-c0;any=true;
     const m=MS[S.ms];if(m&&m.launch){S.prog.petal=Math.min(PET_GOAL,(S.prog.petal||0)+pl);checkMs()}}}
+  let ll=0;if(S.llr>0){ll=Math.floor(S.llr*t*e);if(ll>0){S.lat=(S.lat||0)+ll;any=true}}
   if(!any)return;
   const keys=ITEM_ORDER.filter(k=>got[k]);
   openModal(`<span class="eyebrow">Welcome back</span><h1>Your factory kept going</h1>
   <p>You were away <strong>${fmtAway(sec)}</strong>. It ran at <strong>${Math.round(e*100)}%</strong> while you were gone, without using up ore or fuel.${sec>t?` Offline time counts up to ${offCapH()} hours; Long haul raises that.`:''}</p>
   <div class="ms-req">${keys.map(k=>`<span class="req done"><img src="${ICON[k]}" alt="${ITEMS[k].n}">+${got[k].toLocaleString()}</span>`).join('')}${ch>=1?`<span class="req done">${BOLT}+${Math.floor(ch).toLocaleString()} MJ</span>`:''}</div>
+  ${ll>0?`<p><strong>${ll.toLocaleString()}</strong> Lattice core${ll===1?' was':'s were'} launched into orbit (${S.lat.toLocaleString()} now).</p>`:''}
   ${pl>0?`<p><strong>${pl.toLocaleString()}</strong> sail petal${pl===1?' was':'s were'} launched into orbit (${S.petals.toLocaleString()} now).${cg>0?` <strong>${cg===1?'A Constellation':cg+' Constellations'}</strong> completed: +${cg} Commander point${cg===1?'':'s'} in Menu → Commander.`:''}</p>`:''}
   <button class="btn primary" data-close>Collect</button>`);
   hudTick(true);save();
@@ -2259,7 +2284,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
@@ -2272,7 +2297,7 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick:null;S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;S.chd=d.chd&&typeof d.chd==='object'?d.chd:{};refreshSeeds();
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick:null;S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;S.chd=d.chd&&typeof d.chd==='object'?d.chd:{};refreshSeeds();
     // players who earned buildings from the old grid ladder get the matching research for free
     for(const id in TECH){const N=TECH[id];if(S.res.done[id]||(!(N.unl||[]).length&&!(N.rec||[]).length))continue;if((N.unl||[]).every(t=>S.unl.includes(t))&&(N.rec||[]).every(k=>S.rec.includes(k)))S.res.done[id]=1}
     S.refined=d.refined||0;speed=testerOK()?(d.speed||1):1;

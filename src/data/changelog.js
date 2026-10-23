@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:27,date:'2026-10-22',title:'Lattice Crowns, burning Aether pays, scarcer silica',items:[
+    'Launch Rings now take Lattice cores too. Each one in orbit adds 1 MW of solar, and Halo mirrors still boosts petals. Lattice cores have their own tiers, Crowns, at 5, 10, 25, 50 and 100 in orbit (then doubling). Each Crown gives a Crown point for new upgrades in Menu → Crown: Resonance, Forge, Weave, Overdrive and Distill.',
+    'Burning Aether now pays: Starseeds = √(Aether stored + 3 × Aether burned in Reactors), and every grid and furnace tier you reach adds 5% more.',
+    'Every furnace tier now also makes machines 5% faster, and furnace tiers past Crucible now grow ×3 (was ×4) to stay reachable.',
+    'Silica is scarcer: Drills mine it half as fast, tiles hold half as much, and patches are about two thirds the size.',
+    'Fixed: Crossings next to Splitters could jam. Crossings now keep a separate queue for each direction, and Splitters and Sorters never send an item back out the side it came in.'
+  ]},
   {n:26,date:'2026-10-22',title:'Research fix in challenges',items:[
     'Fixed: in a challenge, tapping the top bar opened the goal instead of Research. It opens Research again, with the challenge goal at the top and a Goal button for the full breakdown.'
   ]},
