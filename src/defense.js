@@ -201,7 +201,7 @@ export function makeDefense(A){
         // reached your ground: leave the lane and go for the kill
         if(f.li>=f.lane.length-1||(D.land[i]===LAND&&D.isl[i]===0)||(B.land[i]===BRIDGE)){f.lane=null}
         else{const ni=f.lane[f.li+1],v=B.land[ni];
-          if(v===SKY){f.bt+=dt;if(f.bt>=.7){f.bt=0;B.land[ni]=EBR;B.ebr[ni]=1;topo++;snd('dfBone',ni%MW+.5,(ni/MW|0)+.5,.7)}continue}
+          if(v===SKY&&!bAt(ni%MW,ni/MW|0)){f.bt+=dt;if(f.bt>=.7){f.bt=0;B.land[ni]=EBR;B.ebr[ni]=1;topo++;snd('dfBone',ni%MW+.5,(ni/MW|0)+.5,.7)}continue}
           if(moveTo(f,ni%MW+.5,(ni/MW|0)+.5,sp))f.li++;continue}}
       if(!tg)tg=box;const vx=tg.x-f.x,vy=tg.y-f.y,l=Math.hypot(vx,vy)||1;f.x+=vx/l*sp;f.y+=vy/l*sp+(F.air?Math.sin(f.ph*.5)*dt*.4:0)}
     // shots
@@ -228,10 +228,13 @@ export function makeDefense(A){
     for(let j=0;j<T.w;j++)for(let i=0;i<T.w;i++){const xx=x+i,yy=y+j;if(!inb(xx,yy))return 'Off the map';const k=idx(xx,yy),v=D.land[k];
       if(bAt(xx,yy)||onBox(xx,yy))return 'Something is already there';if(v===GEY||gAt(xx,yy))return 'That’s a geyser';if(v===HUSK||v===EBR)return 'Can’t build there';
       if(T.land){if(v!==LAND)return 'Build that on solid island ground';if(isl==null)isl=D.isl[k];else if(isl!==D.isl[k])return 'Keep it on one island'}
-      else if((v===LAND||v===BRIDGE)&&C[k])footed=true;else if(v!==SKY&&v!==LAND)return 'Can’t build there'}
+      else if(v===BRIDGE)return 'Not on the bridge itself: hang it off the side, over open sky';
+      else if(v===LAND){if(!C[k])return 'Build towers on an island you hold';footed=true}
+      else if(v===SKY){for(const [dx,dy] of DIR4){const ax=xx+dx,ay=yy+dy;if(inb(ax,ay)&&C[idx(ax,ay)]&&!(ax>=x&&ay>=y&&ax<x+T.w&&ay<y+T.w))footed=true}}
+      else return 'Can’t build there'}
     if(T.land&&T.own&&!own.has(isl))return 'Build an Outpost on this island first';
     if(t==='outpost'&&own.has(isl))return 'You already hold this island';
-    if(!T.land&&!footed)return 'Towers need a footing on an island or bridge you hold; they can hang over the edge';
+    if(!T.land&&!footed)return 'Towers go on an island you hold, or hanging off the side of a bridge or shore you hold';
     if(T.power&&!inPower(powered(),x+T.w/2,y+T.w/2))return 'Needs power: place it inside the candy box’s or a Generator’s circle';
     if(T.power&&!D.b.some(q=>q.t==='workshop'&&!q.bp))return 'Build a Sun Workshop first';return null}
   function placeB(t,x,y){const T=BUILD[t],why=canPlaceB(t,x,y);if(why){A.toast(why);A.sfx('err');return}if(D.money<T.cost){A.toast(`Needs ${T.cost} sugar`);A.sfx('err');return}
@@ -290,6 +293,11 @@ export function makeDefense(A){
       else if(v===BRIDGE){g.drawImage(SP.bridge,sx,sy,z+.5,z+.5);const ck=B.crack[i];if(ck){g.strokeStyle=`rgba(20,10,8,${.4+ck*.6})`;g.lineWidth=Math.max(1,z*.06);g.beginPath();g.moveTo(sx+z*.2,sy+z*.1);g.lineTo(sx+z*.45,sy+z*.5);g.lineTo(sx+z*.3,sy+z*.9);if(ck>.5){g.moveTo(sx+z*.45,sy+z*.5);g.lineTo(sx+z*.85,sy+z*.65)}g.stroke();g.globalAlpha=1}}
       else if(v===EBR){g.globalAlpha=Math.max(.25,Math.min(1,(B.ebr[i]||0)*1.6));g.drawImage(SP.ebridge,sx,sy,z+.5,z+.5);g.globalAlpha=1}
       else if(v===HUSK){g.drawImage(SP.husk,sx,sy+z*.15,z,z*.75)}}
+    for(const q of B.b){if(BUILD[q.t].land)continue;for(let j=0;j<q.w;j++)for(let i=0;i<q.w;i++){const x=q.x+i,y=q.y+j;if(L(x,y)!==SKY)continue;const [sx,sy]=W2S(x,y);
+        g.globalAlpha=q.bp?.5:1;g.fillStyle='#3a2414';g.fillRect(sx,sy+z*.1,z+.5,z*.9);g.drawImage(SP.bridge,sx+z*.04,sy,z*.92,z*.82);g.fillStyle='rgba(20,10,6,.35)';g.fillRect(sx,sy+z*.82,z+.5,z*.18);
+        g.strokeStyle='#4a3420';g.lineWidth=Math.max(1.5,z*.09);for(const [dx,dy] of DIR4){const v2=L(x+dx,y+dy);if(v2!==BRIDGE&&v2!==LAND)continue;if(x+dx>=q.x&&y+dy>=q.y&&x+dx<q.x+q.w&&y+dy<q.y+q.w)continue;
+          const ex=sx+z/2+dx*z*.5,ey=sy+z/2+dy*z*.5;g.beginPath();g.moveTo(ex-dy*z*.3,ey-dx*z*.3);g.lineTo(ex+dx*z*.25+dy*z*.05,ey+dy*z*.25+z*.35);g.moveTo(ex+dy*z*.3,ey+dx*z*.3);g.lineTo(ex+dx*z*.25-dy*z*.05,ey+dy*z*.25+z*.35);g.stroke()}
+        if(L(x,y+1)===SKY&&!(y+1<q.y+q.w)){g.fillStyle='#2a1a10';g.beginPath();g.moveTo(sx+z*.2,sy+z);g.lineTo(sx+z*.8,sy+z);g.lineTo(sx+z*.5,sy+z*1.45);g.closePath();g.fill()}g.globalAlpha=1}}
     // power circles while placing a powered building
     if(BUILD[mode]&&BUILD[mode].power){for(const s of SRC){const [a,b]=W2S(s.x,s.y);g.beginPath();g.arc(a,b,s.r*z,0,7);g.fillStyle='rgba(255,214,90,.07)';g.fill();g.strokeStyle='rgba(255,214,90,.35)';g.setLineDash([6,5]);g.stroke();g.setLineDash([])}}
     // geysers
@@ -386,7 +394,7 @@ export function makeDefense(A){
   function refreshBar(){const has=D.b.some(q=>q.t==='workshop'&&!q.bp),btn=(k,label,cost)=>`<button class="btn${mode===k?' primary':''}" data-df="${k}">${label}${cost!=null?` <span class="cost">${cost}</span>`:''}</button>`;
     el.querySelector('#dfActs').innerHTML=btn('cmd','Commander')+`<button class="btn" data-df="grunt">Grunt <span class="cost">${UNIT.grunt.cost}</span></button>`+btn('outpost','Outpost',BUILD.outpost.cost)+btn('workshop','Sun Workshop',BUILD.workshop.cost)+btn('altar','Altar',BUILD.altar.cost)+
       (has?btn('generator','Generator',BUILD.generator.cost)+btn('disc','Disc Thrower',BUILD.disc.cost)+btn('cannon','Sun Cannon',BUILD.cannon.cost):'');
-    const tip=mode==='cmd'&&sel?`${BUILD[sel.t].n}: ${BUILD[sel.t].d} Tap it again to hide the range.`:mode==='bridge'?'Tap open sky next to an island you hold or a bridge joined to one. ⟳ rotates the piece. Bridges cut off from your islands crack and fall.':mode==='cmd'?'Tap a geyser to send your commander to collect, tap land to walk, tap a blueprint to build it. Grunts collect on their own. Drag to look around, pinch or scroll to zoom.':BUILD[mode]?`${BUILD[mode].n} · ${BUILD[mode].cost} sugar. ${BUILD[mode].d}`:'';
+    const tip=BUILD[mode]&&!BUILD[mode].land?`${BUILD[mode].n} · ${BUILD[mode].cost} sugar. ${BUILD[mode].d} Place it on your island, or out over open sky beside a bridge or shore you hold, where it hangs off the side.`:mode==='cmd'&&sel?`${BUILD[sel.t].n}: ${BUILD[sel.t].d} Tap it again to hide the range.`:mode==='bridge'?'Tap open sky next to an island you hold or a bridge joined to one. ⟳ rotates the piece. Bridges cut off from your islands crack and fall.':mode==='cmd'?'Tap a geyser to send your commander to collect, tap land to walk, tap a blueprint to build it. Grunts collect on their own. Drag to look around, pinch or scroll to zoom.':BUILD[mode]?`${BUILD[mode].n} · ${BUILD[mode].cost} sugar. ${BUILD[mode].d}`:'';
     el.querySelector('#dfTip').textContent=tip}
   function drawSlots(){const row=el.querySelector('#dfSlots');row.innerHTML=D.slots.map((c,i)=>`<button class="def-slot${slot===i?' on':''}" data-df="slot${i}">${c?'<canvas width="56" height="56"></canvas>':'<span>…</span>'}</button>`).join('');
     row.querySelectorAll('canvas').forEach(k=>{const i=[...row.children].indexOf(k.parentElement),c=D.slots[i],x=k.getContext('2d'),w=Math.max(...c.map(p=>p[0]))+1,h=Math.max(...c.map(p=>p[1]))+1,s=Math.min(11,Math.floor(50/Math.max(w,h)));x.imageSmoothingEnabled=false;
