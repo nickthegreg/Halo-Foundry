@@ -2,19 +2,21 @@
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
   {n:30,date:'2026-10-22',title:'Candy Defense: bosses and altars',items:[
+    'For testers only, for now.',
     'You start with 1,500 sugar. Grunts cost 400, Generators 400, Disc Throwers 200 and Sun Cannons 500.',
     'If your commander falls, the island is lost, just like the candy box.',
     'The Pumpkin King comes every 10th wave. Defeated, it floats where it fell. Grunts haul it home when they can reach it, and your commander can sacrifice it at an Altar for a boon that lasts the rest of the island.',
     'No music in Candy Defense now, just wind, rain and thunder.'
   ]},
   {n:29,date:'2026-10-22',title:'🎃 Candy Defense, rebuilt',items:[
+    'Candy Defense is in testing and only shows up for testers for now.',
     'Candy Defense is now its own mode: open it from the main menu. It no longer uses anything from your main game.',
     'You start on a floating island in a thunderstorm, with a candy box to protect. Send your commander and Grunts to mine candy geysers for sugar, and lay free bridge pieces across the sky to reach them.',
     'Build a Sun Workshop to unlock Generators (power), Disc Throwers (hit walkers and flyers) and Sun Cannons (turn to aim; deadly to walkers, poor against flyers). Monsters attack anything in their way, so everything has health.',
     'Your Commander levels from the main game power up your commander here: Industrialist for speed, Stellar for damage, Ember for health, Architect for income.'
   ]},
   {n:28,date:'2026-10-22',title:'🎃 Candy Defense, Aether husks, Starseed balance',items:[
-    'Happy Halloween! New event: Candy Defense. Open it from the in-game Menu. Skeletons, zombies, bats, ghosts, vampires and the Pumpkin King come for your candy bucket in ever-stronger waves. Build turrets and Ammo Presses from your main game’s storage; presses keep the turrets around them loaded. It runs while you play. When the bucket is emptied you earn Candy for the waves you held, and the field starts over. Spend Candy in the Candy shop when the event ends.',
+    'Happy Halloween! New event: Candy Defense (now testers only while it’s rebuilt). Skeletons, zombies, bats, ghosts, vampires and the Pumpkin King come for your candy bucket in ever-stronger waves. Build turrets and Ammo Presses from your main game’s storage; presses keep the turrets around them loaded. It runs while you play. When the bucket is emptied you earn Candy for the waves you held, and the field starts over. Spend Candy in the Candy shop when the event ends.',
     'Aether Reactors now leave an Aether husk for each Aether they burn, pushed out of their bright edge. Husks can’t ride Uplinks. Starseeds now count husks in storage: √(Aether + 3 × husks). Lattice cores need a husk each, and later Conveyor speed levels use them too.',
     'Starseeds’ passive bonus now has diminishing returns: about +1% ore and duplication per seed at first, flattening toward +100% ore and +25% duplication.',
     'You now choose a Relic on every ascension, not every third.',

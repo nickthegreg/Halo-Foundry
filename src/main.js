@@ -559,7 +559,7 @@ function showTitle(){
   let h=`<span class="eyebrow">A moon, a star, a factory</span><h1>Halo Foundry</h1>
   <div class="actions"><button class="btn primary" data-mm="cont">Continue · ${slotLabel(CUR)}</button></div>
   <div class="sec-label">Main game</div><div class="ms-list">${SLOT_KEYS.map((k,i)=>{const d=readSlot(k);return row(`Slot ${i+1}${k===CUR?' · current':''}`,'',slotSummary(d),(d?`<button class="btn${k===CUR?'':' primary'}" data-slot="${i}">Play</button>`:'')+`<button class="btn${d?' danger':' primary'}" data-slotnew="${i}">${d?'New game':'Start'}</button>`)}).join('')}</div>
-  ${evOn()?`<div class="sec-label">🎃 Event · ${EV.n}</div><div class="ms-list">${row('Defend the candy box',`Best wave ${META.dfBest||0} · ${META.candy||0} Candy`,'A floating island in a thunderstorm. Mine candy geysers, bridge out across the sky, and hold off skeletons, bats, ghosts and worse with sun towers. Your Commander levels make your commander stronger here.',`<button class="btn primary" data-mm="defense">Play</button>`)}</div>`:''}
+  ${evOn()&&testerOK()?`<div class="sec-label">🎃 Event · ${EV.n} · testers</div><div class="ms-list">${row('Defend the candy box',`Best wave ${META.dfBest||0} · ${META.candy||0} Candy`,'A floating island in a thunderstorm. Mine candy geysers, bridge out across the sky, and hold off skeletons, bats, ghosts and worse with sun towers. Your Commander levels make your commander stronger here.',`<button class="btn primary" data-mm="defense">Play</button>`)}</div>`:''}
   <div class="sec-label">Daily moon · ${T.date}</div><div class="ms-list">${row(MODS[T.mod].n,best?'Best '+Math.floor(best).toLocaleString():'No score yet',`Everyone gets the same moon today. Start at the main game and deliver as much as you can to the Core in ${DAILY_LEN/60} minutes of play; better parts score more. ${MODS[T.mod].d}${dToday?` In progress: ${Math.floor(dd.dscore||0).toLocaleString()} points, ${fmtClock(Math.max(0,DAILY_LEN-(dd.time||0)))} left.`:''}`,`<button class="btn primary" data-daily>${dToday?'Continue':'Play today’s moon'}</button>`)}</div>
   <div class="sec-label">Challenges</div><p style="font-size:14px">Start from the tutorial with no bonuses and reach the goal under one rule. The first win in each earns that challenge’s own Legendary Relic, which works in every main game.</p><div class="ms-list">${Object.keys(CHALLENGES).map(id=>{const c=CHALLENGES[id],m=META.ch[id],cur=cd&&cd.ch===id;
     const sig=Object.keys(RELICS).find(k=>RELICS[k].sig===id);
@@ -1572,7 +1572,7 @@ elCard.addEventListener('click',e=>{
   else if(b.hasAttribute('data-stats'))showStats();
   else if(b.dataset.cmd){const k=b.dataset.cmd,u=CMD[k];if(!u)return;if(u.max&&cmdLv(k)>=u.max)return;const ct=cmdCost(k);if(cmdPts()<ct){showToast(`Needs ${ct} Commander point${ct===1?'':'s'}. Complete Constellations to earn more.`);return}S.cmd=S.cmd||{};S.cmdSpent=(S.cmdSpent||0)+ct;S.cmd[k]=cmdLv(k)+1;save();showMenu();showToast(u.n+' is now level '+S.cmd[k])}
   else if(b.dataset.mm==='cont')closeModal();
-  else if(b.dataset.mm==='defense'){save();closeModal();DEF.open()}
+  else if(b.dataset.mm==='defense'){if(!testerOK())return;save();closeModal();DEF.open()}
   else if(b.dataset.mm==='title'){save();showTitle()}
   else if(b.dataset.slot!=null){playSlot(SLOT_KEYS[+b.dataset.slot])}
   else if(b.dataset.slotnew!=null){const k=SLOT_KEYS[+b.dataset.slotnew];if(readSlot(k)&&Date.now()-(titleArm[k]||0)>3000){titleArm[k]=Date.now();b.textContent='Tap again to erase';return}
