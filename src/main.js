@@ -1806,16 +1806,48 @@ const SFX={
   },
   fanfare:(c,t,o)=>[0,4,7,12].forEach((k,i)=>{tone(c,t+i*.13,o,'sine',mf(72+k),mf(72+k),1.4,.12);tone(c,t+i*.13,o,'sine',mf(72+k)*2.756,mf(72+k)*2.756,.6,.03)})
 };
-// Candy Defense has no music, just a storm: wind and rain under the thunder
+// Candy Defense has no music, just weather: light wind that gusts and whistles, with thunder now and then
 let DEFAMB=null;
 function defAudio(on){const c=AU.ctx;if(!c)return;const t=c.currentTime;AU.music.gain.setTargetAtTime(on?0:AU.mv*.45,t,.4);
-  if(on&&!DEFAMB&&AU.noise){const s=c.createBufferSource();s.buffer=AU.noise;s.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=650;const f2=c.createBiquadFilter();f2.type='highpass';f2.frequency.value=90;
-    const gn=c.createGain();gn.gain.value=0;gn.gain.setTargetAtTime(.09,t,1.2);const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=.07;lg.gain.value=.035;lfo.connect(lg);lg.connect(gn.gain);
-    s.connect(f);f.connect(f2);f2.connect(gn);gn.connect(AU.sfx);s.start();lfo.start();DEFAMB={s,gn,lfo}}
-  if(!on&&DEFAMB){const A2=DEFAMB;DEFAMB=null;A2.gn.gain.setTargetAtTime(0,t,.3);setTimeout(()=>{try{A2.s.stop();A2.lfo.stop()}catch(_){}},1500)}}
-SFX.thunder=(c,t,o)=>{swell(c,t,o,'lowpass',90,40,3.2,.55,.6,.08);swell(c,t+.05,o,'lowpass',400,120,1.2,.25,.8,.04);tone(c,t,o,'sine',48,30,2.2,.18)};
+  if(on&&!DEFAMB&&AU.noise){
+    // body of the wind: dark rushing air
+    const s1=c.createBufferSource();s1.buffer=AU.noise;s1.loop=true;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=380;lp.Q.value=.4;const lp2=c.createBiquadFilter();lp2.type='lowpass';lp2.frequency.value=900;
+    const body=c.createGain();body.gain.value=0;s1.connect(lp);lp.connect(lp2);lp2.connect(body);body.connect(AU.sfx);
+    // a thin whistle that rides the gusts
+    const s2=c.createBufferSource();s2.buffer=AU.noise;s2.loop=true;const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=620;bp.Q.value=9;const wh=c.createGain();wh.gain.value=0;s2.connect(bp);bp.connect(wh);wh.connect(AU.sfx);
+    s1.start();s2.start(0,.7);
+    const gust=()=>{if(!DEFAMB)return;const n=c.currentTime,str=Math.random(),dur=1.5+Math.random()*3.5;
+      body.gain.cancelScheduledValues(n);body.gain.setTargetAtTime(.025+.08*str*str,n,dur*.35);lp.frequency.setTargetAtTime(260+520*str,n,dur*.4);
+      wh.gain.cancelScheduledValues(n);wh.gain.setTargetAtTime(str>.55?.006+.02*(str-.55):0,n,dur*.3);bp.frequency.setTargetAtTime(420+700*Math.random(),n,dur*.5);
+      DEFAMB.tm=setTimeout(gust,dur*1000)};
+    DEFAMB={s1,s2,body,wh,tm:0};gust()}
+  if(!on&&DEFAMB){const A2=DEFAMB;DEFAMB=null;clearTimeout(A2.tm);A2.body.gain.setTargetAtTime(0,t,.3);A2.wh.gain.setTargetAtTime(0,t,.2);setTimeout(()=>{try{A2.s1.stop();A2.s2.stop()}catch(_){}},1500)}}
+// close thunder: a sharp crack, then the boom rolling away
+SFX.thunder=(c,t,o)=>{hiss(c,t,o,'bandpass',2600,700,.35,.32,1.2);hiss(c,t+.03,o,'highpass',3000,1500,.18,.12,.7);
+  swell(c,t+.08,o,'lowpass',260,45,3.4,.6,.7,.06);swell(c,t+.4,o,'lowpass',140,40,2.6,.35,.8,.2);tone(c,t+.05,o,'sine',62,30,2.4,.22)};
+// distant thunder: just a low roll
+SFX.rumble=(c,t,o)=>{swell(c,t,o,'lowpass',90,38,5,.38,.6,.35);tone(c,t+.3,o,'sine',44,30,3.5,.08)};
+SFX.dfCannon=(c,t,o)=>{hiss(c,t,o,'bandpass',1800,900,.07,.3,1);tone(c,t,o,'sine',130,38,.55,.55);hiss(c,t+.01,o,'lowpass',900,90,.45,.42,.7);tone(c,t+.02,o,'triangle',70,40,.3,.12)};
+SFX.dfTurn=(c,t,o)=>{tone(c,t,o,'sawtooth',120,170,.55,.035);for(let k=0;k<5;k++)tone(c,t+k*.1,o,'square',950,900,.018,.04);tone(c,t+.58,o,'square',620,560,.05,.07)};
+SFX.dfWind=(c,t,o)=>{tone(c,t,o,'sawtooth',70,380,.55,.045);hiss(c,t,o,'bandpass',380,2200,.55,.07,3);tone(c,t,o,'triangle',140,520,.55,.04)};
+SFX.dfThrow=(c,t,o)=>{hiss(c,t,o,'bandpass',2800,520,.22,.16,1.4);tone(c,t,o,'triangle',760,280,.12,.05)};
+SFX.dfFizz=(c,t,o)=>{for(let k=0;k<4;k++){const tt=t+k*.06+Math.random()*.05;tone(c,tt,o,'sine',500+Math.random()*500,1400+Math.random()*600,.05,.035)}hiss(c,t,o,'highpass',5000,4000,.25,.025,.7)};
+SFX.dfBone=(c,t,o)=>{tone(c,t,o,'square',1250,900,.025,.035);tone(c,t+.05,o,'square',950,800,.025,.03)};
+SFX.dfDie=(c,t,o)=>{hiss(c,t,o,'bandpass',1100,260,.16,.12,1.5);tone(c,t,o,'triangle',320,110,.16,.08)};
+SFX.dfBuild=(c,t,o)=>{tone(c,t,o,'square',540,480,.05,.07);tone(c,t+.09,o,'triangle',270,250,.12,.09);tone(c,t+.2,o,'square',540,500,.04,.05)};
+SFX.dfPlank=(c,t,o)=>{tone(c,t,o,'sine',190,85,.13,.28);hiss(c,t,o,'lowpass',700,300,.08,.12,.8)};
+SFX.dfPulse=(c,t,o)=>{tone(c,t,o,'sine',380,1700,.28,.06);hiss(c,t,o,'bandpass',1200,4200,.25,.04,2)};
+SFX.dfHum=(c,t,o)=>{tone(c,t,o,'sine',110,112,.9,.05);tone(c,t,o,'triangle',220,224,.9,.02)};
 SFX.core=(c,t,o)=>{tone(c,t,o,'sine',260,170,.06,.05);hiss(c,t,o,'bandpass',900,700,.035,.03,2)};
-const SFX_GAP={launch:.3,drill:.08,core:.06,smelt:.12,craft:.08,build:.04,lay:.03,pulse:.1,tick:.03,place:.03};
+const SFX_GAP={dfThrow:.12,dfCannon:.1,dfBone:.09,dfDie:.04,dfFizz:.3,dfTurn:.2,dfWind:.25,dfPlank:.05,dfPulse:.1,dfHum:.5,dfBuild:.1,rumble:3,launch:.3,drill:.08,core:.06,smelt:.12,craft:.08,build:.04,lay:.03,pulse:.1,tick:.03,place:.03};
+function sfxV(kind,vol,pan){
+  const c=AU.ctx;if(!c||c.state!=='running'||AU.sv<=.001||!SFX[kind]||vol<.02)return;
+  const now=c.currentTime;if(now-(AU.last[kind]||-9)<(SFX_GAP[kind]||.02))return;
+  if(now-AU.winT>.1){AU.winT=now;AU.winN=0}if(AU.winN>=5)return;AU.last[kind]=now;AU.winN++;
+  const out=c.createGain();out.gain.value=Math.min(1.2,vol);
+  if(c.createStereoPanner){const p=c.createStereoPanner();p.pan.value=Math.max(-.8,Math.min(.8,pan||0));out.connect(p);p.connect(AU.sfx)}else out.connect(AU.sfx);
+  const sn=c.createGain();sn.gain.value=.25;out.connect(sn);sn.connect(AU.rev);SFX[kind](c,now+.005,out);
+}
 function sfx(kind,wx,wy,arg){
   const c=AU.ctx;if(!c||c.state!=='running'||AU.sv<=.001)return;
   const now=c.currentTime;if(now-(AU.last[kind]||-9)<(SFX_GAP[kind]||.02))return;
@@ -2366,7 +2398,7 @@ function frame(now){
 }
 // Test hook, only on a local dev server
 if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch};
-const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
+const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 let booted=false;
 function boot(data){
   if(booted)return;booted=true;

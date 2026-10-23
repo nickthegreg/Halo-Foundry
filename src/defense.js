@@ -38,13 +38,18 @@ const PIECES=[[[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,1]],
 function norm(c){const mx=Math.min(...c.map(p=>p[0])),my=Math.min(...c.map(p=>p[1]));return c.map(([x,y])=>[x-mx,y-my])}
 function rot(c){return norm(c.map(([x,y])=>[-y,x]))}
 function randPiece(){let c=PIECES[Math.random()*PIECES.length|0];for(let k=Math.random()*4|0;k>0;k--)c=rot(c);return c}
-function waveList(w){const q=[],n=6+2*w,pool=[['skeleton',5]];if(w>=2)pool.push(['zombie',3]);if(w>=3)pool.push(['bat',3]);if(w>=6)pool.push(['ghost',2]);if(w>=8)pool.push(['vampire',2]);
-  const tot=pool.reduce((a,p)=>a+p[1],0);for(let i=0;i<n;i++){let r=Math.random()*tot;for(const [t,wt] of pool){r-=wt;if(r<=0){q.push(t);break}}}if(w%10===0)q.push('king');return q}
+// Waves: big swarms of skeletons and bats, a handful of the tougher kinds, a boss every 10th wave
+function waveList(w){const add=(t,n)=>{for(let i=0;i<n;i++)q.push(t)},q=[];
+  add('skeleton',Math.min(90,10+5*w));if(w>=3)add('bat',Math.min(50,3*w));if(w>=2)add('zombie',1+Math.floor(w*.6));if(w>=6)add('ghost',1+Math.floor((w-6)/2));if(w>=8)add('vampire',1+Math.floor((w-8)/3));
+  for(let i=q.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[q[i],q[j]]=[q[j],q[i]]}if(w%10===0)q.push('king');return q}
 
 export function makeDefense(A){
   // A: {sfx(kind), toast(text), META, saveMeta(), cmdLv(key), candyFor(waves), onExit(), showCandyShop(), quiet(on)}
-  let D=null,isOpen=false,el,cv,g,dpr=1,VW=0,VH=0,uiT=0,saveT=0,mode='cmd',slot=-1,hover=null,FF={},topo=0,nid=1,CONN=null,connV=-1,SRC=[];
+  let sel=null,D=null,isOpen=false,el,cv,g,dpr=1,VW=0,VH=0,uiT=0,saveT=0,mode='cmd',slot=-1,hover=null,FF={},topo=0,nid=1,CONN=null,connV=-1,SRC=[];
   const cam={x:12,y:16,z:24};
+  // a sound placed where it happens: quieter off-screen or zoomed out, panned left/right
+  function snd(kind,x,y,base){let vol=base==null?1:base,pan=0;if(x!=null&&VW){const sx=(x-cam.x)*cam.z+VW/2,sy=(y-cam.y)*cam.z+VH/2,dx=sx-VW/2,dy=sy-VH/2,Rr=.6*Math.max(VW,VH),d=Math.hypot(dx,dy);
+      if(d>Rr*1.8)return;vol*=Math.max(.35,Math.min(1.1,cam.z/26))*Math.exp(-(d/Rr)*(d/Rr));pan=dx/(VW/2)*.7}A.sfxV?A.sfxV(kind,vol,pan):A.sfx(kind)}
   const cb=()=>({spd:1+.08*A.cmdLv('industrialist'),dmg:1+.15*A.cmdLv('stellar'),hp:1+.15*A.cmdLv('ember'),inc:1+.1*A.cmdLv('architect')});
   const idx=(x,y)=>y*MW+x,inb=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH;
 
@@ -129,19 +134,22 @@ export function makeDefense(A){
   // ---------- simulation ----------
   function tick(dt){
     const B=D;B.t+=dt;const c=cb();
-    B.thunder-=dt;if(B.thunder<=0){B.thunder=8+Math.random()*16;B.flash=1;B.bolt={x:Math.random()*MW,t:.25,seed:Math.random()*1e9|0};setTimeout(()=>{if(isOpen)A.sfx('thunder')},300+Math.random()*900)}
+    B.thunder-=dt;if(B.thunder<=0){B.thunder=8+Math.random()*16;B.flash=1;B.bolt={x:Math.random()*MW,t:.25,seed:Math.random()*1e9|0};setTimeout(()=>{if(isOpen)snd('thunder',null,null,1)},250+Math.random()*700)}
+    B.rumbleT=(B.rumbleT==null?12:B.rumbleT)-dt;if(B.rumbleT<=0){B.rumbleT=14+Math.random()*26;snd('rumble',null,null,.8)}
+    B.ambT=(B.ambT||0)-dt;if(B.ambT<=0){B.ambT=1.2+Math.random()*2.2;const gs=B.geysers.filter(q=>q.amt>0);if(gs.length&&Math.random()<.6){const q=gs[Math.random()*gs.length|0];snd('dfFizz',q.x+.5,q.y+.5,.9)}
+      else{const gn=B.b.filter(q=>q.t==='generator'&&!q.bp);if(gn.length){const q=gn[Math.random()*gn.length|0];snd('dfHum',q.x+.5,q.y+.5,.8)}}}
     B.flash=Math.max(0,B.flash-dt*2.2);if(B.bolt){B.bolt.t-=dt;if(B.bolt.t<=0)B.bolt=null}
     for(let i=0;i<4;i++)if(!B.slots[i]){B.slotT[i]-=dt;if(B.slotT[i]<=0){B.slots[i]=randPiece();drawSlots()}}
     if(Math.floor(B.t*2)!==Math.floor((B.t-dt)*2))SRC=powered();
     // new geysers bubble up now and then
-    B.geyT-=dt;if(B.geyT<=0){B.geyT=40+Math.random()*30;if(B.geysers.filter(q=>q.amt>0).length<GEY_MAX&&addGeyser(B))A.sfx('pulse')}
+    B.geyT-=dt;if(B.geyT<=0){B.geyT=40+Math.random()*30;if(B.geysers.filter(q=>q.amt>0).length<GEY_MAX&&addGeyser(B)){const q=B.geysers[B.geysers.length-1];snd('dfFizz',q.x+.5,q.y+.5,1.2)}}
     // bridges cut off from your islands crack and fall away
-    {const C=conn();let fell=false;for(let i=0;i<MW*MH;i++){if(B.land[i]!==BRIDGE)continue;if(C[i]){if(B.crack[i])delete B.crack[i];continue}B.crack[i]=(B.crack[i]||0)+dt/25;if(B.crack[i]>=1){B.land[i]=SKY;delete B.crack[i];fell=true}}if(fell){topo++;A.sfx('remove')}}
+    {const C=conn();let fell=false;for(let i=0;i<MW*MH;i++){if(B.land[i]!==BRIDGE)continue;if(C[i]){if(B.crack[i])delete B.crack[i];continue}B.crack[i]=(B.crack[i]||0)+dt/25;if(B.crack[i]>=1){B.land[i]=SKY;delete B.crack[i];fell=true}}if(fell){topo++;snd('dfPlank',null,null,.5)}}
     // monster bridges crumble once nobody walks them
     {let fell=false;for(const k in B.ebr){B.ebr[k]-=dt/90;if(B.ebr[k]<=0){delete B.ebr[k];if(B.land[k]===EBR)B.land[k]=SKY;fell=true}}if(fell)topo++}
     // build pulses fly from the nearest of the box and your outposts
-    for(const q of B.b)if(q.needPulse){q.needPulse=false;const src=[{x:B.box.x+1,y:B.box.y+1},...B.b.filter(o=>o.t==='outpost'&&!o.bp).map(o=>({x:o.x+1,y:o.y+1}))];let s=src[0],bd=1e9;for(const p of src){const d=Math.hypot(p.x-q.x-q.w/2,p.y-q.y-q.w/2);if(d<bd){bd=d;s=p}}B.pulses.push({x:s.x,y:s.y,q});A.sfx('pulse')}
-    for(const p of B.pulses){if(!B.b.includes(p.q)){p.done=true;continue}if(moveTo(p,p.q.x+p.q.w/2,p.q.y+p.q.w/2,PULSE_V*dt)){p.q.bp=false;p.done=true;SRC=powered();topo++;A.sfx('build')}}B.pulses=B.pulses.filter(p=>!p.done);
+    for(const q of B.b)if(q.needPulse){q.needPulse=false;const src=[{x:B.box.x+1,y:B.box.y+1},...B.b.filter(o=>o.t==='outpost'&&!o.bp).map(o=>({x:o.x+1,y:o.y+1}))];let s=src[0],bd=1e9;for(const p of src){const d=Math.hypot(p.x-q.x-q.w/2,p.y-q.y-q.w/2);if(d<bd){bd=d;s=p}}B.pulses.push({x:s.x,y:s.y,q});snd('dfPulse',s.x,s.y)}
+    for(const p of B.pulses){if(!B.b.includes(p.q)){p.done=true;continue}if(moveTo(p,p.q.x+p.q.w/2,p.q.y+p.q.w/2,PULSE_V*dt)){p.q.bp=false;p.done=true;SRC=powered();topo++;snd('dfBuild',p.x,p.y)}}B.pulses=B.pulses.filter(p=>!p.done);
     // units
     const units=[...B.u];if(B.cmd)units.push(B.cmd);
     const gm=1+.3*(B.mods.haul||0),gc=1+.5*(B.mods.haul||0),td=1+.25*(B.mods.sharpen||0),cdm=1+.4*(B.mods.champion||0);
@@ -149,7 +157,7 @@ export function makeDefense(A){
       if(u.t==='cmd'){u.cd-=dt;if(u.cd<=0){let tg=null,bd=CMDR.range;for(const f of B.foes){const d=Math.hypot(f.x-u.x,f.y-u.y);if(d<bd){bd=d;tg=f}}if(tg){u.cd=1/(CMDR.rate*c.spd);tg.hp-=CMDR.dmg*c.dmg*cdm;B.shots.push({k:'bolt',x1:u.x,y1:u.y-.4,x2:tg.x,y2:tg.y,life:.15})}}
         // build orders: walk next to the site, then raise it by hand
         if(u.order&&u.order.type==='build'){const q=u.order.q;if(!B.b.includes(q)||!q.bp){u.order=null;continue}
-          if(Math.max(Math.abs(u.x-(q.x+q.w/2)),Math.abs(u.y-(q.y+q.w/2)))<=q.w/2+1.1){q.prog=(q.prog||0)+dt/CMD_BUILD;u.building=true;if(q.prog>=1){q.bp=false;u.order=null;u.building=false;topo++;SRC=powered();A.sfx('build');A.toast(BUILD[q.t].n+' finished')}continue}
+          if(Math.max(Math.abs(u.x-(q.x+q.w/2)),Math.abs(u.y-(q.y+q.w/2)))<=q.w/2+1.1){q.prog=(q.prog||0)+dt/CMD_BUILD;u.building=true;if(Math.random()<dt*2.5)snd('dfBuild',q.x+q.w/2,q.y+q.w/2,.5);if(q.prog>=1){q.bp=false;u.order=null;u.building=false;topo++;SRC=powered();snd('dfBuild',q.x+q.w/2,q.y+q.w/2);A.toast(BUILD[q.t].n+' finished')}continue}
           u.building=false;const r=follow(u,flow('bs'+q.id,ringTiles(q)),spd);if(r==='stuck'){u.order=null;A.toast('Your commander can’t reach that site. Bridge to it first.')}continue}
         if(u.order&&u.order.type==='move'){const F=flow('m'+u.order.x+','+u.order.y,[idx(u.order.x,u.order.y)]),r=follow(u,F,spd);if(r!=='go')u.order=null;continue}
         if(!u.order&&!u.haul)continue}
@@ -167,18 +175,19 @@ export function makeDefense(A){
     // towers
     for(const q of B.b){const T=BUILD[q.t];q.on=!q.bp&&(!T.power||inPower(SRC,q.x+q.w/2,q.y+q.w/2));if(!q.on)continue;
       if(q.t==='disc'){q.ang=(q.ang||0)+dt*14;q.cd=(q.cd||0)-dt;if(q.cd>0)continue;const cx=q.x+1,cy=q.y+1;let tg=null,bd=T.range;for(const f of B.foes){const d=Math.hypot(f.x-cx,f.y-cy);if(d<bd){bd=d;tg=f}}
-        if(tg){q.cd=1/T.rate;const a=q.ang;B.shots.push({k:'disc',x:cx+Math.cos(a)*.6,y:cy-1.4+Math.sin(a)*.3,tg,dmg:T.dmg*td,life:1.4})}}
+        q.rest=(q.rest||0)+dt;if(tg&&q.rest>1.5&&!q.wound){q.wound=true;q.cd=.45;snd('dfWind',cx,cy);continue}
+        if(tg){q.rest=0;q.wound=false;q.cd=1/T.rate;snd('dfThrow',cx,cy,.7);const a=q.ang;B.shots.push({k:'disc',x:cx+Math.cos(a)*.6,y:cy-1.4+Math.sin(a)*.3,tg,dmg:T.dmg*td,life:1.4})}}
       if(q.t==='cannon'){q.cd=(q.cd||0)-dt;const cx=q.x+1,cy=q.y+1;if(q.face==null)q.face=1;
         // aim zone per direction: 1 tile wide at the barrel, widening to 4 at full range
         let tg=null,bs=1e9,want=q.face;for(const f of B.foes){for(let d=0;d<4;d++){const [ax,ay]=DIR4[d],along=(f.x-cx)*ax+(f.y-cy)*ay,perp=Math.abs((f.x-cx)*ay-(f.y-cy)*ax);
           if(along<=.5||along>T.range||perp>.5+1.5*along/T.range)continue;const score=along+(d===q.face?0:3);if(score<bs){bs=score;tg=f;want=d}}}
-        if(tg&&want!==q.face){q.turn=(q.turn||0)+dt;if(q.turn>=.9){q.face=want;q.turn=0;A.sfx('lay')}continue}q.turn=0;
-        if(tg&&q.cd<=0){q.cd=1/T.rate;const [dx,dy]=DIR4[q.face],along=(tg.x-cx)*dx+(tg.y-cy)*dy;B.shots.push({k:'shell',x:cx+dx*.9,y:cy+dy*.9,dx,dy,left:Math.max(.5,along-.9),dmg:T.dmg*td,splash:T.splash,life:3,tx:tg.x,ty:tg.y});A.sfx('place')}}}
+        if(tg&&want!==q.face){if(!q.turn)snd('dfTurn',cx,cy);q.turn=(q.turn||0)+dt;if(q.turn>=.9){q.face=want;q.turn=0}continue}q.turn=0;
+        if(tg&&q.cd<=0){q.cd=1/T.rate;const [dx,dy]=DIR4[q.face],along=(tg.x-cx)*dx+(tg.y-cy)*dy;B.shots.push({k:'shell',x:cx+dx*.9,y:cy+dy*.9,dx,dy,left:Math.max(.5,along-.9),dmg:T.dmg*td,splash:T.splash,life:3,tx:tg.x,ty:tg.y});snd('dfCannon',cx,cy)}}}
     // waves
     if(!B.q.length&&!B.foes.length){if(B.wave>B.cleared)B.cleared=B.wave;B.next-=dt;if(B.next<=0){B.wave++;B.q=waveList(B.wave);B.qt=0;B.next=GAP;A.sfx('err');
       // one or two lanes this wave; old lanes may be reused if their bones still stand
       const nl=1+(Math.random()<.4?1:0);B.wl=[];for(let k=0;k<nl;k++){const reuse=B.lanes.length&&Math.random()<.5;const L=reuse?B.lanes[Math.random()*B.lanes.length|0]:makeLane();if(!reuse){B.lanes.push(L);if(B.lanes.length>6)B.lanes.shift()}B.wl.push(L)}}}
-    if(B.q.length){B.qt-=dt;if(B.qt<=0){B.qt=.8;const t=B.q.shift(),F=FOES[t],hp=F.hp*Math.pow(1.15,B.wave-1);let x=MW-.5,y=2+Math.random()*(MH-4),lane=null;
+    if(B.q.length){B.qt-=dt;if(B.qt<=0){const t=B.q.shift();B.qt=t==='skeleton'||t==='bat'?.28:.8;const F=FOES[t],hp=F.hp*Math.pow(1.12,B.wave-1);let x=MW-.5,y=2+Math.random()*(MH-4),lane=null;
       if(!F.air&&B.wl&&B.wl.length){lane=B.wl[Math.random()*B.wl.length|0];x=lane[0]%MW+.5;y=(lane[0]/MW|0)+.5}
       B.foes.push({t,x,y,hp,max:hp,ph:Math.random()*6,bite:0,lane,li:0,bt:0})}}
     // monsters
@@ -192,7 +201,7 @@ export function makeDefense(A){
         // reached your ground: leave the lane and go for the kill
         if(f.li>=f.lane.length-1||(D.land[i]===LAND&&D.isl[i]===0)||(B.land[i]===BRIDGE)){f.lane=null}
         else{const ni=f.lane[f.li+1],v=B.land[ni];
-          if(v===SKY){f.bt+=dt;if(f.bt>=.7){f.bt=0;B.land[ni]=EBR;B.ebr[ni]=1;topo++;A.sfx('lay')}continue}
+          if(v===SKY){f.bt+=dt;if(f.bt>=.7){f.bt=0;B.land[ni]=EBR;B.ebr[ni]=1;topo++;snd('dfBone',ni%MW+.5,(ni/MW|0)+.5,.7)}continue}
           if(moveTo(f,ni%MW+.5,(ni/MW|0)+.5,sp))f.li++;continue}}
       if(!tg)tg=box;const vx=tg.x-f.x,vy=tg.y-f.y,l=Math.hypot(vx,vy)||1;f.x+=vx/l*sp;f.y+=vy/l*sp+(F.air?Math.sin(f.ph*.5)*dt*.4:0)}
     // shots
@@ -200,7 +209,7 @@ export function makeDefense(A){
       if(s.k==='disc'){if(s.tg.hp<=0){s.life=0;continue}if(moveTo(s,s.tg.x,s.tg.y,14*dt)){s.tg.hp-=s.dmg;s.life=0}}
       else if(s.k==='shell'){const step=11*dt;s.x+=s.dx*step;s.y+=s.dy*step;s.left-=step;if(s.left<=0){const ex=s.dx?s.x:s.tx,ey=s.dy?s.y:s.ty;for(const f of B.foes){if(Math.hypot(f.x-ex,f.y-ey)>s.splash+.6)continue;if(FOES[f.t].air&&Math.random()>.25)continue;f.hp-=s.dmg}B.shots.push({k:'boom',x:ex,y:ey,life:.35});s.life=0}}}
     B.shots=B.shots.filter(s=>s.life>0);
-    const alive=[];for(const f of B.foes){if(f.hp<=0){B.kills++;if(FOES[f.t].boss){B.corpses.push({id:nid++,x:Math.max(.5,Math.min(MW-.5,f.x)),y:Math.max(.5,Math.min(MH-.5,f.y)),st:'float'});A.toast('The boss is down! Grunts can haul it home if they can reach it.');A.sfx('fanfare')}continue}alive.push(f)}B.foes=alive;
+    const alive=[];for(const f of B.foes){if(f.hp<=0){B.kills++;snd('dfDie',f.x,f.y,.7);if(FOES[f.t].boss){B.corpses.push({id:nid++,x:Math.max(.5,Math.min(MW-.5,f.x)),y:Math.max(.5,Math.min(MH-.5,f.y)),st:'float'});A.toast('The boss is down! Grunts can haul it home if they can reach it.');A.sfx('fanfare')}continue}alive.push(f)}B.foes=alive;
     B.b=B.b.filter(q=>{if(q.hp>0)return true;A.sfx('remove');topo++;return false});
     for(const u of B.u)if(u.hp<=0){if(u.haul){u.haul.st='float';u.haul.carrier=null}if(u.fetch)u.fetch.claim=null}B.u=B.u.filter(u=>u.hp>0);
     if(B.cmd&&B.cmd.hp<=0){lose('Your commander fell!');return}
@@ -227,16 +236,19 @@ export function makeDefense(A){
     if(T.power&&!D.b.some(q=>q.t==='workshop'&&!q.bp))return 'Build a Sun Workshop first';return null}
   function placeB(t,x,y){const T=BUILD[t],why=canPlaceB(t,x,y);if(why){A.toast(why);A.sfx('err');return}if(D.money<T.cost){A.toast(`Needs ${T.cost} sugar`);A.sfx('err');return}
     D.money-=T.cost;const q={id:nid++,t,x,y,w:T.w,hp:T.hp,max:T.hp,face:1,bp:true,prog:0};D.b.push(q);
-    if(T.cmd){if(D.cmd){D.cmd.order={type:'build',q};A.toast('Your commander heads over to build it')}}else q.needPulse=true;A.sfx('place');refreshBar()}
+    if(T.cmd){if(D.cmd){D.cmd.order={type:'build',q};A.toast('Your commander heads over to build it')}}else q.needPulse=true;snd('dfPlank',x+T.w/2,y+T.w/2,.6);refreshBar()}
   function pieceCells(x,y){const c=D.slots[slot];if(!c)return null;const w=Math.max(...c.map(p=>p[0]))+1,h=Math.max(...c.map(p=>p[1]))+1;return c.map(([i,j])=>[x+i-Math.floor((w-1)/2),y+j-Math.floor((h-1)/2)])}
   function canBridge(cells){if(!cells)return 'Pick a bridge piece';const C=conn();let touch=false;for(const [x,y] of cells){if(!inb(x,y))return 'Off the map';if(D.land[idx(x,y)]!==SKY||bAt(x,y))return 'Bridges go over open sky';
       for(const [dx,dy] of DIR4){const xx=x+dx,yy=y+dy;if(inb(xx,yy)&&C[idx(xx,yy)])touch=true}}return touch?null:'Bridges must start from an island you hold (home or one with an Outpost) or a bridge joined to it'}
-  function placeBridge(x,y){const cells=pieceCells(x,y),why=canBridge(cells);if(why){A.toast(why);A.sfx('err');return}for(const [i,j] of cells)D.land[idx(i,j)]=BRIDGE;topo++;D.slots[slot]=null;D.slotT[slot]=2.5;slot=-1;mode='cmd';A.sfx('lay');refreshBar();drawSlots()}
+  function placeBridge(x,y){const cells=pieceCells(x,y),why=canBridge(cells);if(why){A.toast(why);A.sfx('err');return}for(const [i,j] of cells)D.land[idx(i,j)]=BRIDGE;topo++;D.slots[slot]=null;D.slotT[slot]=2.5;slot=-1;mode='cmd';snd('dfPlank',cells[0][0],cells[0][1]);refreshBar();drawSlots()}
   function buyGrunt(){if(D.money<UNIT.grunt.cost){A.toast(`Needs ${UNIT.grunt.cost} sugar`);A.sfx('err');return}D.money-=UNIT.grunt.cost;const T=UNIT.grunt;D.u.push({id:nid++,t:'grunt',x:D.box.x+1+(Math.random()-.5),y:D.box.y+1+(Math.random()-.5),hp:T.hp,max:T.hp,carry:0,st:'seek',tg:null});A.sfx('tick')}
   function tapTile(x,y){if(!inb(x,y))return;
+    if(mode!=='cmd')sel=null;
     if(mode==='bridge'){placeBridge(x,y);return}
     if(BUILD[mode]){const w=BUILD[mode].w,o=Math.floor((w-1)/2);placeB(mode,x-o,y-o);return}
     if(!D.cmd)return;const q=bAt(x,y);
+    if(q&&!q.bp&&(q.t==='disc'||q.t==='cannon'||q.t==='generator')){sel=sel===q?null:q;if(sel){const T=BUILD[q.t];A.toast(T.n+(q.t==='generator'?` · powers a circle of ${GEN_R}`:` · range ${T.range}`)+(q.on===false?' · no power!':''))}snd('tick',null,null,.6);refreshBar();return}
+    if(sel){sel=null;refreshBar()}
     if(q&&q.bp&&BUILD[q.t].cmd){D.cmd.order={type:'build',q};A.sfx('tick');A.toast('Your commander heads over to build it');return}
     if(q&&q.t==='altar'&&!q.bp){const tr=D.corpses.find(c=>c.st==='trophy');if(!tr){A.toast('No boss trophy yet. Grunts bring defeated bosses home.');return}D.cmd.order={type:'sac',c:tr,al:q};A.sfx('tick');A.toast('Your commander goes to fetch the trophy');return}
     const gy=gAt(x,y);if(gy){D.cmd.order={type:'gather',g:gy};D.cmd.tg=gy;D.cmd.st=D.cmd.carry?'home':'go';A.sfx('tick');return}
@@ -247,6 +259,16 @@ export function makeDefense(A){
   const clouds=[];for(let i=0;i<34;i++)clouds.push({x:Math.random()*(MW+20)-10,y:Math.random()*(MH+8)-4,r:2+Math.random()*5,v:.15+Math.random()*.35,a:.05+Math.random()*.1,lay:Math.random()<.5});
   function drawClouds(top,dt){for(const c of clouds){if(c.lay!==top)continue;c.x+=c.v*dt*(top?1.3:1);if(c.x-c.r>MW+10)c.x=-10-c.r;const [sx,sy]=W2S(c.x,c.y),r=c.r*cam.z;
     const gr=g.createRadialGradient(sx,sy,0,sx,sy,r);gr.addColorStop(0,`rgba(${top?'210,200,235':'120,110,160'},${c.a*(top?.8:1)})`);gr.addColorStop(1,'rgba(120,110,160,0)');g.fillStyle=gr;g.fillRect(sx-r,sy-r,r*2,r*2)}}
+  // a tower's reach: a dotted outline, with dotted rings sweeping outward from the tower
+  function drawRange(q){const z=cam.z,cx=q.x+q.w/2,cy=q.y+q.w/2,[a,b]=W2S(cx,cy),t=D.t,col=q.t==='generator'?'255,214,90':q.t==='cannon'?'255,170,80':'127,240,208';
+    g.save();g.lineCap='round';g.lineWidth=Math.max(1.5,z*.07);g.setLineDash([.1,Math.max(5,z*.32)]);g.lineDashOffset=-t*z*.6;
+    if(q.t!=='cannon'){const Rr=q.t==='generator'?GEN_R:BUILD[q.t].range;g.fillStyle=`rgba(${col},.06)`;g.beginPath();g.arc(a,b,Rr*z,0,7);g.fill();g.strokeStyle=`rgba(${col},.9)`;g.stroke();
+      for(let k=0;k<3;k++){const f=(t*.45+k/3)%1;g.strokeStyle=`rgba(${col},${.7*(1-f)})`;g.beginPath();g.arc(a,b,Math.max(1,Rr*z*f),0,7);g.stroke()}}
+    else{const Rr=BUILD.cannon.range;for(let d=0;d<4;d++){const [dx,dy]=DIR4[d],P2=(al,pp)=>[a+(dx*al-dy*pp)*z,b+(dy*al+dx*pp)*z],cur=d===(q.face||1);
+      const petal=(L2)=>{g.beginPath();let [u1,v1]=P2(.5,.5);g.moveTo(u1,v1);for(const [al,s2] of [[L2,1],[L2,-1],[.5,-1]]){const [u2,v2]=P2(al,s2*(.5+1.5*al/Rr));g.lineTo(u2,v2)}g.closePath()};
+      petal(Rr);g.fillStyle=`rgba(${col},${cur?.1:.04})`;g.fill();g.strokeStyle=`rgba(${col},${cur?.95:.5})`;g.stroke();
+      for(let k=0;k<2;k++){const f=(t*.4+k/2)%1;petal(.5+(Rr-.5)*f);g.strokeStyle=`rgba(${col},${(cur?.7:.35)*(1-f)})`;g.stroke()}}}
+    g.restore()}
   function bar(x,y,w,f,c){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x,y,w,3);g.fillStyle=c;g.fillRect(x,y,w*Math.max(0,Math.min(1,f)),3)}
   // draw sprite S so its pixel (ax,ay) lands at screen (sx,sy), k screen px per sprite px
   function spr(S,sx,sy,ax,ay,k,flip){if(flip){g.save();g.translate(sx,sy);g.scale(-1,1);g.drawImage(S,-ax*k,-ay*k,S.width*k,S.height*k);g.restore()}else g.drawImage(S,sx-ax*k,sy-ay*k,S.width*k,S.height*k)}
@@ -325,6 +347,7 @@ export function makeDefense(A){
       if(mode==='cannon'||mode==='disc'){const o=Math.floor((BUILD[mode].w-1)/2),cx=hover[0]-o+1,cy=hover[1]-o+1,[a,b]=W2S(cx,cy),Rr=BUILD[mode].range;g.fillStyle='rgba(255,180,90,.1)';g.strokeStyle='rgba(255,180,90,.45)';
         if(mode==='disc'){g.beginPath();g.arc(a,b,Rr*z,0,7);g.fill();g.stroke()}
         else for(const [dx,dy] of DIR4){g.beginPath();const p=(al,pp)=>[a+(dx*al-dy*pp)*z,b+(dy*al+dx*pp)*z];let [u1,v1]=p(.5,.5);g.moveTo(u1,v1);for(const [al,s2] of [[Rr,1],[Rr,-1],[.5,-1]]){const [u2,v2]=p(al,s2*(.5+1.5*al/Rr));g.lineTo(u2,v2)}g.closePath();g.fill();g.stroke()}}}
+    if(sel&&B.b.includes(sel))drawRange(sel);else sel=null;
     drawClouds(true,rdt);
     if(B.bolt){const R=mulberry(B.bolt.seed);let [a,b]=W2S(B.bolt.x,-2);g.strokeStyle=`rgba(235,230,255,${Math.min(1,B.bolt.t*6)})`;g.lineWidth=2;g.beginPath();g.moveTo(a,b);for(let k=0;k<10;k++){a+=(R()-.5)*z*2;b+=VH/10;g.lineTo(a,b)}g.stroke()}
     if(B.flash>0){g.fillStyle=`rgba(225,220,255,${B.flash*.35})`;g.fillRect(0,0,VW,VH)}
@@ -363,7 +386,7 @@ export function makeDefense(A){
   function refreshBar(){const has=D.b.some(q=>q.t==='workshop'&&!q.bp),btn=(k,label,cost)=>`<button class="btn${mode===k?' primary':''}" data-df="${k}">${label}${cost!=null?` <span class="cost">${cost}</span>`:''}</button>`;
     el.querySelector('#dfActs').innerHTML=btn('cmd','Commander')+`<button class="btn" data-df="grunt">Grunt <span class="cost">${UNIT.grunt.cost}</span></button>`+btn('outpost','Outpost',BUILD.outpost.cost)+btn('workshop','Sun Workshop',BUILD.workshop.cost)+btn('altar','Altar',BUILD.altar.cost)+
       (has?btn('generator','Generator',BUILD.generator.cost)+btn('disc','Disc Thrower',BUILD.disc.cost)+btn('cannon','Sun Cannon',BUILD.cannon.cost):'');
-    const tip=mode==='bridge'?'Tap open sky next to an island you hold or a bridge joined to one. ⟳ rotates the piece. Bridges cut off from your islands crack and fall.':mode==='cmd'?'Tap a geyser to send your commander to collect, tap land to walk, tap a blueprint to build it. Grunts collect on their own. Drag to look around, pinch or scroll to zoom.':BUILD[mode]?`${BUILD[mode].n} · ${BUILD[mode].cost} sugar. ${BUILD[mode].d}`:'';
+    const tip=mode==='cmd'&&sel?`${BUILD[sel.t].n}: ${BUILD[sel.t].d} Tap it again to hide the range.`:mode==='bridge'?'Tap open sky next to an island you hold or a bridge joined to one. ⟳ rotates the piece. Bridges cut off from your islands crack and fall.':mode==='cmd'?'Tap a geyser to send your commander to collect, tap land to walk, tap a blueprint to build it. Grunts collect on their own. Drag to look around, pinch or scroll to zoom.':BUILD[mode]?`${BUILD[mode].n} · ${BUILD[mode].cost} sugar. ${BUILD[mode].d}`:'';
     el.querySelector('#dfTip').textContent=tip}
   function drawSlots(){const row=el.querySelector('#dfSlots');row.innerHTML=D.slots.map((c,i)=>`<button class="def-slot${slot===i?' on':''}" data-df="slot${i}">${c?'<canvas width="56" height="56"></canvas>':'<span>…</span>'}</button>`).join('');
     row.querySelectorAll('canvas').forEach(k=>{const i=[...row.children].indexOf(k.parentElement),c=D.slots[i],x=k.getContext('2d'),w=Math.max(...c.map(p=>p[0]))+1,h=Math.max(...c.map(p=>p[1]))+1,s=Math.min(11,Math.floor(50/Math.max(w,h)));x.imageSmoothingEnabled=false;
