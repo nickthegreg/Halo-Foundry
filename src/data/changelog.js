@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:31,date:'2026-10-23',title:'Real crafting speeds',items:[
+    'Fabricators, Fabricator Mk IIs, Assemblers, Smelters and Foundries now show their real speed with every bonus applied: seconds per craft, plus a per-second line of what goes in and what comes out at full power (including duplication).',
+    'The recipe picker shows each recipe’s output per second for that machine.'
+  ]},
   {n:30,date:'2026-10-22',title:'Candy Defense: bosses and altars',items:[
     'For testers only, for now.',
     'You start with 1,500 sugar. Grunts cost 400, Generators 400, Disc Throwers 200 and Sun Cannons 500.',

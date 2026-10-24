@@ -1313,6 +1313,11 @@ let banT=0;
 function showBanner(h,p){if(elBanner.dataset.reload)return;elBanner.innerHTML=`<h3></h3><p></p>`;elBanner.querySelector('h3').textContent=h;elBanner.querySelector('p').textContent=p;elBanner.hidden=false;clearTimeout(banT);banT=setTimeout(()=>elBanner.hidden=true,5200)}
 elBanner.addEventListener('click',()=>{if(elBanner.dataset.reload){save();location.reload();return}elBanner.hidden=true});
 
+function fabRate(b,k){return gridMul()*(B[b.t].mult||1)*rp('fab')/RECIPES[k].t}
+function smeltRate(b,ore){return gridMul()*(B[b.t].mult||1)*rp('smelt')/(SMELT_T[ore]||1)}
+function fmtRate(v){return v>=100?Math.round(v).toString():v>=10?v.toFixed(1):v.toFixed(2)}
+function rateLine(ins,outs,note){return `<div class="flow"><span class="lbl">Per second</span>${ins.map(([k,v])=>chip(k,fmtRate(v))).join('')}<span class="arrow">→</span>${outs.map(([k,v])=>chip(k,fmtRate(v))).join('')}${note?`<span class="lbl">${note}</span>`:''}</div>`}
+function rateNote(){const p=PW.sat<.999?` · ${Math.round(PW.sat*100)}% power now`:'';return 'at full power'+p}
 function chip(t,n,cls){return `<span class="${cls||'chip'}"><img src="${ICON[t]}" alt="${ITEMS[t].n}" title="${ITEMS[t].n}">${n}</span>`}
 let invSig='',hudN=0;
 function tipText(){
@@ -1392,10 +1397,10 @@ function bufRow(b){
   switch(b.t){
     case 'junction':{const a=b.lanes.flat().map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
     case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}/s</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
-    case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
+    case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore);return rateLine([[ore,c]],[[SMELT[ore],c]],rateNote())})()`;
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/4')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
-    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+r.in[k])).join('')}<span class="arrow">→</span>${chip(b.rec,b.outN)}<span class="lbl">${r.t}s</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`}
+    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+r.in[k])).join('')}<span class="arrow">→</span>${chip(b.rec,b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${r.t}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*r.in[k]]),[[b.rec,c*r.out*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
     case 'batcher':{const ks=Object.keys(b.st).filter(k=>b.st[k]>0);return ks.length?`<div class="flow"><span class="lbl">Stored</span>${ks.map(k=>chip(k,b.st[k]+'/50')).join('')}</div>`:'<div class="flow"><span class="lbl">Empty</span></div>'}
     case 'splitter':case 'sorter':return b.hold?`<div class="flow"><span class="lbl">Holding</span>${chip(b.hold,1)}</div>`:'';
     case 'turbine':return `<div class="flow"><span class="lbl">Fuel</span>${chip('carbon',b.fuel+'/20')}</div>`;
@@ -1413,7 +1418,7 @@ function renderSheet(){
   let ctrl='';
   if(b.t==='fab'||b.t==='fab2'||b.t==='assembler'){
     const recs=S.rec.filter(k=>(RECIPES[k].at==='asm')===(b.t==='assembler'));
-    ctrl=`<div class="sec-label">Recipe</div>`+(recs.length?`<div class="grid">${recs.map(k=>{const r=RECIPES[k];return `<button class="opt${b.rec===k?' on':''}" data-rec="${k}"><img src="${ICON[k]}" alt=""><span class="t"><b>${ITEMS[k].n}${r.out>1?' ×'+r.out:''}</b><small>${Object.keys(r.in).map(i=>r.in[i]+' '+ITEMS[i].s).join(' + ')}</small></span></button>`}).join('')}</div>`:'<p class="desc">No recipes unlocked for this factory yet.</p>');
+    ctrl=`<div class="sec-label">Recipe</div>`+(recs.length?`<div class="grid">${recs.map(k=>{const r=RECIPES[k];return `<button class="opt${b.rec===k?' on':''}" data-rec="${k}"><img src="${ICON[k]}" alt=""><span class="t"><b>${ITEMS[k].n}${r.out>1?' ×'+r.out:''} <span style="font-weight:400;opacity:.7">${fmtRate(fabRate(b,k)*r.out*(1+dupP()))}/s</span></b><small>${Object.keys(r.in).map(i=>r.in[i]+' '+ITEMS[i].s).join(' + ')}</small></span></button>`}).join('')}</div>`:'<p class="desc">No recipes unlocked for this factory yet.</p>');
   }
   if(b.t==='batcher'){
     const items=[...new Set([...Object.keys(b.ratio),...Object.keys(b.st).filter(k=>b.st[k]>0)])];
