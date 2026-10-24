@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:33,date:'2026-10-24',title:'Scrollable storage on PC',items:[
+    'On PC, the storage bar at the top now scrolls with the mouse wheel or by clicking and dragging, and shows a thin scrollbar.'
+  ]},
   {n:32,date:'2026-10-24',title:'Refund popups',items:[
     'Removing a building now shows a little popup over it with everything that came back to storage: its cost and anything it was holding.'
   ]},

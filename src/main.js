@@ -1289,7 +1289,14 @@ elTools.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button!
 window.addEventListener('pointermove',e=>{if(!toolDrag.on)return;const dx=e.clientX-toolDrag.x;if(!toolDrag.moved&&Math.abs(dx)>6){toolDrag.moved=true;elTools.classList.add('dragging')}if(toolDrag.moved){elTools.scrollLeft=toolDrag.sl-dx;toolArrows()}});
 window.addEventListener('pointerup',()=>{if(!toolDrag.on)return;toolDrag.on=false;elTools.classList.remove('dragging');if(toolDrag.moved)setTimeout(()=>{toolDrag.moved=false},0)});
 function toolArrows(){const mx=elTools.scrollWidth-elTools.clientWidth;$('#toolsL').hidden=elTools.scrollLeft<=4;$('#toolsR').hidden=mx<=4||elTools.scrollLeft>=mx-4}
-elTools.addEventListener('scroll',toolArrows);window.addEventListener('resize',toolArrows);
+elTools.addEventListener('scroll',toolArrows);
+// Desktop: the resource bar scrolls with the wheel and click-and-drag too
+(()=>{const el=$('#inv'),d={on:false,x:0,sl:0};
+  el.addEventListener('wheel',e=>{const v=Math.abs(e.deltaY)>Math.abs(e.deltaX)?e.deltaY:e.deltaX;if(!v||el.scrollWidth<=el.clientWidth)return;e.preventDefault();el.scrollLeft+=v*(e.deltaMode===1?32:1)},{passive:false});
+  el.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button!==0)return;d.on=true;d.x=e.clientX;d.sl=el.scrollLeft});
+  window.addEventListener('pointermove',e=>{if(d.on)el.scrollLeft=d.sl-(e.clientX-d.x)});
+  window.addEventListener('pointerup',()=>{d.on=false});})();
+window.addEventListener('resize',toolArrows);
 $('#toolsL').onclick=()=>{elTools.scrollBy({left:-elTools.clientWidth*.7,behavior:'smooth'})};
 $('#toolsR').onclick=()=>{elTools.scrollBy({left:elTools.clientWidth*.7,behavior:'smooth'})};
 let tipOverride='',tipUntil=0;
