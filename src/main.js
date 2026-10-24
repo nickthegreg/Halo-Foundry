@@ -170,9 +170,21 @@ function contents(b){
 function removeB(b){
   if(!b||b.t==='core')return false;
   for(let j=0;j<b.w;j++)for(let i=0;i<b.w;i++)S.grid[(b.y+j)*W+b.x+i]=0;
-  S.bs.delete(b.id);pay(costOf(b.t),1);contents(b).forEach(t=>addInv(t));
+  S.bs.delete(b.id);const ref=costOf(b.t);pay(ref,1);const got=Object.assign({},ref);contents(b).forEach(t=>{addInv(t);got[t]=(got[t]||0)+1});
+  refundFloat(b.x+b.w/2,b.y,got);
   if(sel===b)closeSheet();dirty=true;return true;
 }
+// A little popup that rises from whatever you removed, showing what came back to storage
+const FLOATS=[];
+function refundFloat(x,y,got){const items=ITEM_ORDER.filter(k=>got[k]>0).map(k=>[k,got[k]]);if(!items.length)return;
+  const near=FLOATS.find(f=>Math.abs(f.x-x)<1.5&&Math.abs(f.y0-y)<1.5&&f.t<.25);if(near){for(const [k,n] of items){const e=near.items.find(q=>q[0]===k);if(e)e[1]+=n;else near.items.push([k,n])}return}
+  FLOATS.push({x,y0:y,t:0,items});if(FLOATS.length>24)FLOATS.shift()}
+function drawFloats(g,dt){const z=cam.z,sz=Math.max(13,Math.min(20,z*.55));g.font=`600 ${sz*.8}px ${getComputedStyle(document.body).fontFamily}`;g.textBaseline='middle';
+  for(let i=FLOATS.length-1;i>=0;i--){const f=FLOATS[i];f.t+=dt;if(f.t>1.8){FLOATS.splice(i,1);continue}
+    const a=f.t<.15?f.t/.15:f.t>1.3?1-(f.t-1.3)/.5:1,sx=w2sx(f.x),sy=w2sy(f.y0)-z*.3-f.t*z*.9,parts=f.items.slice(0,4).map(([k,n])=>['+'+n,k]),w=parts.reduce((a2,[t])=>a2+sz+4+g.measureText(t).width+8,0)+6;
+    g.globalAlpha=a;g.fillStyle='rgba(20,18,36,.85)';rr(g,sx-w/2,sy-sz*.7,w,sz*1.4,sz*.5);g.fill();g.strokeStyle='rgba(114,227,178,.6)';g.lineWidth=1;g.stroke();
+    let cx=sx-w/2+7;for(const [t,k] of parts){g.drawImage(SPR[k],cx,sy-sz/2,sz,sz);cx+=sz+3;g.fillStyle='#72e3b2';g.fillText(t,cx,sy+1);cx+=g.measureText(t).width+9}
+    g.globalAlpha=1}}
 
 // which tiles a building pushes into
 // Output leaves from the edge tile nearest the centre (top/left one on even sizes)
@@ -1212,7 +1224,7 @@ function render(rdt){
       const a=Math.min(1,p.life/p.max*2);g.globalAlpha=a;const R=z*1.4;g.drawImage(glowSpr(pc),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2);g.globalAlpha=1;g.globalCompositeOperation='source-over';const q=z*.6;g.drawImage(SPR[p.k],w2sx(p.x)-q/2,w2sy(p.y)-q/2,q,q);g.globalCompositeOperation='lighter'}
     else{p.x+=p.vx*rdt;p.y+=p.vy*rdt;g.globalAlpha=p.life/p.max;const R=z*.18;g.drawImage(glowSpr(p.c),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2)}
   }
-  g.globalAlpha=1;g.globalCompositeOperation='source-over';
+  g.globalAlpha=1;g.globalCompositeOperation='source-over';drawFloats(g,rdt);
   drawOverlays(g,z);
   drawSeeds(g,z);drawBats(g);
   // ghost (mouse hover)

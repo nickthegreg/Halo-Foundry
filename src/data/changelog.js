@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:32,date:'2026-10-24',title:'Refund popups',items:[
+    'Removing a building now shows a little popup over it with everything that came back to storage: its cost and anything it was holding.'
+  ]},
   {n:31,date:'2026-10-23',title:'Real crafting speeds',items:[
     'Fabricators, Fabricator Mk IIs, Assemblers, Smelters and Foundries now show their real speed with every bonus applied: seconds per craft, plus a per-second line of what goes in and what comes out at full power (including duplication).',
     'The recipe picker shows each recipe’s output per second for that machine.'

@@ -6,4 +6,5 @@
 - Save format: slots are localStorage keys `halo-foundry-v2` (slot 1, the original save), `-s2`, `-s3`, `-daily` and `-ch` (current challenge); `CUR` in main.js is the active one. Account-wide data (challenge wins, challenge Relics, daily bests, last slot) lives in `halo-foundry-meta`. Save codes (Menu → Save code) move one slot between sites. Keep loading old saves working when changing state.
 - The player is on mobile first: test at 390×844, touch input, and keep audio quiet by default.
 - Every player-facing update adds an entry at the top of `src/data/changelog.js` with the next `n`: that drives the in-game "What's new" card and the "Update ready" banner.
+- `docs/reference.md` and `docs/reference.csv` (base building speeds, mining, smelting, recipes, power) are generated from `src/data/game.js`: rerun `node tests/reference.mjs` after changing game data.
 - Design ideas for future features live in `docs/` (e.g. `docs/ideas-ascension.md`, `docs/candy-defense.md`). Read them before building those features.
