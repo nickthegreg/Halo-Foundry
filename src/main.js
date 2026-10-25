@@ -432,11 +432,25 @@ function makePulse(ids,ox,oy){
   return{ids,pts,cum,marks,corners,len:cum[cum.length-1],d:0,k:0};
 }
 function ptAt(p,d){const c=p.cum;let i=1;while(i<c.length-1&&c[i]<d)i++;const a=p.pts[i-1],b=p.pts[i],f=Math.max(0,Math.min(1,(d-c[i-1])/((c[i]-c[i-1])||1)));return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]}
+// Blueprints with no pulse coming (e.g. after a reload, which doesn't save the queue) get requeued.
+// Conveyors and Crossings are chained into runs of touching tiles, up to 60 per pulse, like a fresh drag.
+function queueOrphans(q){
+  const belts=new Map();
+  for(const b of S.bs.values())if(b.bp&&!q.has(b.id)){if(b.t==='belt'||b.t==='junction')belts.set(b.x+','+b.y,b);else S.pq.push([b.id])}
+  while(belts.size){
+    let cur=belts.values().next().value;
+    // walk back to an end of the run so the pulse lays it in order
+    for(let i=0,seen=new Set([cur.id]);i<200;i++){const nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>belts.get((cur.x+dx)+','+(cur.y+dy))).filter(n=>n&&!seen.has(n.id));if(nb.length!==1)break;cur=nb[0];seen.add(cur.id)}
+    const run=[];
+    while(cur&&run.length<60){belts.delete(cur.x+','+cur.y);run.push(cur.id);const c=cur;cur=null;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=belts.get((c.x+dx)+','+(c.y+dy));if(n){cur=n;break}}}
+    S.pq.push(run);
+  }
+}
 let sweepT=0;const MATS=[];
 function stepPulses(dt){
   for(let i=MATS.length-1;i>=0;i--){const b=S.bs.get(MATS[i]);if(!b||!b.bp){MATS.splice(i,1);continue}b.mat+=dt/.9;if(b.mat>=1){delete b.mat;b.bp=false;dirty=true;MATS.splice(i,1);burst(b.x+b.w/2,b.y+b.w/2,'#7ff0d0',10)}}
   sweepT+=dt;
-  if(sweepT>2){sweepT=0;const q=new Set();S.pq.forEach(e=>e.forEach(id=>q.add(id)));S.pulses.forEach(p=>p.ids.forEach(id=>q.add(id)));if(G.stroke)G.stroke.forEach(id=>q.add(id));for(const b of S.bs.values())if(b.bp&&!q.has(b.id))S.pq.push([b.id])}
+  if(sweepT>2){sweepT=0;const q=new Set();S.pq.forEach(e=>e.forEach(id=>q.add(id)));S.pulses.forEach(p=>p.ids.forEach(id=>q.add(id)));if(G.stroke)G.stroke.forEach(id=>q.add(id));queueOrphans(q)}
   const slots=pulseSlots();
   while(S.pulses.length<slots&&S.pq.length){
     const ids=S.pq.shift().filter(id=>{const b=S.bs.get(id);return b&&b.bp});if(!ids.length)continue;
@@ -2375,7 +2389,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
+  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
@@ -2397,9 +2411,12 @@ function start(data,forceNew){
     const BL=(d.bs||[]).slice();if(!d.dd2)BL.sort((p,q)=>(p[0]==='deepdrill')-(q[0]==='deepdrill'));
     for(const a of BL){if(!B[a[0]])continue;let b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(a[0]==='deepdrill'&&!d.dd2)for(const [ox,oy] of [[-1,0],[0,-1],[-1,-1]]){if(typeof b==='object')break;b=place(a[0],a[1]+OFF+ox,a[2]+OFF+oy,a[3],true,a[4])}if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='sorter'&&a[6])b.sd=a[6];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){const X=a[4];if(X.r)b.ratio=X.r;else b.ratio=X;
       if(X.st&&typeof X.st==='object')for(const k in X.st)if(ITEMS[k]&&X.st[k]>0)b.st[k]=Math.min(50,X.st[k]|0);
-      if(Array.isArray(X.q))b.q=[0,1].map(i=>Array.isArray(X.q[i])?X.q[i].filter(k=>ITEMS[k]):[])}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0));if(a[0]==='reactor')b.husk=Math.max(0,Math.min(4,F.h|0))}if(a[5]===1){b.bp=true;S.pq.push([b.id])}}}
+      if(Array.isArray(X.q))b.q=[0,1].map(i=>Array.isArray(X.q[i])?X.q[i].filter(k=>ITEMS[k]):[])}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0));if(a[0]==='reactor')b.husk=Math.max(0,Math.min(4,F.h|0))}if(a[5]===1)b.bp=true}}
     if(d.cam){cam.x=d.cam.x+OFF;cam.y=d.cam.y+OFF;cam.z=d.cam.z}
   }else{cam.x=CX;cam.y=CY;cam.z=Math.max(18,Math.min(36,Math.min(VW,VH)/20))}
+  // Saves from before conveyor runs were regrouped: finish their waiting conveyors and Crossings outright (one time)
+  if(d&&!d.bpq)for(const b of S.bs.values())if(b.bp&&(b.t==='belt'||b.t==='junction')){b.bp=false;delete b.mat}
+  queueOrphans(new Set());
   growCore();tool='inspect';sel=null;elSheet.hidden=true;recalc();dirty=false;buildDock();updateRot();hudTick(true);
   if(d&&d.savedAt&&!d.fromCode){const away=(Date.now()-d.savedAt)/1000;whenIdle(()=>grantOffline(away))}
   return !d;

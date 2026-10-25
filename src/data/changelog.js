@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:34,date:'2026-10-25',title:'Faster rebuilding after a reload',items:[
+    'Unfinished conveyors and Crossings no longer each wait for their own pulse after you reload. Connected runs are built together by one pulse, the way they were when you drew them.',
+    'This update also finished every conveyor and Crossing that was still waiting to be built.'
+  ]},
   {n:33,date:'2026-10-24',title:'Scrollable storage on PC',items:[
     'On PC, the storage bar at the top now scrolls with the mouse wheel or by clicking and dragging, and shows a thin scrollbar.'
   ]},
