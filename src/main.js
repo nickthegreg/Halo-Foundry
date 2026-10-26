@@ -228,14 +228,14 @@ function recalc(){
 }
 
 // ================= transfer =================
-function accept(nb,t,side){
+function accept(nb,t,side,p0){
   if(nb.bp)return false;
   switch(nb.t){
     case 'belt':{
       if(side===nb.d)return false;
       const L=nb.items[nb.items.length-1];if(L&&L.p<SP)return false;
-      nb.items.push({t,p:0,f:side});return true;}
-    case 'junction':{const lane=nb.lanes[side],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:0,d:opp(side)});return true;}
+      nb.items.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),f:side});return true;}
+    case 'junction':{const lane=nb.lanes[side],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),d:opp(side)});return true;}
     case 'smelter':case 'foundry':
       if(!SMELT[t]||(t==='voidstone'&&nb.t!=='foundry')||nb.inN>=(nb.t==='foundry'?30:6)||(nb.inN>0&&nb.inT!==t))return false;
       nb.inT=t;nb.inN++;return true;
@@ -272,7 +272,7 @@ function outPorts(b){return b.t==='deepdrill'?[[b.d,0],[opp(b.d),0],[b.d,1],[opp
 function bCount(){let n=0;for(const b of S.bs.values())if(b.t!=='belt'&&b.t!=='junction'&&b.t!=='core')n++;return n}
 function drillCap(b){return b.t==='deepdrill'?2:1}
 function drillHasOut(b){const ts=b.t==='deepdrill'?outPorts(b).map(([d,j])=>edgeTile(b,d,j)):[outTile(b,b.d)];return ts.some(([x,y])=>{const q=at(x,y);return q&&q!==b&&!q.bp})}
-function pushDir(b,t,d){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||nb===b)return false;return accept(nb,t,opp(d))}
+function pushDir(b,t,d,p0){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||nb===b)return false;return accept(nb,t,opp(d),p0)}
 
 function deliver(t,quiet){
   stat('d',t);S.flags.del++;S.seen[t]=1;if(!quiet)sfx('core',CX,CY);
@@ -347,8 +347,8 @@ function sim(dt){
         break;}
       case 'junction':
         for(const lane of b.lanes){
-          for(let i=0;i<lane.length;i++){const it=lane[i],lim=i===0?1:lane[i-1].p-SP;it.p=Math.min(it.p+BV*dt,Math.max(lim,it.p))}
-          if(lane.length&&lane[0].p>=1&&pushDir(b,lane[0].t,lane[0].d))lane.shift();
+          for(let i=0;i<lane.length;i++){const it=lane[i],lim=i===0?1+BV*dt:lane[i-1].p-SP;it.p=Math.min(it.p+BV*dt,Math.max(lim,it.p))}
+          if(lane.length&&lane[0].p>=1){if(pushDir(b,lane[0].t,lane[0].d,lane[0].p-1))lane.shift();else lane[0].p=1}
         }
         break;
       case 'combustor':if(b.ember>0&&pushDir(b,'ember',b.d))b.ember--;break;
@@ -424,10 +424,11 @@ function sim(dt){
       case 'belt':{
         const its=b.items;
         for(let i=0;i<its.length;i++){
-          const it=its[i],lim=i===0?1:its[i-1].p-SP;
+          const it=its[i],lim=i===0?1+BV*dt:its[i-1].p-SP;
           it.p=Math.min(it.p+BV*dt,Math.max(lim,it.p));
         }
-        if(its.length&&its[0].p>=1&&pushDir(b,its[0].t,b.d)){its.shift();b.fc=(b.fc||0)+1}
+        // an item that crosses the edge mid-tick keeps the extra distance on the next tile, so throughput doesn't depend on the tick rate
+        if(its.length&&its[0].p>=1){if(pushDir(b,its[0].t,b.d,its[0].p-1)){its.shift();b.fc=(b.fc||0)+1}else its[0].p=1}
         break;}
     }
   }

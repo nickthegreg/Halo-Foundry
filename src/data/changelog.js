@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:37,date:'2026-10-26',title:'Faster full conveyors',items:[
+    'Full conveyor lines now actually move as many items as the max they show. Before, fast conveyors lost time at every tile: a line rated 12.4 items/s only moved about 10, and faster ones lost even more.'
+  ]},
   {n:36,date:'2026-10-26',title:'The late game: Spaceport, orbital labs and the Halo Ring',items:[
     'From your second ascension on, new moons have two new ores. Starsand goes through a Separator into Rare earth, ores and Slag that you sort with Sorters. Voidstone lies far out, only Deep Drills can mine it, and only Foundries smelt it into Void glass.',
     'New parts: Slagcrete, Magnets, Void lenses, Gyros, Hull plates and Guidance units, plus three Experiment kits. New research at tiers 6 and 7 unlocks them.',
