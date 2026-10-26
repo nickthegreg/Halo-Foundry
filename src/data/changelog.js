@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:35,date:'2026-10-26',title:'Hotter burners, tougher ascensions',items:[
+    'Bonuses that made fuel burn longer now make burners hotter instead: more power, and fuel burns faster, so you get Ember shards, husks and Nova shards sooner. This covers Kindle, Forge Star, the odd Furnace tiers, the Ember commander tree, and two renamed Relics: Bellows (was Slow Fuse) and Roaring Reactor (was Quiet Reactor).',
+    'Each ascension after the first needs a minimum number of Starseeds: 20 for the 2nd, 80 for the 3rd, 180 for the 4th, and so on.',
+    'Speedrun challenge: 1 hour now.'
+  ]},
   {n:34,date:'2026-10-25',title:'Faster rebuilding after a reload',items:[
     'Unfinished conveyors and Crossings no longer each wait for their own pulse after you reload. Connected runs are built together by one pulse, the way they were when you drew them.',
     'This update also finished every conveyor and Crossing that was still waiting to be built.'

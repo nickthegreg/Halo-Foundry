@@ -111,13 +111,13 @@ const REPEAT={
 };
 // Furnace ladder: sustained power from Combustors, Turbine Halls and Aether Reactors (kW), climbed alongside the grid ladder.
 const FRUNGS=[
-  {kw:500,n:'Kindle',fuel:.15,d:'Every unit of carbon and Aether burns 15% longer.'},
+  {kw:500,n:'Kindle',fuel:.15,d:'Burners run 15% hotter: 15% more power, burning fuel 15% faster.'},
   {kw:2000,n:'Blaze',pow:.15,d:'Combustors, Turbine Halls and Aether Reactors make 15% more power.'},
   {kw:8000,n:'Inferno',ember:1,d:'Carbon burners leave Ember shards twice as often.'},
-  {kw:30000,n:'Forge Star',fuel:.15,d:'Every unit of carbon and Aether burns 15% longer.'},
+  {kw:30000,n:'Forge Star',fuel:.15,d:'Burners run 15% hotter: 15% more power, burning fuel 15% faster.'},
   {kw:120000,n:'Crucible',pow:.15,d:'Combustors, Turbine Halls and Aether Reactors make 15% more power.'}
 ];
-function frung(i){if(i<FRUNGS.length)return FRUNGS[i];const k=i-FRUNGS.length+1,f=k%2===1;return{kw:120000*Math.pow(3,k),n:'Furnace '+(i+1),[f?'fuel':'pow']:.1,d:f?'Every unit of fuel burns 10% longer.':'Burners make 10% more power.'}}
+function frung(i){if(i<FRUNGS.length)return FRUNGS[i];const k=i-FRUNGS.length+1,f=k%2===1;return{kw:120000*Math.pow(3,k),n:'Furnace '+(i+1),[f?'fuel':'pow']:.1,d:f?'Burners run 10% hotter: more power, burning fuel faster.':'Burners make 10% more power.'}}
 // Crowns: tiers for Lattice cores in orbit. Each one earns a Crown point for the Crown upgrades below.
 const CROWN_REQ=[5,10,25,50,100];
 function crownReq(i){return i<CROWN_REQ.length?CROWN_REQ[i]:100*Math.pow(2,i-CROWN_REQ.length+1)}
@@ -134,7 +134,7 @@ function constReq(i){return i<CONST_REQ.length?CONST_REQ[i]:200*Math.pow(2,i-CON
 const CMD={
   industrialist:{n:'Industrialist',d:'Every machine works 5% faster per point. Candy Defense: your commander moves and attacks 8% faster.'},
   stellar:{n:'Stellar',d:'Sun Leaves, Film Arrays, Prism Collectors and the halo make 10% more power per point. Candy Defense: your commander hits 15% harder.'},
-  ember:{n:'Ember',d:'Carbon and Aether burn 10% longer per point. Candy Defense: your commander has 15% more health.'},
+  ember:{n:'Ember',d:'Burners run 10% hotter per point: 10% more power, burning carbon and Aether 10% faster. Candy Defense: your commander has 15% more health.'},
   architect:{n:'Architect',max:10,d:'Buildings cost 5% less per point, up to 50% off. Candy Defense: your commander and grunts carry 10% more sugar.'}
 };
 // Starseed shop: permanent perks bought with Starseeds. They survive Ascension.
@@ -151,7 +151,7 @@ const TRICKLE=[['iron','copper'],['glass','gear','wire'],['circuit','steel'],['l
 // fx keys are percentages unless noted: spd machines, belt conveyors, solar solar+halo, burn burners, pulse pulses, ember Ember drops,
 // ore ore per tile, off offline output (points), haul offline hours (h), dup duplication (points), core Core power, cap Charge storage,
 // petal kW per petal, drill drill speed, seed seed regrowth, trk trickle rate, smelt smelting, fab fabricating, up Uplink rate,
-// cost building discount, fuel fuel burn time, mj research Charge discount, nova Nova drops, seeds Starseeds per ascension, refine Refinery ore discount
+// cost building discount, fuel burners hotter (more power and faster burn), mj research Charge discount, nova Nova drops, seeds Starseeds per ascension, refine Refinery ore discount
 const RARITY={c:{n:'Common',w:60,col:'#b8b0e6'},r:{n:'Rare',w:28,col:'#6fd0ff'},e:{n:'Epic',w:10,col:'#d08cff'},l:{n:'Legendary',w:2,col:'#f3c25a'}};
 const RELICS={
   courier:{n:'Courier Wings',r:'c',fx:{pulse:30}},
@@ -169,7 +169,7 @@ const RELICS={
   bit:{n:'Diamond Bit',r:'c',fx:{drill:10}},
   bellows:{n:'Smelter’s Bellows',r:'c',fx:{smelt:10}},
   ratchet:{n:'Fitter’s Ratchet',r:'c',fx:{fab:10}},
-  fuse:{n:'Slow Fuse',r:'c',fx:{fuel:10}},
+  fuse:{n:'Bellows',r:'c',fx:{fuel:10}},
   sprout:{n:'Green Sprout',r:'c',fx:{seed:20}},
   gears:{n:'Relic of Gears',r:'r',fx:{spd:10}},
   rails:{n:'Relic of Rails',r:'r',fx:{belt:25}},
@@ -183,7 +183,7 @@ const RELICS={
   fountain:{n:'Trickle Fountain',r:'r',fx:{trk:50}},
   antenna:{n:'Uplink Antenna',r:'r',fx:{up:25}},
   rule:{n:'Builder’s Rule',r:'r',fx:{cost:5}},
-  quiet:{n:'Quiet Reactor',r:'r',fx:{fuel:20}},
+  quiet:{n:'Roaring Reactor',r:'r',fx:{fuel:20}},
   pouch:{n:'Starseed Pouch',r:'r',fx:{seeds:10}},
   crown:{n:'Overclock Crown',r:'e',fx:{spd:20}},
   mirror:{n:'Halo Mirror',r:'e',fx:{petal:30,solar:10}},
@@ -207,7 +207,7 @@ const RELICS={
   deepcrown:{n:'Deep Crown',r:'l',sig:'deeponly',fx:{drill:20,nova:25}},
   seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:7.5,fab:12.5}}
 };
-const FX_TEXT={spd:'machines {v}% faster',belt:'conveyors {v}% faster',solar:'solar and halo +{v}%',burn:'burner power +{v}%',pulse:'pulses {v}% faster',ember:'Ember drops +{v}%',ore:'+{v}% ore per tile',off:'+{v}% offline output',haul:'+{v} h offline time',dup:'+{v}% duplication',core:'Core power +{v}%',cap:'Charge storage +{v}%',petal:'+{v}% power per petal',drill:'drills {v}% faster',seed:'seeds regrow {v}% faster',trk:'trickle {v}% faster',smelt:'smelting {v}% faster',fab:'fabricating {v}% faster',up:'Uplinks {v}% faster',cost:'buildings {v}% cheaper',fuel:'fuel burns {v}% longer',mj:'research needs {v}% less Charge',nova:'Nova drops +{v}%',seeds:'+{v}% Starseeds when you Ascend',refine:'Refineries need {v}% less ore'};
+const FX_TEXT={spd:'machines {v}% faster',belt:'conveyors {v}% faster',solar:'solar and halo +{v}%',burn:'burner power +{v}%',pulse:'pulses {v}% faster',ember:'Ember drops +{v}%',ore:'+{v}% ore per tile',off:'+{v}% offline output',haul:'+{v} h offline time',dup:'+{v}% duplication',core:'Core power +{v}%',cap:'Charge storage +{v}%',petal:'+{v}% power per petal',drill:'drills {v}% faster',seed:'seeds regrow {v}% faster',trk:'trickle {v}% faster',smelt:'smelting {v}% faster',fab:'fabricating {v}% faster',up:'Uplinks {v}% faster',cost:'buildings {v}% cheaper',fuel:'burners {v}% hotter',mj:'research needs {v}% less Charge',nova:'Nova drops +{v}%',seeds:'+{v}% Starseeds when you Ascend',refine:'Refineries need {v}% less ore'};
 function relicText(k){const f=RELICS[k].fx;const t=Object.keys(f).map(q=>FX_TEXT[q].replace('{v}',f[q])).join(', ');return t.charAt(0).toUpperCase()+t.slice(1)+'.'}
 // Moon modifiers: pick one of three (or a plain moon) when you Ascend. seeds = Starseed multiplier when you leave that moon.
 const MODS={
@@ -228,7 +228,7 @@ const CHALLENGES={
   solar:{n:'Solar only',ban:['combustor','turbine','reactor'],goal:'aether',d:'No Combustors, Turbine Halls or Reactors.'},
   nosplit:{n:'One thread',ban:['splitter','sorter','batcher'],goal:'aether',d:'No Splitters, Sorters or Batchers.'},
   handfed:{n:'Hand-fed',ban:['uplink'],goal:'every',d:'No Uplinks: every item reaches the Core by conveyor.'},
-  speed:{n:'Speedrun',limit:7200,goal:'aether',d:'Everything is allowed, but you have 2 hours of play.'},
+  speed:{n:'Speedrun',limit:3600,goal:'aether',d:'Everything is allowed, but you have 1 hour of play.'},
   deeponly:{n:'Deep roots',ban:['drill'],unl:['deepdrill'],inv:{ember:1,steel:6,circuit:4},goal:'aether',d:'No basic Drills. Deep Drills are unlocked from the start, and you begin with exactly enough for one. Every other Deep Drill’s Ember shards come from burning carbon.'},
   minimal:{n:'Minimalist',cap:150,goal:'aether',d:'At most 150 buildings, not counting conveyors and crossings.'}
 };

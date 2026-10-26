@@ -103,6 +103,7 @@ function stellarMul(){return (1+.1*cmdLv('stellar'))*(1+.1*crownLv('weave'))*rp(
 // Furnace ladder perks, summed over every tier reached
 function fPerk(k){let v=0;for(let i=0;i<(S.ft||0);i++)v+=frung(i)[k]||0;return v}
 function burnPow(){return (1+fPerk('pow'))*(1+.1*crownLv('forge'))*rp('burn')}
+// Hotter burners: more power and they burn fuel proportionally faster (more Ember shards and husks per minute)
 function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
 function emberChance(){return .02*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
 function toolTip(t){const d=B[t];return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))}${d.pw?' · '+d.pw+' kW':''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
@@ -306,13 +307,13 @@ function sim(dt){
     else if(b.t==='filmarray')solar+=300*(.4+.6*day);
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)&&!(b.t==='reactor'&&(b.husk||0)>=4)){cap+=B[b.t].gen;comb.push(b)}
   }
-  const gridOn=S.ms>=MS.length,gmul=(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1);solar*=gmul*stellarMul();cap*=gmul*burnPow();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
+  const gridOn=S.ms>=MS.length,gmul=(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1);solar*=gmul*stellarMul();cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
   const sat0=demand>0?Math.min(1,gen/demand):1;
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load};
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
-  for(const c of comb){c.energy-=dt*load;if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn*fuelMul();if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
+  for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
   if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick()}
   stepPulses(dt);seedTick(dt);trickleTick(dt);
 
@@ -487,7 +488,10 @@ function climbFurnace(){
 
 // ================= ascension =================
 // Available once any Aether sits in storage. Starseeds = floor(√Aether in storage).
-function canAscend(){return isCamp()&&S.ms>=MS.length&&((S.inv.aether||0)>=1||(S.inv.husk||0)>=1)}
+function hasAether(){return isCamp()&&S.ms>=MS.length&&((S.inv.aether||0)>=1||(S.inv.husk||0)>=1)}
+// Each ascension after the first needs more Starseeds: 20 × (ascensions so far)²
+function ascMin(){const n=(S.asc&&S.asc.n)||0;return 20*n*n}
+function canAscend(){return hasAether()&&ascSeeds()>=ascMin()}
 function modSeedMul(){return S.mod&&MODS[S.mod]?MODS[S.mod].seeds:1}
 function seedTierMul(){return 1+.05*((S.gt||0)+(S.ft||0))}
 function ascSeeds(){return Math.floor(Math.sqrt((S.inv.aether||0)+3*(S.inv.husk||0))*seedTierMul()*rp('seeds')*modSeedMul())}
@@ -528,7 +532,7 @@ function showAscension(){
     return card(`${u.n} · level ${L}`,u.eff(L),d,mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-ss="${k}">✦ ${c}</button>`)}).join('')}</div>`;
   const g=ascSeeds();
   h+=`<div class="sec-label">Ascend</div>`+(canAscend()?`<p style="font-size:14px">Start again on a new moon, at the start of the main game. You keep Ember shards, Nova shards and Nova upgrades, Starseeds and the shop, Relics, your Commander, and blueprints. Everything else resets: buildings, storage, research, Menu upgrades, petals and tiers. Starseeds = √(Aether in storage + 3 × Aether husks in storage), +5% for every grid and furnace tier reached. Husks come from burning Aether in Reactors and must be belted to the Core. Right now: ${(S.inv.aether||0).toLocaleString()} Aether and ${(S.inv.husk||0).toLocaleString()} husks, ×${seedTierMul().toFixed(2)}, gives ${g}.</p>
-  <div class="actions"><button class="btn primary" data-ascend>Ascend for +${g} Starseed${g===1?'':'s'} →</button></div>`:'<p style="font-size:14px">Store some Aether to Ascend again.</p>');
+  <div class="actions"><button class="btn primary" data-ascend>Ascend for +${g} Starseed${g===1?'':'s'} →</button></div>`:hasAether()?`<p style="font-size:14px">Ascension ${ascN()+1} needs at least <strong>${ascMin().toLocaleString()} Starseeds</strong>. Right now you’d get ${ascSeeds().toLocaleString()}: store more Aether and husks, or climb more grid and furnace tiers.</p>`:'<p style="font-size:14px">Store some Aether to Ascend again.</p>');
   openModal(h);
 }
 function relicTitle(k){return `<span style="color:${RARITY[RELICS[k].r].col}">${RELICS[k].n}</span>`}
@@ -2438,7 +2442,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 let booted=false;
 function boot(data){
