@@ -1,6 +1,15 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:36,date:'2026-10-26',title:'The late game: Spaceport, orbital labs and the Halo Ring',items:[
+    'From your second ascension on, new moons have two new ores. Starsand goes through a Separator into Rare earth, ores and Slag that you sort with Sorters. Voidstone lies far out, only Deep Drills can mine it, and only Foundries smelt it into Void glass.',
+    'New parts: Slagcrete, Magnets, Void lenses, Gyros, Hull plates and Guidance units, plus three Experiment kits. New research at tiers 6 and 7 unlocks them.',
+    'The Spaceport builds rockets and launches them with Aether as fuel. Send up Lab modules, then Kit runs, and choose orbital research in the Research panel. It covers Mag-rail, faster rockets, richer far patches, endless Starsand and a repeatable +10% machine speed.',
+    'Mag-rail: Rail Terminals joined by track, with a shuttle that hauls 200 items at a time.',
+    'The Halo Ring: launch 12 segments for more power, speed and Starseeds. At 9 segments your Starseeds double, and closing the ring earns a unique Relic.',
+    'Four new Starseed branches: Logistics, Head start, Fortune and Deep space. They include free Splitters, starting research, Relic rerolls, a Relic forge and cheaper launches.',
+    'A Relic you hadn’t chosen yet is no longer lost when you Ascend.'
+  ]},
   {n:35,date:'2026-10-26',title:'Hotter burners, tougher ascensions',items:[
     'Bonuses that made fuel burn longer now make burners hotter instead: more power, and fuel burns faster, so you get Ember shards, husks and Nova shards sooner. This covers Kindle, Forge Star, the odd Furnace tiers, the Ember commander tree, and two renamed Relics: Bellows (was Slow Fuse) and Roaring Reactor (was Quiet Reactor).',
     'Each ascension after the first needs a minimum number of Starseeds: 20 for the 2nd, 80 for the 3rd, 180 for the 4th, and so on.',

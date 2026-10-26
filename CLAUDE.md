@@ -7,4 +7,5 @@
 - The player is on mobile first: test at 390×844, touch input, and keep audio quiet by default.
 - Every player-facing update adds an entry at the top of `src/data/changelog.js` with the next `n`: that drives the in-game "What's new" card and the "Update ready" banner.
 - `docs/reference.md` and `docs/reference.csv` (base building speeds, mining, smelting, recipes, power) are generated from `src/data/game.js`: rerun `node tests/reference.mjs` after changing game data.
+- Late-game content (ascension 2+: new ores, Separator, Spaceport, orbital research, Mag-rail, Halo Ring, Starseed branches) is gated by `late()` in main.js; see `docs/ideas-late-game.md`.
 - Design ideas for future features live in `docs/` (e.g. `docs/ideas-ascension.md`, `docs/candy-defense.md`). Read them before building those features.

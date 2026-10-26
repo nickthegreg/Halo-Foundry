@@ -1,4 +1,18 @@
-# Late game: design notes (2026-10-26)
+# Late game: design notes
+
+**Status (2026-10-26): built, except Stackers and Machine modules (§3), which the owner turned down for now.**
+Everything gates on `late()` in `src/main.js` (main game, `S.asc.n>=2`). Data is in `src/data/game.js`
+(`ORB`, `ORB_REP`, `MISSIONS`, `ROCKET`, `RING_MS`, `LATE_T`, SS branches with `br`); numbers are in
+`docs/reference.md`. Changes from the plan below as built:
+- No "Deep survey" research: Voidstone and Starsand patches simply exist on ascension-2+ moons (world gen adds them
+  from their own random stream, so older patches don't move). Late research tiers: Separation, Void optics and
+  Magnetics at tier 6; Gyroscopics and Rocketry at tier 7.
+- Halo Ring: 9 segments = Starseeds ×2 (instead of endless day); 12 = the unique *Ringforged Halo* Relic the first
+  time (`S.ringWins` carries across ascensions), a Relic choice every later time.
+- Void sight: Deep Drills mine Voidstone 50% faster (not "patches nearer the Core", which would move the map).
+- Spaceport: parts can be belted in or loaded from storage with a button; a Kit run can launch part-full.
+- Prefab stackers removed from Logistics.
+- Not yet: orbital labs don't progress while offline.
 
 Problem: by the second or third ascension, machines run several times faster than base, power is plentiful and a
 run's only real goal is "store Aether". Content past the Refinery is thin. Everything below unlocks from

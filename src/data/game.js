@@ -5,19 +5,20 @@ const opp=d=>(d+2)&3;
 const BELT_V=1.75, SP=0.34, DAY_LEN=300, PET_GOAL=40, CORE_GEN=120;
 const SAVE_KEY='halo-foundry-v2';
 
-const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice'];
+const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice','voidstone','starsand','rare','slag','voidglass','slagcrete','magnet','voidlens','gyro','hull','guidance','kitf','kitv','kits'];
 const ITEMS={
   ferrite:{n:'Ferrite ore',s:'ferrite'},cuprite:{n:'Cuprite ore',s:'cuprite'},silica:{n:'Silica sand',s:'silica'},carbon:{n:'Carbon',s:'carbon'},
   iron:{n:'Iron ingot',s:'iron'},copper:{n:'Copper ingot',s:'copper'},glass:{n:'Glass',s:'glass'},
   gear:{n:'Gear',s:'gear'},wire:{n:'Wire',s:'wire'},circuit:{n:'Circuit',s:'circuit'},steel:{n:'Steel',s:'steel'},
-  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'},nova:{n:'Nova shard',s:'nova'},husk:{n:'Aether husk',s:'husk'}
+  lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'},nova:{n:'Nova shard',s:'nova'},husk:{n:'Aether husk',s:'husk'},
+  voidstone:{n:'Voidstone',s:'voidstone'},starsand:{n:'Starsand',s:'starsand'},rare:{n:'Rare earth',s:'rare earth'},slag:{n:'Slag',s:'slag'},voidglass:{n:'Void glass',s:'void glass'},slagcrete:{n:'Slagcrete',s:'slagcrete'},magnet:{n:'Magnet',s:'magnet'},voidlens:{n:'Void lens',s:'void lens'},gyro:{n:'Gyro',s:'gyro'},hull:{n:'Hull plate',s:'hull plate'},guidance:{n:'Guidance unit',s:'guidance'},kitf:{n:'Field kit',s:'field kit'},kitv:{n:'Void kit',s:'void kit'},kits:{n:'Stellar kit',s:'stellar kit'}
 };
-const ORE_KEYS=[null,'ferrite','cuprite','silica','carbon'];
-const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silica:['#b3a9da','#f6f2ff'],carbon:['#3c3552','#b3a5ef']};
-const SMELT={ferrite:'iron',cuprite:'copper',silica:'glass'};
-const SMELT_T={ferrite:0.8,cuprite:0.45,silica:1.6};
+const ORE_KEYS=[null,'ferrite','cuprite','silica','carbon','voidstone','starsand'];
+const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silica:['#b3a9da','#f6f2ff'],carbon:['#3c3552','#b3a5ef'],voidstone:['#2b1f5c','#8a6bff'],starsand:['#c99a4a','#ffe9a8']};
+const SMELT={ferrite:'iron',cuprite:'copper',silica:'glass',voidstone:'voidglass'};
+const SMELT_T={ferrite:0.8,cuprite:0.45,silica:1.6,voidstone:3};
 // rate = ore/s per Drill; lo/hi = ore per tile. Cuprite and ferrite are fast and shallow; carbon is slow and deep.
-const ORE_P={ferrite:{rate:1.2,lo:220,hi:340},cuprite:{rate:1.8,lo:110,hi:190},silica:{rate:0.4,lo:250,hi:350},carbon:{rate:0.22,lo:3500,hi:5000}};
+const ORE_P={ferrite:{rate:1.2,lo:220,hi:340},cuprite:{rate:1.8,lo:110,hi:190},silica:{rate:0.4,lo:250,hi:350},carbon:{rate:0.22,lo:3500,hi:5000},voidstone:{rate:0.12,lo:4000,hi:6000,deep:1},starsand:{rate:0.6,lo:400,hi:600}};
 const RECIPES={
   gear:{in:{iron:2},out:1,t:0.6},
   wire:{in:{copper:1},out:3,t:0.4},
@@ -35,7 +36,17 @@ const RECIPES={
   composite:{in:{steel:2,glass:3},out:1,t:3},
   coil:{in:{copper:4,iron:1},out:1,t:1.5},
   photonic:{in:{wafer:2,wire:6,lens:1},out:1,t:4,at:'asm'},
-  lattice:{in:{photonic:2,composite:2,servo:1,husk:1},out:1,t:8,at:'asm'}
+  lattice:{in:{photonic:2,composite:2,servo:1,husk:1},out:1,t:8,at:'asm'},
+  // Late game (from ascension 2)
+  slagcrete:{in:{slag:4,carbon:1},out:1,t:1.5},
+  magnet:{in:{rare:2,coil:1},out:1,t:2},
+  voidlens:{in:{voidglass:2,prism:1},out:1,t:4},
+  gyro:{in:{magnet:2,servo:1,voidlens:1},out:1,t:8,at:'asm'},
+  hull:{in:{composite:4,slagcrete:6,frame:2},out:1,t:6,at:'asm'},
+  guidance:{in:{gyro:1,photonic:2,processor:1},out:1,t:10,at:'asm'},
+  kitf:{in:{circuit:2,gear:2,magnet:1},out:1,t:4},
+  kitv:{in:{voidlens:1,processor:1,slagcrete:2},out:1,t:6,at:'asm'},
+  kits:{in:{photonic:2,magnet:2,voidglass:2,gyro:1},out:1,t:10,at:'asm'}
 };
 const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'Moves items one tile at a time. Drag to lay a line that follows your finger. Dragging across another conveyor adds a Crossing.'},
@@ -61,6 +72,11 @@ const B={
   assembler:{n:'Assembler',cost:{frame:20,circuit:40,motor:10},pw:150,dir:1,w:3,d:'A large factory for advanced parts: Processors and Servos. Feed it from any side. Output leaves its bright edge.'},
   refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether. Starts at 1,000 ore per Aether and needs 1 ore less for every 1,000 Aether you have ever made, down to 50.'},
   reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:10000,burn:120,w:3,dir:1,d:'Burns one Aether every 2 minutes for 10 MW. Takes Aether from any side. Each Aether burned leaves an Aether husk, pushed out of its bright edge; if four pile up, the Reactor stops. Husks can’t ride Uplinks: belt them to where they’re needed.'},
+  separator:{n:'Separator',cost:{frame:40,servo:20,composite:80,steel:200},pw:400,dir:1,w:3,d:'Takes 1,000 Starsand and, 20 seconds later, sends out a mixed stream from three slots on its bright edge: about 10% Rare earth, plus ferrite, cuprite, silica and Slag. Sort it with Sorters. If any item can’t get out, the Separator stops.'},
+  incinerator:{n:'Incinerator',cost:{steel:20,circuit:10},d:'Destroys anything fed into it, from any side. For extra Slag or anything else you don’t need.'},
+  spaceport:{n:'Spaceport',cost:{servo:10000,slagcrete:5000,magnet:2000,frame:1000,guidance:200},pw:2000,w:5,d:'Builds a rocket from Hull plates and Guidance units, loads a payload and launches it with Aether as fuel. Pick a mission in its panel, then belt the parts in from any side or load them from storage.'},
+  railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to another terminal by Mag-rail. A sending terminal takes items from any side; its shuttle carries up to 200 at a time along the rail to a receiving terminal, which pushes them out of three slots on its bright edge.'},
+  rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Track for Rail Terminal shuttles. Drag to lay a line. Rails join in straight lines and right angles.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
 };
 const MS=[
@@ -102,8 +118,33 @@ const TECH={
   refining:{t:4,n:'Aether refining',mj:800,items:{photonic:60,composite:150},req:['foundry'],unl:['refinery'],d:'The Refinery: any raw ore into Aether.'},
   reactors:{t:5,n:'Aether reactors',mj:2000,items:{aether:20,servo:100,photonic:150},req:['refining'],unl:['reactor'],d:'The Aether Reactor: 10 MW per reactor.'},
   lattice:{t:5,n:'Lattice cores',mj:2000,items:{photonic:200,servo:80,composite:200},req:['photonics','fab2'],rec:['lattice'],d:'Lattice cores, the top-tier part.'},
-  mirrors:{t:6,n:'Halo mirrors',mj:6000,items:{lattice:50,petal:200},req:['lattice'],fx:'mirrors',d:'Every sail petal in orbit gives 24 kW instead of 8.'}
+  mirrors:{t:6,n:'Halo mirrors',mj:6000,items:{lattice:50,petal:200},req:['lattice'],fx:'mirrors',d:'Every sail petal in orbit gives 24 kW instead of 8.'},
+  // Late game: only on moons from ascension 2 onward
+  separation:{t:6,late:1,n:'Separation',mj:10000,items:{composite:400,processor:200},req:['lattice'],unl:['separator','incinerator'],rec:['slagcrete'],d:'The Separator splits Starsand into Rare earth, ores and Slag. Slagcrete from Slag and carbon. The Incinerator for anything left over.'},
+  voidoptics:{t:6,late:1,n:'Void optics',mj:12000,items:{voidglass:200,prism:200},req:['lattice'],rec:['voidlens'],d:'Void lenses from Void glass and prisms. Void glass comes from Voidstone smelted in a Foundry.'},
+  magnetics:{t:6,late:1,n:'Magnetics',mj:12000,items:{rare:300,coil:800},req:['separation'],rec:['magnet'],d:'Magnets from Rare earth and copper coils.'},
+  gyroscopics:{t:7,late:1,n:'Gyroscopics',mj:20000,items:{magnet:200,voidlens:100},req:['magnetics','voidoptics'],rec:['gyro','hull','guidance'],d:'Gyros, Hull plates and Guidance units: everything a rocket is made of.'},
+  rocketry:{t:7,late:1,n:'Rocketry',mj:40000,items:{gyro:50,slagcrete:500,lattice:20},req:['gyroscopics'],unl:['spaceport'],rec:['kitf','kitv','kits'],d:'The Spaceport, and the three Experiment kits that orbital labs study.'}
 };
+// Orbital research: done by Lab modules in orbit, paid in Experiment kits sent up by rocket
+const ORB={
+  survey:{n:'Orbital survey',kits:{kitf:1500},d:'Voidstone and Starsand patches hold 50% more ore.'},
+  logistics:{n:'Launch logistics',kits:{kitf:3000,kitv:500},d:'Rockets assemble twice as fast, and kit runs carry 1,000 kits instead of 500.'},
+  zerog:{n:'Zero-g casting',kits:{kitv:2000},d:'Foundries smelt Voidstone twice as fast.'},
+  maglev:{n:'Mag-rail',kits:{kitv:2000,kits:500},unl:['railterm','rail'],d:'Rail Terminals and Mag-rail: a shuttle hauls 200 items at a time from far fields.'},
+  deeptap:{n:'Deep tap',kits:{kitv:3000,kits:1000},d:'Every Starsand patch gets a seed tile that never runs out and regrows the sand around it.'},
+  ringdesign:{n:'Ring design',kits:{kitv:5000,kits:2000},d:'The Spaceport can build and launch segments of the Halo Ring.'}
+};
+const ORB_REP={orbover:{n:'Orbital overcharge',kits:{kitf:2000,kits:1000},grow:1.5,d:'Every machine works 10% faster per level.'}};
+// Spaceport missions. Every launch also needs a rocket and Aether fuel.
+const ROCKET={hull:20,guidance:2},ROCKET_T=60;
+const MISSIONS={
+  lab:{n:'Lab module',pay:{processor:300,photonic:200,gyro:50,voidlens:100},fuel:500,max:4,d:'Adds an orbital lab. Each one studies 1 Experiment kit a second. Up to 4.'},
+  kits:{n:'Kit run',fuel:300,d:'Carries Experiment kits up to your labs: 500 a launch, or 1,000 with Launch logistics.'},
+  ring:{n:'Ring segment',pay:{voidglass:400,magnet:200,gyro:100,composite:300,lattice:50},fuel:2000,grow:1.25,max:12,d:'One of the 12 segments of the Halo Ring. Each costs 25% more than the last.'}
+};
+// Halo Ring milestones (segments in orbit)
+const RING_MS=[[3,'Pulses travel at full speed everywhere on the moon.'],[6,'Separators give 50% more Rare earth.'],[9,'Starseeds ×2 when you Ascend from this moon.'],[12,'Ring closed: a unique Relic the first time, a Relic choice every time after.']];
 // Ongoing research: repeats forever. Each level costs more Charge, and the item set rotates so many parts stay useful.
 const REPEAT={
   overcharge:{n:'Overcharge',mj:150,grow:1.6,igrow:1.45,sets:[{circuit:200,steel:100},{motor:60,lens:120},{processor:40,film:150},{photonic:30,composite:60}],d:'Every machine works 5% faster per level.'},
@@ -144,7 +185,27 @@ const SS={
   seedr:{n:'Seed reach',req:'seedv',max:3,cost:L=>[4,8,16][L],d:'Seeds regrow ore one tile farther out per level, from 2 tiles around the seed up to 5.',eff:L=>`${2+L} tiles out`},
   core:{n:'Core size',max:2,cost:L=>[8,20][L],d:'The Core grows to 5×5, then 7×7, so more lines can feed it. It grows as soon as the tiles around it are clear.',eff:L=>`${3+2*L}×${3+2*L}`},
   trkT:{n:'Trickle: items',max:5,cost:L=>[2,4,8,16,32][L],d:'The Core makes items on its own, as if they were delivered. Each level adds better items.',eff:L=>`tier ${L}`},
-  trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`}
+  trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`},
+  // Logistics
+  lfit:{br:'Logistics',n:'Light fittings',max:1,cost:()=>40,d:'Splitters, Sorters and Crossings cost nothing to build.',eff:L=>L?'free':'off'},
+  bins:{br:'Logistics',n:'Deep bins',req:'lfit',max:2,cost:L=>[60,200][L],d:'Batchers hold 100 of each item, then 200.',eff:L=>`${50*Math.pow(2,L)} each`},
+  xpulse:{br:'Logistics',n:'Extra pulse',req:'bins',max:2,cost:L=>[100,400][L],d:'One more construction pulse can fly at once, per level.',eff:L=>`+${L}`},
+  rails:{br:'Logistics',n:'Rail crews',req:'xpulse',max:2,cost:L=>[400,1200][L],d:'Rail Terminals and Mag-rail cost 25% less per level.',eff:L=>`−${25*L}%`},
+  // Head start
+  crate:{br:'Head start',n:'Starter crate',max:1,cost:()=>80,d:'Each new moon starts with 4 Drills, 4 Smelters and 2 Fabricators you can place for free.',eff:L=>L?'on':'off'},
+  notes:{br:'Head start',n:'Field notes',req:'crate',max:3,cost:L=>[100,300,900][L],d:'Keep tier 1 research when you Ascend, then tiers 1–2, then tiers 1–3.',eff:L=>L?`tiers 1–${L}`:'none'},
+  warm:{br:'Head start',n:'Warm grid',req:'notes',max:1,cost:()=>250,d:'Each new moon starts at grid tier 1 and furnace tier 1.',eff:L=>L?'on':'off'},
+  bpstock:{br:'Head start',n:'Blueprint stock',req:'warm',max:1,cost:()=>500,d:'Conveyors, Crossings and Mag-rail in a placed blueprint appear at once, with no pulses.',eff:L=>L?'on':'off'},
+  // Fortune
+  wide:{br:'Fortune',n:'Wider draw',max:1,cost:()=>200,d:'Choose each Relic from 4 instead of 3.',eff:L=>`${3+L} offered`},
+  reroll:{br:'Fortune',n:'Reroll',req:'wide',max:2,cost:L=>[150,500][L],d:'Reroll a Relic offer once per pick, then twice.',eff:L=>`${L} per pick`},
+  lucky:{br:'Fortune',n:'Lucky stars',req:'reroll',max:2,cost:L=>[400,1200][L],d:'Epic and Legendary Relics turn up 1.5×, then 2× as often.',eff:L=>`×${[1,1.5,2][L]}`},
+  forge:{br:'Fortune',n:'Relic forge',req:'lucky',max:1,cost:()=>800,d:'Trade 3 Relics of one rarity for a random Relic one rarity higher, from the Relics list here.',eff:L=>L?'on':'off'},
+  // Deep space (ascension 2+ content)
+  vsight:{br:'Deep space',n:'Void sight',max:1,cost:()=>150,d:'Deep Drills mine Voidstone 50% faster.',eff:L=>L?'on':'off'},
+  richsand:{br:'Deep space',n:'Rich sand',req:'vsight',max:3,cost:L=>[100,250,600][L],d:'Separators give 25% more Rare earth per level.',eff:L=>`+${25*L}%`},
+  padcrew:{br:'Deep space',n:'Pad crew',req:'richsand',max:3,cost:L=>[200,500,1200][L],d:'Launches need 20% less Aether per level.',eff:L=>`−${20*L}%`},
+  dlabs:{br:'Deep space',n:'Long-haul labs',req:'padcrew',max:3,cost:L=>[300,800,2000][L],d:'Orbital lab modules work 25% faster per level.',eff:L=>`+${25*L}%`}
 };
 const TRICKLE=[['iron','copper'],['glass','gear','wire'],['circuit','steel'],['lens','motor','frame'],['prism','processor','coil']];
 // Relics: permanent bonuses that stack. One is chosen from three every ascension; rarer ones turn up less often.
@@ -205,7 +266,9 @@ const RELICS={
   hands:{n:'Hands of the Maker',r:'l',sig:'handfed',fx:{up:25,dup:2.5}},
   eternity:{n:'Hourglass Eternal',r:'l',sig:'speed',fx:{spd:12.5,pulse:25}},
   deepcrown:{n:'Deep Crown',r:'l',sig:'deeponly',fx:{drill:20,nova:25}},
-  seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:7.5,fab:12.5}}
+  seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:7.5,fab:12.5}},
+  // Earned once, for closing the Halo Ring the first time
+  ringforged:{n:'Ringforged Halo',r:'l',ring:1,fx:{spd:15,solar:25,seeds:15}}
 };
 const FX_TEXT={spd:'machines {v}% faster',belt:'conveyors {v}% faster',solar:'solar and halo +{v}%',burn:'burner power +{v}%',pulse:'pulses {v}% faster',ember:'Ember drops +{v}%',ore:'+{v}% ore per tile',off:'+{v}% offline output',haul:'+{v} h offline time',dup:'+{v}% duplication',core:'Core power +{v}%',cap:'Charge storage +{v}%',petal:'+{v}% power per petal',drill:'drills {v}% faster',seed:'seeds regrow {v}% faster',trk:'trickle {v}% faster',smelt:'smelting {v}% faster',fab:'fabricating {v}% faster',up:'Uplinks {v}% faster',cost:'buildings {v}% cheaper',fuel:'burners {v}% hotter',mj:'research needs {v}% less Charge',nova:'Nova drops +{v}%',seeds:'+{v}% Starseeds when you Ascend',refine:'Refineries need {v}% less ore'};
 function relicText(k){const f=RELICS[k].fx;const t=Object.keys(f).map(q=>FX_TEXT[q].replace('{v}',f[q])).join(', ');return t.charAt(0).toUpperCase()+t.slice(1)+'.'}
@@ -245,6 +308,8 @@ const NUP={
 function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-2;return{kw:6000*Math.pow(3,k),n:'Overclock '+k,oc:1,d:'Every machine works 10% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','remove'];
+// Late-game buildings stay out of the bar until ascension 2
+const LATE_T=['separator','incinerator','railterm','rail','spaceport'];
 
-export {CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};

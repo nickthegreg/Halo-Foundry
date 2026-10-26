@@ -2,7 +2,7 @@
 // Run after changing game data:  node tests/reference.mjs
 import {writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {B,ITEMS,RECIPES,SMELT,SMELT_T,ORE_P,BELT_V,SP,CORE_GEN} from '../src/data/game.js';
+import {B,ITEMS,RECIPES,SMELT,SMELT_T,ORE_P,BELT_V,SP,CORE_GEN,MISSIONS,ROCKET,ROCKET_T,ORB,ORB_REP,RING_MS} from '../src/data/game.js';
 
 const n=k=>ITEMS[k]?ITEMS[k].n:k, f=(v,d=2)=>{const r=Number(v.toFixed(d));return String(r)};
 const cost=c=>c?Object.keys(c).map(k=>`${c[k]} ${n(k)}`).join(', '):'free';
@@ -33,12 +33,12 @@ ${table(['What','Rate'],[
 ])}`);
 
 // ---------- mining ----------
-const mrows=[];for(const k in ORE_P){const p=ORE_P[k];mrows.push([n(k),f(p.rate)+'/s',f(p.rate*B.deepdrill.mult)+'/s',`${p.lo}–${p.hi}`])}
+const mrows=[];for(const k in ORE_P){const p=ORE_P[k];mrows.push([n(k),p.deep?'– (Deep Drill only)':f(p.rate)+'/s',f(p.rate*B.deepdrill.mult)+'/s',`${p.lo}–${p.hi}`])}
 out.push('## Mining\n\n'+table(['Ore','Drill','Deep Drill','Ore per tile (before bonuses)'],mrows)+
   '\nDrill reach: 3×3 around it. Deep Drill: 6×6 around its 2×2 body, mines 2.5× as fast and uses up ore half as fast.\n');
 
 // ---------- smelting ----------
-const srows=[];for(const ore in SMELT){const t=SMELT_T[ore];srows.push([n(ore),n(SMELT[ore]),f(t)+' s',f(1/t)+'/s',f(B.foundry.mult/t)+'/s'])}
+const srows=[];for(const ore in SMELT){const t=SMELT_T[ore];srows.push([n(ore),n(SMELT[ore]),f(t)+' s',ore==='voidstone'?'– (Foundry only)':f(1/t)+'/s',f(B.foundry.mult/t)+'/s'])}
 out.push('## Smelting (1 ore → 1 product)\n\n'+table(['Ore','Makes','Time','Smelter','Foundry (×4)'],srows));
 
 // ---------- recipes ----------
@@ -48,6 +48,24 @@ for(const k in RECIPES){const r=RECIPES[k],asm=r.at==='asm',ins=Object.keys(r.in
   rrows.push([n(k)+(r.out>1?` ×${r.out}`:''),ins,f(r.t)+' s',asm?'Assembler':'Fabricator, Mk II',asm?'–':per(1),asm?'–':per(fabMk),asm?per(B.assembler.mult||1):'–'])}
 out.push('## Recipes\n\n'+table(['Item','Inputs','Time','Made in','Fabricator','Fab Mk II (×'+fabMk+')','Assembler'],rrows)+
   '\nInputs per second = output per second ÷ output count × each input amount.\n');
+
+// ---------- late game ----------
+const kits=o=>Object.keys(o).map(k=>`${o[k].toLocaleString()} ${n(k)}`).join(' + ');
+out.push(`## Late game (main game, from ascension 2)
+
+Separator: 1,000 Starsand → 100 Rare earth, 250 ferrite, 200 cuprite, 200 silica, 250 Slag, in 20 s (Rare earth +25% per Rich sand level, +50% from 6 Halo Ring segments, taken from the Slag share).
+
+### Spaceport missions
+Every launch needs a rocket (${kits(ROCKET)}, assembled in ${ROCKET_T} s) and Aether fuel.
+
+${table(['Mission','Payload','Aether fuel','Notes'],Object.keys(MISSIONS).map(k=>{const M=MISSIONS[k];return [M.n,M.pay?kits(M.pay):'500 Experiment kits (1,000 with Launch logistics)',String(M.fuel),M.d]}))}
+### Orbital research (paid in Experiment kits)
+
+${table(['Research','Kits','Effect'],[...Object.keys(ORB).map(k=>[ORB[k].n,kits(ORB[k].kits),ORB[k].d]),...Object.keys(ORB_REP).map(k=>[ORB_REP[k].n+' (repeats)',kits(ORB_REP[k].kits)+` ×${ORB_REP[k].grow} per level`,ORB_REP[k].d])])}
+### Halo Ring
+Each segment: +10% power from every source, +3% machine speed, +10% Starseeds when you Ascend.
+
+${table(['Segments','Reward'],RING_MS.map(([k,t])=>[String(k),t]))}`);
 
 // ---------- power and fuel ----------
 out.push(`## Power and fuel
