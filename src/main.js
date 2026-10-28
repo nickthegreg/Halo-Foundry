@@ -92,8 +92,8 @@ function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+
 // Every Menu upgrade level compounds the halo: ×1.01 per level
 function upTotal(){let n=0;for(const k in (S.up||{}))n+=S.up[k]||0;return n}
 function haloMul(){return Math.pow(1.01,upTotal())}
-function latticeKW(){return 1000*(1+.25*crownLv('resonance'))*haloMul()}
-function petalKW(){return (S.res&&S.res.done.mirrors?24:8)*haloMul()*rp('petal')}
+function latticeKW(){return 1000*(1+.25*crownLv('resonance'))*haloMul()*(orbDone('weave')?1.25:1)}
+function petalKW(){return (S.res&&S.res.done.mirrors?24:8)*haloMul()*rp('petal')*(orbDone('weave')?1.25:1)}
 // Constellations and Commander points
 function constN(p){let i=0;while(p>=constReq(i))i++;return i}
 function cmdLv(k){return (S&&S.cmd&&S.cmd[k])||0}
@@ -113,7 +113,7 @@ function burnPow(){return (1+fPerk('pow'))*(1+.1*crownLv('forge'))*rp('burn')}
 // Hotter burners: more power and they burn fuel proportionally faster (more Ember shards and husks per minute)
 function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
 function emberChance(){return .02*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
-function toolTip(t){const d=B[t];return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+d.pw+' kW':''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
+function toolTip(t){const d=B[t];return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+fmtW(d.pw):''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
 function costStr(c){return Object.keys(c).map(k=>c[k]+' '+ITEMS[k].s).join(' · ')}
 function addInv(t,n){S.inv[t]=(S.inv[t]||0)+(n||1);S.seen[t]=1}
 
@@ -320,7 +320,8 @@ function sim(dt){
   for(const b of S.bs.values()){
     if(b.bp)continue;
     if(b.t==='relay')b.active=true;
-    if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):b.t==='deepdrill'?B.deepdrill.pw*(1-.25*nupLv('cool')):B[b.t].pw;
+    if(b.t==='spaceport')demand+=b.st?1e7:1e6;
+    else if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):b.t==='deepdrill'?B.deepdrill.pw*(1-.25*nupLv('cool')):B[b.t].pw;
     if(b.t==='solar')solar+=45*day;
     else if(b.t==='collector')solar+=400*(.25+.75*day);
     else if(b.t==='filmarray')solar+=300*(.4+.6*day);
@@ -415,11 +416,11 @@ function sim(dt){
       case 'separator':{
         if(!b.run&&b.n>=1000&&sepTot(b)<500){b.n-=1000;stat('c','starsand',1000);b.run=true;b.prog=0}
         b.active=b.run;b.ang+=dt*(b.run?sat*2:.1);
-        if(b.run){b.prog+=dt*sat/20;if(b.prog>=1){b.run=false;sepBatch(b);sfx('smelt',b.x+1.5,b.y+1.5)}}
+        if(b.run){b.prog+=dt*sat*(orbDone('sieve')?2:1)/20;if(b.prog>=1){b.run=false;sepBatch(b);sfx('smelt',b.x+1.5,b.y+1.5)}}
         for(let k=0;k<3;k++){if(!b.nx){b.nx=sepPick(b);if(!b.nx)break}if(pushPorts(b,b.nx,outPorts(b))){b.oq[b.nx]--;if(b.oq[b.nx]<=0)delete b.oq[b.nx];b.nx=null}else break}
         break;}
-      case 'incinerator':b.heat=Math.max(0,b.heat-dt*1.5);b.ang+=dt*(.3+b.heat*4);break;
-      case 'spaceport':padTick(b,dt,sat);break;
+      case 'incinerator':b.heat=Math.max(0,b.heat-dt*1.5);b.active=b.heat>.01;b.ang+=dt*(.3+b.heat*4);break;
+      case 'spaceport':padTick(b,dt,sat0);break;
       case 'railterm':railTick(b,dt,sat);break;
       case 'belt':{
         const its=b.items;
@@ -451,7 +452,8 @@ function padNeed(m){const o=Object.assign({},ROCKET,padPay(m));o.aether=padFuel(
 function kitCap(){return orbDone('logistics')?1000:500}
 const KITS=['kitf','kitv','kits'];
 function kitN(h){let n=0;for(const k of KITS)n+=h[k]||0;return n}
-function padOpen(m){if(m==='lab')return (S.orb.mods||0)<MISSIONS.lab.max;if(m==='ring')return orbDone('ringdesign')&&ringN()<MISSIONS.ring.max;return !!MISSIONS[m]}
+function labMax(){return 1+['lab2','lab3','lab4'].filter(orbDone).length}
+function padOpen(m){if(m==='lab')return (S.orb.mods||0)<labMax();if(m==='ring')return orbDone('ringdesign')&&ringN()<MISSIONS.ring.max;return !!MISSIONS[m]}
 function padAccept(b,t){const m=b.m;if(!m||b.st)return false;
   if(m==='kits'&&KITS.includes(t)){if(kitN(b.h)>=kitCap())return false;b.h[t]=(b.h[t]||0)+1;return true}
   const n=padNeed(m)[t];if(!n||(b.h[t]||0)>=n)return false;b.h[t]=(b.h[t]||0)+1;return true}
@@ -461,6 +463,7 @@ function padLoad(b){const m=b.m;if(!m||b.st)return 0;let moved=0;const n=padNeed
   if(m==='kits')for(const k of KITS){const take=Math.min(kitCap()-kitN(b.h),Math.floor(S.inv[k]||0));if(take>0){S.inv[k]-=take;b.h[k]=(b.h[k]||0)+take;moved+=take}}
   return moved}
 function padUnload(b){for(const k in b.h)if(b.h[k]>0)addInv(k,b.h[k]);b.h={};b.go=false}
+// sat here is the plain power share: machine speed bonuses don't touch rockets
 function padTick(b,dt,sat){
   if(!b.st&&padReady(b)){b.st=1;b.p=0}
   b.active=!!b.st;
@@ -468,9 +471,10 @@ function padTick(b,dt,sat){
 }
 function padLaunch(b){
   const m=b.m,h=b.h;for(const k in h)stat('c',k,h[k]);b.h={};b.st=0;b.p=0;b.go=false;
-  sfx('launch',b.x+2.5,b.y+2.5);PARTS.push({k:'rocket',x:b.x+2.5,y:b.y+2.2,vx:0,vy:-.4,life:4.5,max:4.5});burst(b.x+2.5,b.y+3.6,'#ffb070',50);
+  sfx('launch',b.x+3.5,b.y+3.5);PARTS.push({k:'rocket',x:b.x+3.5,y:b.y+3.5,vx:0,vy:-.2,life:6,max:6});burst(b.x+3.5,b.y+5,'#ffb070',60);
+  for(let k=0;k<24;k++){const a=Math.random()*3.1416;PARTS.push({k:'smoke',x:b.x+3.5,y:b.y+5,vx:Math.cos(a)*(1+Math.random()*3),vy:-Math.sin(a)*Math.random()*1.2,life:2+Math.random()*2,max:4,r:.5})}
   const O=S.orb;
-  if(m==='lab'){O.mods=(O.mods||0)+1;showBanner('Lab module '+O.mods+' in orbit',`Your orbital labs study ${fmtRate(labRate())} kits a second. Choose orbital research in the Research panel, then send kits up with Kit runs.`);if(!padOpen('lab'))b.m=null}
+  if(m==='lab'){O.mods=(O.mods||0)+1;showBanner('Lab module '+O.mods+' in orbit',`Your orbital labs study ${fmtRate(labRate())} kits a second (room for ${labMax()}). Choose orbital research in the Research panel, then send kits up with Kit runs.`);if(!padOpen('lab'))b.m=null}
   else if(m==='kits'){O.kits=O.kits||{};let n=0;for(const k of KITS)if(h[k]){O.kits[k]=(O.kits[k]||0)+h[k];n+=h[k]}showToast(`${n.toLocaleString()} Experiment kits reached orbit`)}
   else if(m==='ring'){ringUp();if(!padOpen('ring'))b.m=null}
   save();
@@ -480,7 +484,7 @@ function labRate(){return (S.orb.mods||0)*(1+.25*ssLv('dlabs'))*gridMul()}
 function isORep(id){return id.startsWith('rep:')}
 function orbCost(id){if(isORep(id)){const k=id.slice(4),R=ORB_REP[k],m=Math.pow(R.grow,orbLv(k)),o={};for(const i in R.kits)o[i]=Math.round(R.kits[i]*m);return o}return ORB[id].kits}
 function orbName(id){if(isORep(id)){const k=id.slice(4);return `${ORB_REP[k].n} ${orbLv(k)+1}`}return ORB[id].n}
-function orbReady(id){return isORep(id)?!!ORB_REP[id.slice(4)]:!!ORB[id]&&!orbDone(id)}
+function orbReady(id){return isORep(id)?!!ORB_REP[id.slice(4)]:!!ORB[id]&&!orbDone(id)&&(ORB[id].req||[]).every(orbDone)}
 function orbTick(dt){
   const O=S.orb,id=O.cur;if(!id||!O.mods)return;if(!orbReady(id)){O.cur=null;return}
   const C=orbCost(id),p=O.p[id]||(O.p[id]={}),ks=Object.keys(C).filter(k=>(p[k]||0)<C[k]);
@@ -1118,6 +1122,9 @@ function drawItem(g,t,r){
     case 'voidlens':{const gr=g.createRadialGradient(-r*.25,-r*.25,r*.05,0,0,r*.85);gr.addColorStop(0,'#ffffff');gr.addColorStop(.45,'#a88bff');gr.addColorStop(1,'#3a1f8a');
       g.beginPath();g.arc(0,0,r*.82,0,7);g.fillStyle=gr;g.fill();g.stroke();g.beginPath();g.arc(0,0,r*.55,3.6,4.6);g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=r*.1;g.stroke();
       g.beginPath();g.arc(0,0,r*.82,0,7);g.strokeStyle='#d8c8ff';g.lineWidth=r*.07;g.stroke();break;}
+    case 'voidcell':{rr(g,-r*.5,-r*.8,r*1,r*1.6,r*.2);g.fillStyle='#2a1f50';g.fill();g.stroke();g.fillStyle='#d4dae8';g.fillRect(-r*.22,-r*.98,r*.44,r*.18);
+      const gr=g.createLinearGradient(0,r*.6,0,-r*.6);gr.addColorStop(0,'#8a6bff');gr.addColorStop(1,'#e0d4ff');rr(g,-r*.32,-r*.6,r*.64,r*1.2,r*.12);g.fillStyle=gr;g.fill();
+      g.strokeStyle='#2a1f50';g.lineWidth=r*.1;g.beginPath();g.moveTo(-r*.32,0);g.lineTo(r*.32,0);g.moveTo(-r*.32,-r*.3);g.lineTo(r*.32,-r*.3);g.moveTo(-r*.32,r*.3);g.lineTo(r*.32,r*.3);g.stroke();break;}
     case 'gyro':{g.beginPath();g.arc(0,0,r*.85,0,7);g.fillStyle='#2a2638';g.fill();g.stroke();
       g.strokeStyle='#f3c25a';g.lineWidth=r*.12;g.beginPath();g.ellipse(0,0,r*.72,r*.32,.5,0,7);g.stroke();g.strokeStyle='#c8d0e6';g.beginPath();g.ellipse(0,0,r*.32,r*.72,.5,0,7);g.stroke();
       g.beginPath();g.arc(0,0,r*.16,0,7);g.fillStyle='#e04848';g.fill();break;}
@@ -1171,6 +1178,19 @@ function drawCore(g,b,x,y,s){
       g.beginPath();g.arc(c3x,c3y,s*.62,0,7);g.fillStyle=gr;g.fill();
       const hw=(b.w||3)/2;glow(b.x+hw,b.y+hw,3.2*hw/1.5,'#c9a2ff',.45);glow(b.x+hw,b.y+hw,1.6*hw/1.5,'#f3c25a',.5);
       }
+// A tall rocket: nose cone, banded body, fins and engine bell. outline=true draws just the blueprint outline.
+function drawRocket(g,cx,top,h,outline){
+  const w=h*.24,bt=top+h*.84;
+  const body=()=>{g.beginPath();g.moveTo(cx,top);g.bezierCurveTo(cx+w*.62,top+h*.08,cx+w/2,top+h*.2,cx+w/2,top+h*.26);g.lineTo(cx+w/2,bt);g.lineTo(cx-w/2,bt);g.lineTo(cx-w/2,top+h*.26);g.bezierCurveTo(cx-w/2,top+h*.2,cx-w*.62,top+h*.08,cx,top);g.closePath()};
+  const fins=()=>{g.beginPath();for(const sd of [-1,1]){g.moveTo(cx+sd*w*.5,bt-h*.18);g.lineTo(cx+sd*w*1.05,bt+h*.02);g.lineTo(cx+sd*w*1.05,bt+h*.08);g.lineTo(cx+sd*w*.5,bt);g.closePath()}};
+  if(outline){body();g.strokeStyle='#7ff0d0';g.lineWidth=Math.max(1,h*.012);g.stroke();fins();g.stroke();return}
+  g.beginPath();g.moveTo(cx-w*.3,bt);g.lineTo(cx+w*.3,bt);g.lineTo(cx+w*.42,bt+h*.1);g.lineTo(cx-w*.42,bt+h*.1);g.closePath();g.fillStyle='#4a4f66';g.fill();
+  fins();g.fillStyle='#d0473f';g.fill();
+  body();const gr=g.createLinearGradient(cx-w/2,0,cx+w/2,0);gr.addColorStop(0,'#aeb4c8');gr.addColorStop(.45,'#f4f6fb');gr.addColorStop(1,'#9aa1b8');g.fillStyle=gr;g.fill();
+  g.save();body();g.clip();g.fillStyle='#d0473f';g.fillRect(cx-w,top,w*2,h*.17);g.fillStyle='#3a3f58';g.fillRect(cx-w,top+h*.5,w*2,h*.05);g.fillRect(cx-w,top+h*.7,w*2,h*.04);g.fillStyle='#f3c25a';g.fillRect(cx-w,top+h*.2,w*2,h*.025);g.restore();
+  body();g.strokeStyle='#3a3f58';g.lineWidth=Math.max(1,h*.01);g.stroke();
+  g.beginPath();g.arc(cx,top+h*.34,w*.18,0,7);g.fillStyle='#62d8ff';g.fill();g.strokeStyle='#3a3f58';g.stroke();
+}
 function drawMachine(g,b,x,y,s){
   const cx=x+s/2,cy=y+s/2;
   switch(b.t){
@@ -1335,20 +1355,40 @@ function drawMachine(g,b,x,y,s){
       g.strokeStyle='#1a1418';g.lineWidth=s*.05;g.beginPath();for(let k=-1;k<=1;k++){g.moveTo(cx+k*s*.15,cy-s*.3);g.lineTo(cx+k*s*.15,cy+s*.3)}g.stroke();
       if(h>.05)glow(b.x+.5,b.y+.5,1.2,'#ff6a3d',.6*h);break;}
     case 'spaceport':{
-      const S5=s*5,c5x=x+S5/2,c5y=y+S5/2;
-      rr(g,x+s*.1,y+s*.1,S5-s*.2,S5-s*.2,s*.5);g.fillStyle='#2e2b40';g.fill();g.lineWidth=s*.06;g.strokeStyle='#8c82c8';g.stroke();
-      g.save();g.beginPath();g.arc(c5x,c5y,s*1.9,0,7);g.clip();for(let k=-6;k<6;k++){g.fillStyle=k%2?'#3a3550':'#4a4366';g.beginPath();g.moveTo(c5x+k*s*.5,c5y-s*2);g.lineTo(c5x+k*s*.5+s*.25,c5y-s*2);g.lineTo(c5x+k*s*.5+s*4.25,c5y+s*2);g.lineTo(c5x+k*s*.5+s*4,c5y+s*2);g.fill()}g.restore();
-      g.beginPath();g.arc(c5x,c5y,s*1.9,0,7);g.strokeStyle='#f3c25a';g.lineWidth=s*.08;g.stroke();
-      g.beginPath();g.arc(c5x,c5y,s*1.25,0,7);g.fillStyle='#24202f';g.fill();
-      // gantry
-      g.fillStyle='#6d6690';g.fillRect(x+S5-s*1.1,y+s*.5,s*.35,S5-s*1);g.strokeStyle='#4a4466';g.lineWidth=s*.04;for(let k=0;k<8;k++){const yy=y+s*.6+k*s*.5;g.beginPath();g.moveTo(x+S5-s*1.1,yy);g.lineTo(x+S5-s*.75,yy+s*.4);g.stroke()}
-      // rocket, built up from the bottom as it assembles
-      const rh=s*2.6,rw=s*.8,top=c5y-rh/2,f=b.st?b.p:0;
-      const drawR=()=>{g.beginPath();g.moveTo(c5x,top);g.quadraticCurveTo(c5x+rw*.6,top+rh*.25,c5x+rw/2,top+rh*.85);g.lineTo(c5x+rw*.8,top+rh);g.lineTo(c5x-rw*.8,top+rh);g.lineTo(c5x-rw/2,top+rh*.85);g.quadraticCurveTo(c5x-rw*.6,top+rh*.25,c5x,top);g.closePath()};
-      g.globalAlpha*=.25;drawR();g.fillStyle='#b8c0d6';g.fill();g.globalAlpha/=.25;
-      if(f>0){g.save();g.beginPath();g.rect(c5x-s,top+rh*(1-f),s*2,rh*f+2);g.clip();drawR();g.fillStyle='#d8dcea';g.fill();g.strokeStyle='#5e667e';g.lineWidth=s*.05;g.stroke();g.beginPath();g.arc(c5x,top+rh*.38,s*.14,0,7);g.fillStyle='#62d8ff';g.fill();g.restore();
-        glow(b.x+2.5,b.y+2.5+1.3*(1-f),1.6,'#7ff0d0',.35)}
-      if(b.m&&!b.st){const ic={lab:'photonic',kits:'kitf',ring:'lattice'}[b.m],q=s*.8;g.drawImage(SPR[ic],x+s*.3,y+s*.3,q,q)}
+      const S7=s*7,c7x=x+S7/2,c7y=y+S7/2,T=S?S.time:0,need=b.m?padNeed(b.m):null;
+      let have=0,tot=0;if(need){for(const k in need){tot+=need[k];have+=Math.min(need[k],b.h[k]||0)}if(b.m==='kits'){tot+=kitCap();have+=Math.min(kitCap(),kitN(b.h))}}
+      const lf=tot?have/tot:0,fuel=need?Math.min(1,(b.h.aether||0)/need.aether):0,hot=b.st&&b.p>.85;
+      // slab with hazard edging
+      rr(g,x+s*.1,y+s*.1,S7-s*.2,S7-s*.2,s*.5);g.fillStyle='#24212e';g.fill();g.lineWidth=s*.07;g.strokeStyle='#6d6690';g.stroke();
+      g.save();g.setLineDash([s*.3,s*.3]);rr(g,x+s*.35,y+s*.35,S7-s*.7,S7-s*.7,s*.35);g.strokeStyle='#f3c25a';g.lineWidth=s*.1;g.stroke();g.lineDashOffset=s*.3;g.strokeStyle='#1a1822';g.stroke();g.restore();
+      // flame trench
+      const tg=g.createLinearGradient(0,c7y,0,y+S7);tg.addColorStop(0,hot?'rgba(255,190,110,.9)':'#16141c');tg.addColorStop(1,hot?'rgba(255,110,50,.4)':'#1c1a24');
+      rr(g,c7x-s*.7,c7y+s*.6,s*1.4,S7/2-s*.75,s*.2);g.fillStyle=tg;g.fill();
+      // launch pad
+      const pg=g.createRadialGradient(c7x,c7y,s*.3,c7x,c7y,s*2.5);pg.addColorStop(0,'#4a4660');pg.addColorStop(1,'#302c40');
+      g.beginPath();g.arc(c7x,c7y,s*2.45,0,7);g.fillStyle=pg;g.fill();
+      g.save();g.setLineDash([s*.4,s*.25]);g.beginPath();g.arc(c7x,c7y,s*2.45,0,7);g.strokeStyle='#f3c25a';g.lineWidth=s*.14;g.stroke();g.lineDashOffset=s*.4;g.setLineDash([s*.25,s*.4]);g.strokeStyle='#1a1822';g.stroke();g.restore();
+      g.beginPath();g.arc(c7x,c7y,s*1.5,0,7);g.strokeStyle='rgba(127,240,208,.35)';g.lineWidth=s*.05;g.stroke();
+      // Aether tanks in the corners fill with fuel
+      for(const [tx,ty] of [[x+s*1.05,y+s*1.05],[x+S7-s*1.05,y+s*1.05],[x+s*1.05,y+S7-s*1.05],[x+S7-s*1.05,y+S7-s*1.05]]){
+        g.beginPath();g.arc(tx,ty,s*.62,0,7);g.fillStyle='#1c1a28';g.fill();g.strokeStyle='#8c82c8';g.lineWidth=s*.06;g.stroke();
+        if(fuel>0){g.beginPath();g.arc(tx,ty,s*.48,-1.5708,-1.5708+6.283*fuel);g.strokeStyle='#c99bff';g.lineWidth=s*.16;g.stroke();glow((tx-x)/s+b.x,(ty-y)/s+b.y,.9,'#c99bff',.25*fuel)}
+        g.beginPath();g.arc(tx,ty,s*.16,0,7);g.fillStyle='#d8b4ff';g.fill()}
+      // service gantry
+      const gx=c7x+s*1.75,gw=s*.55,gt=y+s*.7,gb=y+S7-s*1.6;
+      g.fillStyle='#3d3856';g.fillRect(gx,gt,gw,gb-gt);g.strokeStyle='#8c82c8';g.lineWidth=s*.05;g.strokeRect(gx,gt,gw,gb-gt);
+      g.beginPath();for(let yy=gt;yy<gb-s*.1;yy+=s*.45){g.moveTo(gx,yy);g.lineTo(gx+gw,yy+s*.45);g.moveTo(gx+gw,yy);g.lineTo(gx,yy+s*.45)}g.strokeStyle='#5d5790';g.lineWidth=s*.035;g.stroke();
+      for(const ay of [c7y-s*1.3,c7y+s*.2]){g.fillStyle='#6d6690';g.fillRect(c7x+s*.45,ay,gx-c7x-s*.45,s*.14)}
+      const blink=.5+.5*Math.sin(T*5);g.beginPath();g.arc(gx+gw/2,gt-s*.05,s*.13,0,7);g.fillStyle=`rgba(255,90,90,${.4+.6*blink})`;g.fill();glow(b.x+(gx+gw/2-x)/s,b.y+.65,.7,'#ff5a5a',.5*blink);
+      // the rocket: a faint outline until it's built from the bottom up
+      const rh=s*4.4,top=c7y-rh*.55,f=b.st?b.p:0;
+      g.save();g.globalAlpha*=.3;g.setLineDash([s*.12,s*.1]);drawRocket(g,c7x,top,rh,true);g.restore();
+      if(f>0){g.save();g.beginPath();g.rect(c7x-rh,top+rh*(1-f),rh*2,rh*f+2);g.clip();drawRocket(g,c7x,top,rh,false);g.restore();
+        g.strokeStyle='rgba(127,240,208,.8)';g.lineWidth=s*.05;g.beginPath();g.moveTo(c7x-s*.8,top+rh*(1-f));g.lineTo(c7x+s*.8,top+rh*(1-f));g.stroke();glow(b.x+3.5,b.y+3.5-2.4*f+1.2,1.4,'#7ff0d0',.3)}
+      if(hot){glow(b.x+3.5,b.y+5,2.2,'#ffb070',.7);if(Math.random()<.4)PARTS.push({k:'smoke',x:b.x+3.5+(Math.random()-.5)*1.6,y:b.y+5.2,vx:(Math.random()-.5)*1.2,vy:-.2,life:1.6,max:1.6,r:.35})}
+      // mission badge and loading bar
+      if(b.m){const ic={lab:'photonic',kits:'kitf',ring:'lattice'}[b.m],q=s*.85;g.beginPath();g.arc(c7x,y+s*.85,s*.6,0,7);g.fillStyle='#2c2740';g.fill();g.strokeStyle='#f3c25a';g.lineWidth=s*.05;g.stroke();g.drawImage(SPR[ic],c7x-q/2,y+s*.85-q/2,q,q)
+        g.fillStyle='#16141c';rr(g,x+s*1.9,y+S7-s*.75,S7-s*3.8,s*.26,s*.13);g.fill();if(lf>0){g.fillStyle=lf>=1?'#72e3b2':'#f3c25a';rr(g,x+s*1.9,y+S7-s*.75,(S7-s*3.8)*lf,s*.26,s*.13);g.fill()}}
       break;}
     case 'railterm':{
       const S3=s*3,c3x=x+S3/2,c3y=y+S3/2,col=b.role?'#f3c25a':'#7ff0d0';
@@ -1417,7 +1457,7 @@ let DPR=1,VW=0,VH=0;
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);VW=window.innerWidth;VH=window.innerHeight;cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);cv.style.width=VW+'px';cv.style.height=VH+'px'}
 const w2sx=x=>(x-cam.x)*cam.z+VW/2,w2sy=y=>(y-cam.y)*cam.z+VH/2;
 const s2wx=x=>(x-VW/2)/cam.z+cam.x,s2wy=y=>(y-VH/2)/cam.z+cam.y;
-const ITEM_TINT={wafer:'#a7b0ee',film:'#3d66d0',composite:'#aab4cc',coil:'#e88a55',photonic:'#9fe8ff',lattice:'#c99bff',ferrite:'#e07a40',cuprite:'#3cc49c',silica:'#c8c0ea',carbon:'#8d7fc8',iron:'#b8c0d6',copper:'#e88a55',glass:'#9fdcf0',gear:'#a3abc0',wire:'#ec9a5e',circuit:'#3aa070',steel:'#7d88a6',lens:'#7fd6ea',motor:'#f08a3c',prism:'#ffd66e',petal:'#f3c25a',frame:'#8a94b0',processor:'#6fe0c0',servo:'#e08a3c',aether:'#c99bff',ember:'#ff6a3d',nova:'#e0c8ff',husk:'#6a5e7c',voidstone:'#6a4cd8',starsand:'#e0b866',rare:'#7ff0d0',slag:'#6a5e66',voidglass:'#8a6bff',slagcrete:'#8a8494',magnet:'#e04848',voidlens:'#a88bff',gyro:'#f3c25a',hull:'#b8c0d6',guidance:'#72e3b2',kitf:'#ff6a6a',kitv:'#9a6bff',kits:'#f3c25a'};
+const ITEM_TINT={wafer:'#a7b0ee',film:'#3d66d0',composite:'#aab4cc',coil:'#e88a55',photonic:'#9fe8ff',lattice:'#c99bff',ferrite:'#e07a40',cuprite:'#3cc49c',silica:'#c8c0ea',carbon:'#8d7fc8',iron:'#b8c0d6',copper:'#e88a55',glass:'#9fdcf0',gear:'#a3abc0',wire:'#ec9a5e',circuit:'#3aa070',steel:'#7d88a6',lens:'#7fd6ea',motor:'#f08a3c',prism:'#ffd66e',petal:'#f3c25a',frame:'#8a94b0',processor:'#6fe0c0',servo:'#e08a3c',aether:'#c99bff',ember:'#ff6a3d',nova:'#e0c8ff',husk:'#6a5e7c',voidstone:'#6a4cd8',starsand:'#e0b866',rare:'#7ff0d0',slag:'#6a5e66',voidglass:'#8a6bff',slagcrete:'#8a8494',magnet:'#e04848',voidlens:'#a88bff',voidcell:'#8a6bff',gyro:'#f3c25a',hull:'#b8c0d6',guidance:'#72e3b2',kitf:'#ff6a6a',kitv:'#9a6bff',kits:'#f3c25a'};
 const glowCache={},DISCO=['#ffd77a','#ff9fd0','#9fe8ff','#ffffff','#c7b2ff'];
 function glowSpr(col){
   if(glowCache[col])return glowCache[col];
@@ -1482,11 +1522,13 @@ function render(rdt){
   }
   for(let i=PARTS.length-1;i>=0;i--){
     const p=PARTS[i];p.life-=rdt;if(p.life<=0){PARTS.splice(i,1);continue}
-    if(p.k==='rocket'){p.vy-=rdt*3.5;p.y+=p.vy*rdt;const sx=w2sx(p.x),sy=w2sy(p.y),a=Math.min(1,p.life/p.max*2);
-      for(let k=0;k<3;k++)PARTS.push({k:'spark',x:p.x+(Math.random()-.5)*.6,y:p.y+1.4,vx:(Math.random()-.5)*1.5,vy:1+Math.random()*2,life:.8,max:.8,c:k?'#ffb070':'#fff4c4'});
-      g.globalAlpha=a;const R=z*2.2;g.drawImage(glowSpr('#ffb070'),sx-R,sy+z*1.2-R,R*2,R*2);g.globalCompositeOperation='source-over';
-      const rh=z*2.6,rw=z*.8,top=sy-rh/2;g.beginPath();g.moveTo(sx,top);g.quadraticCurveTo(sx+rw*.6,top+rh*.25,sx+rw/2,top+rh*.85);g.lineTo(sx+rw*.8,top+rh);g.lineTo(sx-rw*.8,top+rh);g.lineTo(sx-rw/2,top+rh*.85);g.quadraticCurveTo(sx-rw*.6,top+rh*.25,sx,top);g.closePath();g.fillStyle='#d8dcea';g.fill();g.strokeStyle='#5e667e';g.lineWidth=Math.max(1,z*.05);g.stroke();
-      g.globalAlpha=1;g.globalCompositeOperation='lighter';continue}
+    if(p.k==='smoke'){p.x+=p.vx*rdt;p.y+=p.vy*rdt;p.vx*=1-rdt*.8;p.vy-=rdt*.15;const k=1-p.life/p.max,R=z*(p.r+k*1.1);g.globalCompositeOperation='source-over';g.globalAlpha=.16*(1-k)*(1-k);g.fillStyle='#cfc9dc';g.beginPath();g.arc(w2sx(p.x),w2sy(p.y),R,0,7);g.fill();g.globalAlpha=1;g.globalCompositeOperation='lighter';continue}
+    if(p.k==='rocket'){const age=p.max-p.life;p.vy-=rdt*(age<1?.6:2.6);p.y+=p.vy*rdt;const sx=w2sx(p.x),sy=w2sy(p.y),a=Math.min(1,p.life/p.max*2.5),rh=z*4.4,top=sy-rh*.55;
+      for(let k=0;k<4;k++)PARTS.push({k:'spark',x:p.x+(Math.random()-.5)*.5,y:p.y+2.2,vx:(Math.random()-.5)*1.6,vy:1.5+Math.random()*2.5,life:.7,max:.7,c:k?'#ffb070':'#fff4c4'});
+      if(age<2.5&&Math.random()<.35)PARTS.push({k:'smoke',x:p.x+(Math.random()-.5)*.6,y:p.y+2.6,vx:(Math.random()-.5)*.8,vy:.6+Math.random(),life:2.5,max:2.5,r:.4});
+      g.globalAlpha=a;const R=z*3;g.drawImage(glowSpr('#ffb070'),sx-R,sy+rh*.4-R,R*2,R*2);g.globalCompositeOperation='source-over';
+      g.beginPath();g.moveTo(sx-rh*.09,sy+rh*.39);g.lineTo(sx+rh*.09,sy+rh*.39);g.lineTo(sx,sy+rh*(.75+.12*Math.random()));g.closePath();g.fillStyle='#ffe0a0';g.fill();
+      drawRocket(g,sx,top,rh,false);g.globalAlpha=1;g.globalCompositeOperation='lighter';continue}
     if(p.k==='petal'||p.k==='lattice'){const pc=p.k==='lattice'?'#c99bff':'#f3c25a';p.vy-=rdt*5;p.x+=p.vx*rdt;p.y+=p.vy*rdt;if(Math.random()<.7)PARTS.push({k:'spark',x:p.x,y:p.y+.2,vx:(Math.random()-.5)*.6,vy:Math.random()*.6,life:.7,max:.7,c:pc});
       const a=Math.min(1,p.life/p.max*2);g.globalAlpha=a;const R=z*1.4;g.drawImage(glowSpr(pc),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2);g.globalAlpha=1;g.globalCompositeOperation='source-over';const q=z*.6;g.drawImage(SPR[p.k],w2sx(p.x)-q/2,w2sy(p.y)-q/2,q,q);g.globalCompositeOperation='lighter'}
     else{p.x+=p.vx*rdt;p.y+=p.vy*rdt;g.globalAlpha=p.life/p.max;const R=z*.18;g.drawImage(glowSpr(p.c),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2)}
@@ -1702,7 +1744,7 @@ function bufRow(b){
     case 'belt':return b.items.length?`<div class="flow">${cnt(b.items.map(i=>i.t))}</div>`:'';
     case 'separator':{const ks=Object.keys(b.oq).filter(k=>b.oq[k]>0);return `<div class="flow"><span class="lbl">In</span>${chip('starsand',b.n.toLocaleString()+'/1,000')}<span class="lbl">· ${Math.round(rareShare()*100)}% Rare earth per batch</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(ks.length?`<div class="flow"><span class="lbl">Out</span>${ks.map(k=>chip(k,b.oq[k])).join('')}</div>`:'')+`<div class="flow"><span class="lbl">One batch every ${fmtRate(20/gridMul())}s at full power</span></div>`}
     case 'spaceport':{if(!b.m)return '<div class="flow"><span class="lbl">Choose a mission below.</span></div>';const M=MISSIONS[b.m],n=padNeed(b.m);
-      let h=`<div class="flow"><span class="lbl">${M.n}${b.m==='ring'?` ${ringN()+1} of 12`:b.m==='lab'?` ${(S.orb.mods||0)+1} of 4`:''}</span></div><div class="ms-req">`+Object.keys(n).map(k=>{const v=b.h[k]||0;return `<span class="req${v>=n[k]?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(v)}/${fmtN(n[k])}<i style="width:${Math.min(100,v/n[k]*100)}%"></i></span>`}).join('');
+      let h=`<div class="flow"><span class="lbl">${M.n}${b.m==='ring'?` ${ringN()+1} of 12`:b.m==='lab'?` ${(S.orb.mods||0)+1} of ${labMax()}`:''}</span></div><div class="ms-req">`+Object.keys(n).map(k=>{const v=b.h[k]||0;return `<span class="req${v>=n[k]?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(v)}/${fmtN(n[k])}<i style="width:${Math.min(100,v/n[k]*100)}%"></i></span>`}).join('');
       if(b.m==='kits'){const v=kitN(b.h),c=kitCap();h+=`<span class="req${v>=c?' done':''}"><img src="${ICON.kitf}" alt="Experiment kits">${fmtN(v)}/${fmtN(c)} kits<i style="width:${Math.min(100,v/c*100)}%"></i></span>`}
       return h+`</div>`+(b.st?`<div class="prog"><b style="width:${b.p*100}%"></b></div>`:'')}
     case 'railterm':{const r=b.route;return `<div class="flow"><span class="lbl">${b.role?'Receiving':'Sending'} · ${b.q.length} stored</span>${b.q.length?cnt(b.q.slice(0,400)):''}</div>`+(b.role?'':`<div class="flow"><span class="lbl">${r?`${r.n} rail tiles to the receiver · about ${fmtRate(2*r.len/(8*gridMul()))}s a round trip`:'Lay Mag-rail from this terminal to a receiving terminal'}</span></div>`)}
@@ -1731,11 +1773,11 @@ function renderSheet(){
     ctrl=`<div class="sec-label">Chosen item leaves</div><div class="seg">${so.map(([v,n])=>`<button data-sd="${v}" class="${(b.sd||0)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">Everything else leaves through the other two sides, taking turns.</p><div class="sec-label">Chosen item</div><div class="grid items"><button class="opt${!b.filter?' on':''}" data-filter="" aria-label="Everything">All</button>${ITEM_ORDER.map(k=>`<button class="opt${b.filter===k?' on':''}" data-filter="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`;
   }
   if(b.t==='spaceport'){const ms=Object.keys(MISSIONS).filter(m=>m!=='ring'||orbDone('ringdesign'));
-    ctrl=`<div class="sec-label">Mission</div><div class="seg">${ms.map(m=>`<button data-mission="${m}" class="${b.m===m?'on':''}"${padOpen(m)?'':' disabled'}>${MISSIONS[m].n}</button>`).join('')}</div>${b.m?`<p class="desc">${MISSIONS[b.m].d} Every launch needs a rocket (${ROCKET.hull} Hull plates, ${ROCKET.guidance} Guidance units) and Aether fuel.</p><div class="actions"><button class="btn primary" data-act="padload">Load from storage</button>${b.m==='kits'?`<button class="btn" data-act="padgo">Launch when loaded</button>`:''}</div>`:''}`}
+    ctrl=`<div class="sec-label">Mission</div><div class="seg">${ms.map(m=>`<button data-mission="${m}" class="${b.m===m?'on':''}"${padOpen(m)?'':' disabled'}>${MISSIONS[m].n}</button>`).join('')}</div>${b.m?`<p class="desc">${MISSIONS[b.m].d} Every launch needs a rocket (${ROCKET.hull} Hull plates, ${ROCKET.guidance} Guidance units) and Aether fuel, all belted in.</p>${b.m==='kits'?`<div class="actions"><button class="btn" data-act="padgo">Launch when loaded</button></div>`:''}`:''}`}
   if(b.t==='railterm')ctrl=`<div class="sec-label">This terminal</div><div class="seg"><button data-role="0" class="${b.role?'':'on'}">Send</button><button data-role="1" class="${b.role?'on':''}">Receive</button></div><p class="desc">A sending terminal takes items from any side. A receiving terminal pushes them out of its bright edge.</p>`;
   const acts=b.t==='core'?'':`<div class="actions">${d.dir?`<button class="btn" data-act="rot">${SVG.rot}Rotate</button>`:''}<button class="btn danger" data-act="del">${SVG.trash}Remove</button></div>`;
   elSheet.innerHTML=`<div class="sh-head"><img src="${ICON_B[b.t]}" alt=""><div class="sh-title"><h2>${d.n}</h2><span class="pill" id="shStatus"></span></div><button class="x" data-act="close" aria-label="Close">${SVG.x}</button></div>
-  <div class="sh-body"><p class="desc">${d.d}${d.pw?` Uses ${d.pw} kW.`:''}</p><div id="shBuf" class="sh-body" style="margin:0;gap:8px"></div>${ctrl}${acts}</div>`;
+  <div class="sh-body"><p class="desc">${d.d}${d.pw&&d.pw<1e5?` Uses ${fmtW(d.pw)}.`:''}</p><div id="shBuf" class="sh-body" style="margin:0;gap:8px"></div>${ctrl}${acts}</div>`;
   refreshSheet();
 }
 function refreshSheet(){
@@ -2350,7 +2392,7 @@ function orbSection(){
   <div class="ms cur"><div class="ms-top"><h4>Kits in orbit</h4><span class="st">${O.mods?fmtRate(labRate())+' kits/s':'No labs yet'}</span></div><div class="ms-req">${KITS.map(k=>`<span class="req"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${Math.floor(K[k]||0).toLocaleString()}</span>`).join('')}</div><div class="ms-unl">${O.mods?'Labs study the chosen project using kits already in orbit. Send more with a Spaceport Kit run.':'Launch a Lab module from a Spaceport first, then send kits up with Kit runs.'}</div></div>`;
   const card=(id,title,desc,st,cls,go)=>`<div class="ms ${cls}"><div class="ms-top"><h4>${title}</h4><span class="st">${st}</span></div><div class="ms-unl">${desc}</div>${cls==='done'?'':`<div class="ms-req" id="oq-${id.replace(':','_')}">${orbChips(id)}</div>`}${go?`<button class="btn${O.cur===id?'':' primary'}" data-orb="${id}">${O.cur===id?'Pause':O.p[id]?'Resume':'Study'}</button>`:''}</div>`;
   for(const k in ORB_REP){const id='rep:'+k;h+=card(id,`${ORB_REP[k].n} · level ${orbLv(k)}`,ORB_REP[k].d,O.cur===id?`Studying level ${orbLv(k)+1}`:`Next: level ${orbLv(k)+1}`,O.cur===id?'cur':'',true)}
-  for(const id in ORB){const N=ORB[id],dn=orbDone(id);h+=card(id,N.n,N.d,dn?'Done':O.cur===id?'Studying':O.p[id]?'Paused':'Available',dn?'done':O.cur===id?'cur':'',!dn)}
+  for(const id in ORB){const N=ORB[id],dn=orbDone(id),rd=orbReady(id),miss=(N.req||[]).filter(r=>!orbDone(r)).map(r=>ORB[r].n);h+=card(id,N.n,N.d+(miss.length&&!dn?` <b>Needs ${miss.join(', ')}.</b>`:''),dn?'Done':O.cur===id?'Studying':!rd?'Locked':O.p[id]?'Paused':'Available',dn?'done':O.cur===id?'cur':rd?'':'future',rd)}
   return h;
 }
 function updateResearch(){

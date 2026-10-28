@@ -17,7 +17,7 @@ Regenerate with \`node tests/reference.mjs\`.
 
 // ---------- buildings ----------
 const rows=[];for(const k in B){const b=B[k];if(k==='core')continue;
-  const size=(b.w||1)+'×'+(b.w||1),power=b.pw?`uses ${b.pw} kW`:b.gen?`makes up to ${b.gen>=1000?f(b.gen/1000)+' MW':b.gen+' kW'}`:'–',speed=b.mult?`×${b.mult}`:'';
+  const size=(b.w||1)+'×'+(b.w||1),power=b.pw?`uses ${b.pw>=1e6?f(b.pw/1e6)+' GW':b.pw>=1000?f(b.pw/1000)+' MW':b.pw+' kW'}${k==='spaceport'?' standing, 10 GW while building a rocket':k==='incinerator'?' while burning':''}`:b.gen?`makes up to ${b.gen>=1000?f(b.gen/1000)+' MW':b.gen+' kW'}`:'–',speed=b.mult?`×${b.mult}`:'';
   rows.push([b.n,size,cost(b.cost),power,speed])}
 rows.push([B.core.n,'3×3','–',`makes ${CORE_GEN} kW`,'']);
 out.push('## Buildings\n\n'+table(['Building','Size','Cost','Power','Speed'],rows)+'\nDeep Drill cost in Ember shards climbs 1, 1, 2, 3, 5, 8… with each one you own.\n');

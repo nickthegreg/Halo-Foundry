@@ -32,8 +32,8 @@ Regenerate with `node tests/reference.mjs`.
 | Refinery | 3×3 | 30 Frame, 60 Steel, 10 Processor | uses 200 kW |  |
 | Aether Reactor | 3×3 | 20 Servo, 40 Processor, 60 Frame | makes up to 10 MW |  |
 | Separator | 3×3 | 40 Frame, 20 Servo, 80 Composite plate, 200 Steel | uses 400 kW |  |
-| Incinerator | 1×1 | 20 Steel, 10 Circuit | – |  |
-| Spaceport | 5×5 | 10000 Servo, 5000 Slagcrete, 2000 Magnet, 1000 Frame, 200 Guidance unit | uses 2000 kW |  |
+| Incinerator | 1×1 | 20 Steel, 10 Circuit | uses 1 GW while burning |  |
+| Spaceport | 7×7 | 10000 Servo, 5000 Slagcrete, 2000 Magnet, 1000 Frame, 200 Guidance unit, 2000 Void glass | uses 1 GW standing, 10 GW while building a rocket |  |
 | Rail Terminal | 3×3 | 200 Magnet, 50 Gyro, 100 Void glass | uses 300 kW |  |
 | Mag-rail | 1×1 | 4 Magnet, 2 Slagcrete | – |  |
 | Core | 3×3 | – | makes 120 kW |  |
@@ -57,7 +57,7 @@ Deep Drill cost in Ember shards climbs 1, 1, 2, 3, 5, 8… with each one you own
 | Cuprite ore | 1.8/s | 4.5/s | 110–190 |
 | Silica sand | 0.4/s | 1/s | 250–350 |
 | Carbon | 0.22/s | 0.55/s | 3500–5000 |
-| Voidstone | – (Deep Drill only) | 0.3/s | 4000–6000 |
+| Voidstone | – (Deep Drill only) | 0.1/s | 4000–6000 |
 | Starsand | 0.6/s | 1.5/s | 400–600 |
 
 Drill reach: 3×3 around it. Deep Drill: 6×6 around its 2×2 body, mines 2.5× as fast and uses up ore half as fast.
@@ -69,7 +69,7 @@ Drill reach: 3×3 around it. Deep Drill: 6×6 around its 2×2 body, mines 2.5× 
 | Ferrite ore | Iron ingot | 0.8 s | 1.25/s | 5/s |
 | Cuprite ore | Copper ingot | 0.45 s | 2.22/s | 8.89/s |
 | Silica sand | Glass | 1.6 s | 0.63/s | 2.5/s |
-| Voidstone | Void glass | 3 s | – (Foundry only) | 1.33/s |
+| Voidstone | Void glass | 8 s | – (Foundry only) | 0.5/s |
 
 ## Recipes
 
@@ -93,11 +93,12 @@ Drill reach: 3×3 around it. Deep Drill: 6×6 around its 2×2 body, mines 2.5× 
 | Photonic chip | 2 Silicon wafer + 6 Wire + 1 Lens | 4 s | Assembler | – | – | 0.25/s |
 | Lattice core | 2 Photonic chip + 2 Composite plate + 1 Servo + 1 Aether husk | 8 s | Assembler | – | – | 0.13/s |
 | Slagcrete | 4 Slag + 1 Carbon | 1.5 s | Fabricator, Mk II | 0.67/s | 1.67/s | – |
-| Magnet | 2 Rare earth + 1 Copper coil | 2 s | Fabricator, Mk II | 0.5/s | 1.25/s | – |
-| Void lens | 2 Void glass + 1 Prism | 4 s | Fabricator, Mk II | 0.25/s | 0.63/s | – |
+| Magnet | 2 Rare earth + 1 Copper coil | 5 s | Fabricator, Mk II | 0.2/s | 0.5/s | – |
+| Void lens | 4 Void glass + 1 Prism | 10 s | Fabricator, Mk II | 0.1/s | 0.25/s | – |
+| Void cell | 4 Void glass + 2 Copper coil + 1 Processor | 12 s | Assembler | – | – | 0.08/s |
 | Gyro | 2 Magnet + 1 Servo + 1 Void lens | 8 s | Assembler | – | – | 0.13/s |
 | Hull plate | 4 Composite plate + 6 Slagcrete + 2 Frame | 6 s | Assembler | – | – | 0.17/s |
-| Guidance unit | 1 Gyro + 2 Photonic chip + 1 Processor | 10 s | Assembler | – | – | 0.1/s |
+| Guidance unit | 1 Gyro + 2 Photonic chip + 1 Void cell | 10 s | Assembler | – | – | 0.1/s |
 | Field kit | 2 Circuit + 2 Gear + 1 Magnet | 4 s | Fabricator, Mk II | 0.25/s | 0.63/s | – |
 | Void kit | 1 Void lens + 1 Processor + 2 Slagcrete | 6 s | Assembler | – | – | 0.17/s |
 | Stellar kit | 2 Photonic chip + 2 Magnet + 2 Void glass + 1 Gyro | 10 s | Assembler | – | – | 0.1/s |
@@ -109,25 +110,30 @@ Inputs per second = output per second ÷ output count × each input amount.
 Separator: 1,000 Starsand → 100 Rare earth, 250 ferrite, 200 cuprite, 200 silica, 250 Slag, in 20 s (Rare earth +25% per Rich sand level, +50% from 6 Halo Ring segments, taken from the Slag share).
 
 ### Spaceport missions
-Every launch needs a rocket (20 Hull plate + 2 Guidance unit, assembled in 60 s) and Aether fuel.
+Every launch needs a rocket (30 Hull plate + 4 Guidance unit, assembled in 60 s) and Aether fuel.
 
 | Mission | Payload | Aether fuel | Notes |
 |---|---|---|---|
-| Lab module | 300 Processor + 200 Photonic chip + 50 Gyro + 100 Void lens | 500 | Adds an orbital lab. Each one studies 1 Experiment kit a second. Up to 4. |
-| Kit run | 500 Experiment kits (1,000 with Launch logistics) | 300 | Carries Experiment kits up to your labs: 500 a launch, or 1,000 with Launch logistics. |
-| Ring segment | 400 Void glass + 200 Magnet + 100 Gyro + 300 Composite plate + 50 Lattice core | 2000 | One of the 12 segments of the Halo Ring. Each costs 25% more than the last. |
+| Lab module | 300 Processor + 200 Photonic chip + 50 Gyro + 100 Void lens + 50 Void cell | 1000 | Adds an orbital lab. Each one studies 1 Experiment kit a second. You start with room for one; orbital research opens a second, third and fourth. |
+| Kit run | 500 Experiment kits (1,000 with Launch logistics) | 500 | Carries Experiment kits up to your labs: 500 a launch, or 1,000 with Launch logistics. |
+| Ring segment | 400 Void glass + 200 Magnet + 100 Gyro + 300 Composite plate + 50 Lattice core + 100 Void cell | 3000 | One of the 12 segments of the Halo Ring. Each costs 25% more than the last. |
 
 ### Orbital research (paid in Experiment kits)
 
 | Research | Kits | Effect |
 |---|---|---|
+| Second lab | 500 Field kit | You can launch a second Lab module. |
 | Orbital survey | 1,500 Field kit | Voidstone and Starsand patches hold 50% more ore. |
-| Launch logistics | 3,000 Field kit + 500 Void kit | Rockets assemble twice as fast, and kit runs carry 1,000 kits instead of 500. |
+| Launch logistics | 3,000 Field kit | Rockets assemble in 30 seconds instead of 60, and kit runs carry 1,000 kits instead of 500. |
+| Third lab | 500 Void kit | You can launch a third Lab module. |
 | Zero-g casting | 2,000 Void kit | Foundries smelt Voidstone twice as fast. |
-| Mag-rail | 2,000 Void kit + 500 Stellar kit | Rail Terminals and Mag-rail: a shuttle hauls 200 items at a time from far fields. |
-| Deep tap | 3,000 Void kit + 1,000 Stellar kit | Every Starsand patch gets a seed tile that never runs out and regrows the sand around it. |
-| Ring design | 5,000 Void kit + 2,000 Stellar kit | The Spaceport can build and launch segments of the Halo Ring. |
-| Orbital overcharge (repeats) | 2,000 Field kit + 1,000 Stellar kit ×1.5 per level | Every machine works 10% faster per level. |
+| Void sieve | 2,500 Void kit | Separators work through Starsand twice as fast. |
+| Fourth lab | 500 Stellar kit | You can launch a fourth Lab module. |
+| Stellar weave | 1,500 Stellar kit | Sail petals and Lattice cores in orbit make 25% more power. |
+| Mag-rail | 1,000 Field kit + 1,000 Void kit | Rail Terminals and Mag-rail: a shuttle hauls 200 items at a time from far fields. |
+| Deep tap | 2,000 Void kit + 1,000 Stellar kit | Every Starsand patch gets a seed tile that never runs out and regrows the sand around it. |
+| Ring design | 3,000 Field kit + 3,000 Void kit + 3,000 Stellar kit | The Spaceport can build and launch segments of the Halo Ring. |
+| Orbital overcharge (repeats) | 1,000 Field kit + 1,000 Void kit + 1,000 Stellar kit ×1.5 per level | Every machine works 10% faster per level. |
 
 ### Halo Ring
 Each segment: +10% power from every source, +3% machine speed, +10% Starseeds when you Ascend.

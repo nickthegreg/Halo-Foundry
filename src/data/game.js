@@ -5,20 +5,20 @@ const opp=d=>(d+2)&3;
 const BELT_V=1.75, SP=0.34, DAY_LEN=300, PET_GOAL=40, CORE_GEN=120;
 const SAVE_KEY='halo-foundry-v2';
 
-const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice','voidstone','starsand','rare','slag','voidglass','slagcrete','magnet','voidlens','gyro','hull','guidance','kitf','kitv','kits'];
+const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice','voidstone','starsand','rare','slag','voidglass','slagcrete','magnet','voidlens','voidcell','gyro','hull','guidance','kitf','kitv','kits'];
 const ITEMS={
   ferrite:{n:'Ferrite ore',s:'ferrite'},cuprite:{n:'Cuprite ore',s:'cuprite'},silica:{n:'Silica sand',s:'silica'},carbon:{n:'Carbon',s:'carbon'},
   iron:{n:'Iron ingot',s:'iron'},copper:{n:'Copper ingot',s:'copper'},glass:{n:'Glass',s:'glass'},
   gear:{n:'Gear',s:'gear'},wire:{n:'Wire',s:'wire'},circuit:{n:'Circuit',s:'circuit'},steel:{n:'Steel',s:'steel'},
   lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'},nova:{n:'Nova shard',s:'nova'},husk:{n:'Aether husk',s:'husk'},
-  voidstone:{n:'Voidstone',s:'voidstone'},starsand:{n:'Starsand',s:'starsand'},rare:{n:'Rare earth',s:'rare earth'},slag:{n:'Slag',s:'slag'},voidglass:{n:'Void glass',s:'void glass'},slagcrete:{n:'Slagcrete',s:'slagcrete'},magnet:{n:'Magnet',s:'magnet'},voidlens:{n:'Void lens',s:'void lens'},gyro:{n:'Gyro',s:'gyro'},hull:{n:'Hull plate',s:'hull plate'},guidance:{n:'Guidance unit',s:'guidance'},kitf:{n:'Field kit',s:'field kit'},kitv:{n:'Void kit',s:'void kit'},kits:{n:'Stellar kit',s:'stellar kit'}
+  voidstone:{n:'Voidstone',s:'voidstone'},starsand:{n:'Starsand',s:'starsand'},rare:{n:'Rare earth',s:'rare earth'},slag:{n:'Slag',s:'slag'},voidglass:{n:'Void glass',s:'void glass'},slagcrete:{n:'Slagcrete',s:'slagcrete'},magnet:{n:'Magnet',s:'magnet'},voidlens:{n:'Void lens',s:'void lens'},voidcell:{n:'Void cell',s:'void cell'},gyro:{n:'Gyro',s:'gyro'},hull:{n:'Hull plate',s:'hull plate'},guidance:{n:'Guidance unit',s:'guidance'},kitf:{n:'Field kit',s:'field kit'},kitv:{n:'Void kit',s:'void kit'},kits:{n:'Stellar kit',s:'stellar kit'}
 };
 const ORE_KEYS=[null,'ferrite','cuprite','silica','carbon','voidstone','starsand'];
 const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silica:['#b3a9da','#f6f2ff'],carbon:['#3c3552','#b3a5ef'],voidstone:['#2b1f5c','#8a6bff'],starsand:['#c99a4a','#ffe9a8']};
 const SMELT={ferrite:'iron',cuprite:'copper',silica:'glass',voidstone:'voidglass'};
-const SMELT_T={ferrite:0.8,cuprite:0.45,silica:1.6,voidstone:3};
+const SMELT_T={ferrite:0.8,cuprite:0.45,silica:1.6,voidstone:8};
 // rate = ore/s per Drill; lo/hi = ore per tile. Cuprite and ferrite are fast and shallow; carbon is slow and deep.
-const ORE_P={ferrite:{rate:1.2,lo:220,hi:340},cuprite:{rate:1.8,lo:110,hi:190},silica:{rate:0.4,lo:250,hi:350},carbon:{rate:0.22,lo:3500,hi:5000},voidstone:{rate:0.12,lo:4000,hi:6000,deep:1},starsand:{rate:0.6,lo:400,hi:600}};
+const ORE_P={ferrite:{rate:1.2,lo:220,hi:340},cuprite:{rate:1.8,lo:110,hi:190},silica:{rate:0.4,lo:250,hi:350},carbon:{rate:0.22,lo:3500,hi:5000},voidstone:{rate:0.04,lo:4000,hi:6000,deep:1},starsand:{rate:0.6,lo:400,hi:600}};
 const RECIPES={
   gear:{in:{iron:2},out:1,t:0.6},
   wire:{in:{copper:1},out:3,t:0.4},
@@ -39,11 +39,12 @@ const RECIPES={
   lattice:{in:{photonic:2,composite:2,servo:1,husk:1},out:1,t:8,at:'asm'},
   // Late game (from ascension 2)
   slagcrete:{in:{slag:4,carbon:1},out:1,t:1.5},
-  magnet:{in:{rare:2,coil:1},out:1,t:2},
-  voidlens:{in:{voidglass:2,prism:1},out:1,t:4},
+  magnet:{in:{rare:2,coil:1},out:1,t:5},
+  voidlens:{in:{voidglass:4,prism:1},out:1,t:10},
+  voidcell:{in:{voidglass:4,coil:2,processor:1},out:1,t:12,at:'asm'},
   gyro:{in:{magnet:2,servo:1,voidlens:1},out:1,t:8,at:'asm'},
   hull:{in:{composite:4,slagcrete:6,frame:2},out:1,t:6,at:'asm'},
-  guidance:{in:{gyro:1,photonic:2,processor:1},out:1,t:10,at:'asm'},
+  guidance:{in:{gyro:1,photonic:2,voidcell:1},out:1,t:10,at:'asm'},
   kitf:{in:{circuit:2,gear:2,magnet:1},out:1,t:4},
   kitv:{in:{voidlens:1,processor:1,slagcrete:2},out:1,t:6,at:'asm'},
   kits:{in:{photonic:2,magnet:2,voidglass:2,gyro:1},out:1,t:10,at:'asm'}
@@ -73,8 +74,8 @@ const B={
   refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether. Starts at 1,000 ore per Aether and needs 1 ore less for every 1,000 Aether you have ever made, down to 50.'},
   reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:10000,burn:120,w:3,dir:1,d:'Burns one Aether every 2 minutes for 10 MW. Takes Aether from any side. Each Aether burned leaves an Aether husk, pushed out of its bright edge; if four pile up, the Reactor stops. Husks can’t ride Uplinks: belt them to where they’re needed.'},
   separator:{n:'Separator',cost:{frame:40,servo:20,composite:80,steel:200},pw:400,dir:1,w:3,d:'Takes 1,000 Starsand and, 20 seconds later, sends out a mixed stream from three slots on its bright edge: about 10% Rare earth, plus ferrite, cuprite, silica and Slag. Sort it with Sorters. If any item can’t get out, the Separator stops.'},
-  incinerator:{n:'Incinerator',cost:{steel:20,circuit:10},d:'Destroys anything fed into it, from any side. For extra Slag or anything else you don’t need.'},
-  spaceport:{n:'Spaceport',cost:{servo:10000,slagcrete:5000,magnet:2000,frame:1000,guidance:200},pw:2000,w:5,d:'Builds a rocket from Hull plates and Guidance units, loads a payload and launches it with Aether as fuel. Pick a mission in its panel, then belt the parts in from any side or load them from storage.'},
+  incinerator:{n:'Incinerator',cost:{steel:20,circuit:10},pw:1000000,d:'Destroys anything fed into it, from any side, but draws 1 GW while it burns. Usually it’s better to belt or Uplink spare Slag to the Core.'},
+  spaceport:{n:'Spaceport',cost:{servo:10000,slagcrete:5000,magnet:2000,frame:1000,guidance:200,voidglass:2000},pw:1000000,w:7,d:'A 7×7 launch silo. Pick a mission, then belt in a rocket’s Hull plates and Guidance units, the payload and Aether fuel, from any side. Once everything is in, the rocket takes 60 seconds to assemble and lift off. Machine speed bonuses don’t apply. Draws 1 GW while it stands, 10 GW while a rocket is being built.'},
   railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to another terminal by Mag-rail. A sending terminal takes items from any side; its shuttle carries up to 200 at a time along the rail to a receiving terminal, which pushes them out of three slots on its bright edge.'},
   rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Track for Rail Terminal shuttles. Drag to lay a line. Rails join in straight lines and right angles.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
@@ -121,27 +122,34 @@ const TECH={
   mirrors:{t:6,n:'Halo mirrors',mj:6000,items:{lattice:50,petal:200},req:['lattice'],fx:'mirrors',d:'Every sail petal in orbit gives 24 kW instead of 8.'},
   // Late game: only on moons from ascension 2 onward
   separation:{t:6,late:1,n:'Separation',mj:10000,items:{composite:400,processor:200},req:['lattice'],unl:['separator','incinerator'],rec:['slagcrete'],d:'The Separator splits Starsand into Rare earth, ores and Slag. Slagcrete from Slag and carbon. The Incinerator for anything left over.'},
-  voidoptics:{t:6,late:1,n:'Void optics',mj:12000,items:{voidglass:200,prism:200},req:['lattice'],rec:['voidlens'],d:'Void lenses from Void glass and prisms. Void glass comes from Voidstone smelted in a Foundry.'},
+  voidoptics:{t:6,late:1,n:'Void optics',mj:12000,items:{voidglass:200,prism:200},req:['lattice'],rec:['voidlens','voidcell'],d:'Void lenses and Void cells from Void glass. Void glass comes from Voidstone smelted in a Foundry.'},
   magnetics:{t:6,late:1,n:'Magnetics',mj:12000,items:{rare:300,coil:800},req:['separation'],rec:['magnet'],d:'Magnets from Rare earth and copper coils.'},
   gyroscopics:{t:7,late:1,n:'Gyroscopics',mj:20000,items:{magnet:200,voidlens:100},req:['magnetics','voidoptics'],rec:['gyro','hull','guidance'],d:'Gyros, Hull plates and Guidance units: everything a rocket is made of.'},
   rocketry:{t:7,late:1,n:'Rocketry',mj:40000,items:{gyro:50,slagcrete:500,lattice:20},req:['gyroscopics'],unl:['spaceport'],rec:['kitf','kitv','kits'],d:'The Spaceport, and the three Experiment kits that orbital labs study.'}
 };
 // Orbital research: done by Lab modules in orbit, paid in Experiment kits sent up by rocket
 const ORB={
+  // one colour of kit each
+  lab2:{n:'Second lab',kits:{kitf:500},d:'You can launch a second Lab module.'},
   survey:{n:'Orbital survey',kits:{kitf:1500},d:'Voidstone and Starsand patches hold 50% more ore.'},
-  logistics:{n:'Launch logistics',kits:{kitf:3000,kitv:500},d:'Rockets assemble twice as fast, and kit runs carry 1,000 kits instead of 500.'},
+  logistics:{n:'Launch logistics',kits:{kitf:3000},d:'Rockets assemble in 30 seconds instead of 60, and kit runs carry 1,000 kits instead of 500.'},
+  lab3:{n:'Third lab',kits:{kitv:500},req:['lab2'],d:'You can launch a third Lab module.'},
   zerog:{n:'Zero-g casting',kits:{kitv:2000},d:'Foundries smelt Voidstone twice as fast.'},
-  maglev:{n:'Mag-rail',kits:{kitv:2000,kits:500},unl:['railterm','rail'],d:'Rail Terminals and Mag-rail: a shuttle hauls 200 items at a time from far fields.'},
-  deeptap:{n:'Deep tap',kits:{kitv:3000,kits:1000},d:'Every Starsand patch gets a seed tile that never runs out and regrows the sand around it.'},
-  ringdesign:{n:'Ring design',kits:{kitv:5000,kits:2000},d:'The Spaceport can build and launch segments of the Halo Ring.'}
+  sieve:{n:'Void sieve',kits:{kitv:2500},d:'Separators work through Starsand twice as fast.'},
+  lab4:{n:'Fourth lab',kits:{kits:500},req:['lab3'],d:'You can launch a fourth Lab module.'},
+  weave:{n:'Stellar weave',kits:{kits:1500},d:'Sail petals and Lattice cores in orbit make 25% more power.'},
+  // mixed kits
+  maglev:{n:'Mag-rail',kits:{kitf:1000,kitv:1000},unl:['railterm','rail'],d:'Rail Terminals and Mag-rail: a shuttle hauls 200 items at a time from far fields.'},
+  deeptap:{n:'Deep tap',kits:{kitv:2000,kits:1000},d:'Every Starsand patch gets a seed tile that never runs out and regrows the sand around it.'},
+  ringdesign:{n:'Ring design',kits:{kitf:3000,kitv:3000,kits:3000},d:'The Spaceport can build and launch segments of the Halo Ring.'}
 };
-const ORB_REP={orbover:{n:'Orbital overcharge',kits:{kitf:2000,kits:1000},grow:1.5,d:'Every machine works 10% faster per level.'}};
-// Spaceport missions. Every launch also needs a rocket and Aether fuel.
-const ROCKET={hull:20,guidance:2},ROCKET_T=60;
+const ORB_REP={orbover:{n:'Orbital overcharge',kits:{kitf:1000,kitv:1000,kits:1000},grow:1.5,d:'Every machine works 10% faster per level.'}};
+// Spaceport missions. Every launch also needs a rocket and Aether fuel. Rockets take ROCKET_T seconds, untouched by machine speed.
+const ROCKET={hull:30,guidance:4},ROCKET_T=60;
 const MISSIONS={
-  lab:{n:'Lab module',pay:{processor:300,photonic:200,gyro:50,voidlens:100},fuel:500,max:4,d:'Adds an orbital lab. Each one studies 1 Experiment kit a second. Up to 4.'},
-  kits:{n:'Kit run',fuel:300,d:'Carries Experiment kits up to your labs: 500 a launch, or 1,000 with Launch logistics.'},
-  ring:{n:'Ring segment',pay:{voidglass:400,magnet:200,gyro:100,composite:300,lattice:50},fuel:2000,grow:1.25,max:12,d:'One of the 12 segments of the Halo Ring. Each costs 25% more than the last.'}
+  lab:{n:'Lab module',pay:{processor:300,photonic:200,gyro:50,voidlens:100,voidcell:50},fuel:1000,max:4,d:'Adds an orbital lab. Each one studies 1 Experiment kit a second. You start with room for one; orbital research opens a second, third and fourth.'},
+  kits:{n:'Kit run',fuel:500,d:'Carries Experiment kits up to your labs: 500 a launch, or 1,000 with Launch logistics.'},
+  ring:{n:'Ring segment',pay:{voidglass:400,magnet:200,gyro:100,composite:300,lattice:50,voidcell:100},fuel:3000,grow:1.25,max:12,d:'One of the 12 segments of the Halo Ring. Each costs 25% more than the last.'}
 };
 // Halo Ring milestones (segments in orbit)
 const RING_MS=[[3,'Pulses travel at full speed everywhere on the moon.'],[6,'Separators give 50% more Rare earth.'],[9,'Starseeds ×2 when you Ascend from this moon.'],[12,'Ring closed: a unique Relic the first time, a Relic choice every time after.']];

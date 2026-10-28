@@ -1,6 +1,15 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:38,date:'2026-10-28',title:'A real launch silo',items:[
+    'The Spaceport is now a 7×7 launch silo with fuel tanks, a service gantry and a rocket you can watch being built, then lift off in a plume of smoke.',
+    'Rockets take 60 seconds once everything is loaded, and machine speed bonuses don’t change that. Launch logistics halves it. The silo draws 1 GW while it stands and 10 GW while a rocket is being built.',
+    'Launches cost more (30 Hull plates and 4 Guidance units per rocket, more Aether), and everything has to be belted in.',
+    'You start with room for one orbital lab. Second, Third and Fourth lab research costs 500 Field, Void and Stellar kits. Early orbital research uses one colour of kit; the big projects mix them. New: Void sieve (faster Separators) and Stellar weave (+25% orbital power).',
+    'Incinerators draw 1 GW while they burn. Belting or Uplinking spare Slag to the Core is usually better.',
+    'Voidstone mines, smelts and crafts much more slowly, and has a new use: Void cells, needed for Guidance units, Lab modules and Ring segments. Magnets take longer to make.',
+    'If you had already built a Spaceport, it may not fit at its new size: its cost is refunded so you can place it again.'
+  ]},
   {n:37,date:'2026-10-26',title:'Faster full conveyors',items:[
     'Full conveyor lines now actually move as many items as the max they show. Before, fast conveyors lost time at every tile: a line rated 12.4 items/s only moved about 10, and faster ones lost even more.'
   ]},

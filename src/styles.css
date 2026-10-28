@@ -229,3 +229,4 @@ textarea.code{width:100%;min-height:88px;resize:vertical;border-radius:12px;bord
 @media (prefers-reduced-motion:reduce){.sheet,.card,.banner{animation:none}.rot svg{transition:none}}
 .news{margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.4;color:var(--text)}
 .news li::marker{color:var(--sun)}
+.seg button:disabled{opacity:.4;cursor:default}

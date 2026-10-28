@@ -13,6 +13,14 @@ Everything gates on `late()` in `src/main.js` (main game, `S.asc.n>=2`). Data is
 - Spaceport: parts can be belted in or loaded from storage with a button; a Kit run can launch part-full.
 - Prefab stackers removed from Logistics.
 - Not yet: orbital labs don't progress while offline.
+- 2026-10-28 rework: Spaceport is a 7×7 silo, belt-fed only, rockets take a flat 60 s (30 s with Launch logistics;
+  machine speed doesn't apply), 1 GW standing / 10 GW while building. Rocket 30 Hull + 4 Guidance; fuel 1,000 / 500 /
+  3,000+. One lab to start; Second/Third/Fourth lab research cost 500 red / purple / yellow kits. Single-colour
+  research first (red: survey, logistics; purple: zero-g, Void sieve; yellow: Stellar weave), then mixed (Mag-rail,
+  Deep tap, Ring design, Orbital overcharge). Incinerator draws 1 GW while burning. Voidstone slower everywhere
+  (0.04/s base, 8 s smelt, Void lens 4 glass/10 s) with a new use: Void cells (Guidance units, Lab modules, Ring
+  segments); Spaceport costs 2,000 Void glass. Magnets 5 s.
+- Owner's wish for later: raise recipe input counts across the board (most recipes use 1–4 of each input today).
 
 Problem: by the second or third ascension, machines run several times faster than base, power is plentiful and a
 run's only real goal is "store Aether". Content past the Refinery is thin. Everything below unlocks from
