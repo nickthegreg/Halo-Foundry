@@ -80,9 +80,11 @@ function banned(t){const c=chal();return !!((c&&c.ban&&c.ban.includes(t))||(t===
 function ascN(){return (S&&S.asc&&S.asc.n)||0}
 function lifeSeeds(){return (S&&S.asc&&S.asc.total)||0}
 // Every Starseed ever earned: +1% ore per tile, +1% duplication for Fabricators and Uplinks (capped at 100%)
-function seedOreB(){const T=lifeSeeds();return T/(T+100)}
-function seedDupB(){const T=lifeSeeds();return .25*T/(T+25)}
-function dupP(){return Math.min(1,seedDupB()+relStat('dup')/100)}
+function seedOreB(){const T=lifeSeeds();return Math.max(T/(T+100),.917*Math.sqrt(T/1100))}
+function seedDupB(){const T=lifeSeeds();return Math.max(.25*T/(T+25),.244*Math.sqrt(T/1100))}
+function dupP(){return seedDupB()+relStat('dup')/100}
+// Duplication past 100% gives that many guaranteed extra batches, plus a chance at one more
+function dupN(){const d=dupP();return Math.floor(d)+(Math.random()<d%1?1:0)}
 function coreKW(){return CORE_GEN*(1+.2*ascN())*rp('core')}
 function drillR(t){return B[t].r+(t==='deepdrill'?nupLv('reach'):0)}
 function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)*(b.ore==='voidstone'&&ssLv('vsight')?1.5:1)}
@@ -368,7 +370,7 @@ function sim(dt){
           if(ok){for(const k in r.in){b.buf[k]-=r.in[k];stat('c',k,r.in[k])}b.run=true;b.prog=0}
         }
         b.active=b.run;
-        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')/r.t;b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;b.outN+=r.out;stat('p',b.rec,r.out);if(Math.random()<dupP()){b.outN+=r.out;stat('p',b.rec,r.out)}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
+        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')/r.t;b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;b.outN+=r.out;stat('p',b.rec,r.out);{const x=dupN();if(x){b.outN+=r.out*x;stat('p',b.rec,r.out*x)}}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
         if(r&&b.outN>0&&pushDir(b,b.rec,b.d))b.outN--;
         break;}
       case 'batcher':{
@@ -399,7 +401,7 @@ function sim(dt){
         break;
       case 'uplink':
         b.active=b.q.length>0;b.ph+=dt*(b.active?sat*3:0.6);
-        if(b.active){b.prog+=dt*sat*uplinkRate(b);while(b.prog>=1&&b.q.length){const t=b.q.shift();deliver(t);if(Math.random()<dupP())deliver(t,true);b.prog-=1}if(!b.q.length)b.prog=0}
+        if(b.active){b.prog+=dt*sat*uplinkRate(b);while(b.prog>=1&&b.q.length){const t=b.q.shift();deliver(t);for(let k=dupN();k>0;k--)deliver(t,true);b.prog-=1}if(!b.q.length)b.prog=0}
         break;
       case 'ring':
         {const need=modOn('lowg')?2:1,lat=(b.l||0)>=need;b.active=lat||b.n>=need;b.ang+=dt*(b.active?sat*1.2:0.15);
@@ -664,7 +666,7 @@ function showAscension(){
   <p><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend · ${T.toLocaleString()} earned in all · ${n} ascension${n===1?'':'s'}</p>
   ${S.mod&&MODS[S.mod]?`<p style="font-size:14px">This moon: <strong>${MODS[S.mod].n}</strong>. ${MODS[S.mod].d} Starseeds ×${MODS[S.mod].seeds} when you leave.</p>`:''}
   <div class="sec-label">Always on</div><div class="ms-list">
-  ${card('Starseeds earned',T+' total',`Starseeds you have ever earned add ore to every tile and a chance that a Fabricator makes an extra batch or an Uplink beams an item twice. The first few give about +1% each; it flattens out toward +100% ore and +25% duplication. Now: +${Math.round(seedOreB()*100)}% ore, ${Math.round(seedDupB()*100)}% duplication.`)}
+  ${card('Starseeds earned',T+' total',`Starseeds you have ever earned add ore to every tile and a chance that a Fabricator makes an extra batch or an Uplink beams an item twice. Both start fast, then keep growing with the square root of the total, with no cap: about +2.8× ore and 74% duplication at 10,000, +8.7× ore and 233% duplication at 100,000. Now: +${Math.round(seedOreB()*100)}% ore, ${Math.round(seedDupB()*100)}% duplication.`)}
   ${card('Ascensions',n+' so far',`Each ascension gives +1 Commander point and +20% Core power (${fmtW(coreKW())} now). Every ascension you choose a Relic.`)}
   </div>`;
   if(S.relicPick)h+=`<div class="actions"><button class="btn primary" data-relicshow>Choose your Relic</button></div>`;

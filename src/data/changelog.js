@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:39,date:'2026-10-28',title:'Starseeds keep scaling',items:[
+    'Lifetime Starseeds no longer flatten out. Past about 1,100 the ore and duplication bonuses keep growing with the square root of your total, with no cap: around +276% ore and 74% duplication at 10,000 Starseeds, +874% ore and 233% duplication at 100,000. Below that, nothing changes.',
+    'Duplication over 100% gives guaranteed extra batches from Fabricators and extra items from Uplinks, plus a chance at one more.'
+  ]},
   {n:38,date:'2026-10-28',title:'A real launch silo',items:[
     'The Spaceport is now a 7×7 launch silo with fuel tanks, a service gantry and a rocket you can watch being built, then lift off in a plume of smoke.',
     'Rockets take 60 seconds once everything is loaded, and machine speed bonuses don’t change that. Launch logistics halves it. The silo draws 1 GW while it stands and 10 GW while a rocket is being built.',
