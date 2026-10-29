@@ -90,3 +90,11 @@ Brainstormed 2026-10-19.
 
 ## Suggested first version
 Starseeds from Aether, keep Ember shards, a perk shop with 5–8 of the ideas above, and free starting Deep Drills.
+
+
+## Daily moon (2026-10-29)
+- Built: Finish button (Menu), results screen, once-a-day stacking reward tiers (`DTIERS` in main.js; claims in
+  `META.dclaim`), rewards written into a chosen main-game slot's save (offline hours at that save's Night shift
+  rate, Nova shard, queued Relic choices `relicExtra` / `relicExtraR` for Rare+).
+- To do: the scoring itself needs an overhaul. Twelve lanes of wire into the Core and going AFK scores very well,
+  because every delivered item scores its ore value and nothing rewards depth, variety or goals.
