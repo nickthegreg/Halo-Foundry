@@ -3,7 +3,7 @@
 export const CHANGELOG=[
   {n:40,date:'2026-10-29',title:'Daily moon rewards',items:[
     'You can finish a daily moon run early from the Menu. Your score locks and the results screen opens.',
-    'Daily rewards, claimed once a day: playing at all gives 1 hour of offline production for a save of your choice. 100k points adds another hour, and 250k a third hour plus a Nova shard. 500k gives a Relic choice, and 1M a second Relic choice that’s Rare or better.',
+    'Daily rewards, claimed once a day: playing at all gives 1 hour of offline production for a save of your choice. 100k points adds another hour, and 250k a third hour plus a Nova shard. 500k gives a Relic choice, and at 1M that choice is Rare or better.',
     'Tiers stack. If you restart the daily and score higher, you collect only the tiers you hadn’t reached yet. Relic choices wait in the save you sent them to.'
   ]},
   {n:39,date:'2026-10-28',title:'Starseeds keep scaling',items:[

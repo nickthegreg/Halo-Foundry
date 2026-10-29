@@ -782,7 +782,7 @@ function runTick(){
 const DTIERS=[{at:0,n:'Played',h:1},{at:100000,n:'100k points',h:1},{at:250000,n:'250k points',h:1,nova:1},{at:500000,n:'500k points',relic:1},{at:1000000,n:'1M points',relic:'rare'}];
 function dTierOf(sc){let t=-1;DTIERS.forEach((q,i)=>{if(sc>=q.at)t=i});return t}
 function dClaimed(date){return (META.dclaim||{})[date]??-1}
-function dTierText(q){const a=[];if(q.h)a.push(`${q.h} h of offline production`);if(q.nova)a.push('1 Nova shard');if(q.relic)a.push(q.relic==='rare'?'a Relic choice, Rare or better':'a Relic choice');return a.join(' + ')}
+function dTierText(q){const a=[];if(q.h)a.push(`${q.h} h of offline production`);if(q.nova)a.push('1 Nova shard');if(q.relic)a.push(q.relic==='rare'?'your 500k Relic choice becomes Rare or better':'a Relic choice');return a.join(' + ')}
 function campSlots(){return SLOT_KEYS.map((k,i)=>{const d=readSlot(k);return d&&(!d.mode||d.mode==='campaign')?{k,i,d}:null}).filter(Boolean)}
 let dSend=null;
 function showDailyEnd(auto){
@@ -797,7 +797,7 @@ function showDailyEnd(auto){
 function claimDaily(){
   const sc=Math.floor(S.dscore||0),t=dTierOf(sc),cl=dClaimed(S.daily);if(t<=cl||!dSend)return;
   const d=readSlot(dSend);if(!d||(d.mode&&d.mode!=='campaign'))return;
-  let h=0,nova=0,rel=0,relR=0;for(let i=cl+1;i<=t;i++){const q=DTIERS[i];h+=q.h||0;nova+=q.nova||0;if(q.relic==='rare')relR++;else if(q.relic)rel++}
+  let h=0,nova=0,rel=0,relR=0;for(let i=cl+1;i<=t;i++){const q=DTIERS[i];h+=q.h||0;nova+=q.nova||0;if(q.relic==='rare'){if(rel>0){rel--;relR++}else if(+d.relicExtra>0){d.relicExtra--;relR++}}else if(q.relic)rel++}
   // offline production for that save, at its own Night shift efficiency and recent delivery rates
   const rs=[...(d.relics||[]),...META.crelics];let off=0;for(const r of rs){const f=RELICS[r]&&RELICS[r].fx;if(f&&f.off)off+=f.off}
   const e=Math.min(1,.2+.1*((d.up&&d.up.night)||0)+off/100),sec=h*3600,got={};d.inv=d.inv||{};
