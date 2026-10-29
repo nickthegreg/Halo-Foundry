@@ -4,7 +4,7 @@ export const CHANGELOG=[
   {n:40,date:'2026-10-29',title:'Daily moon rewards',items:[
     'You can finish a daily moon run early from the Menu. Your score locks and the results screen opens.',
     'Daily rewards, claimed once a day: playing at all gives 1 hour of offline production for a save of your choice. 100k points adds another hour, and 250k a third hour plus a Nova shard. 500k gives a Relic choice, and at 1M that choice is Rare or better.',
-    'Tiers stack. If you restart the daily and score higher, you collect only the tiers you hadn’t reached yet. Relic choices wait in the save you sent them to.'
+    'Only your first attempt each day counts for the prize, and it’s claimed once. That attempt locks when it finishes or when you restart it; later runs that day are practice. Tiers stack, and Relic choices wait in the save you sent them to.'
   ]},
   {n:39,date:'2026-10-28',title:'Starseeds keep scaling',items:[
     'Lifetime Starseeds no longer flatten out. Past about 1,100 the ore and duplication bonuses keep growing with the square root of your total, with no cap: around +276% ore and 74% duplication at 10,000 Starseeds, +874% ore and 233% duplication at 100,000. Below that, nothing changes.',

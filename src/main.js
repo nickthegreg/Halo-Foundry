@@ -775,27 +775,30 @@ function runTick(){
   }
   if(S.mode==='daily'&&S.daily){
     if((S.dscore||0)>(META.daily[S.daily]||0)){META.daily[S.daily]=Math.floor(S.dscore);const ks=Object.keys(META.daily).sort();while(ks.length>30)delete META.daily[ks.shift()];saveMeta()}
-    if(!S.dEnd&&S.time>=DAILY_LEN){S.dEnd=true;save();whenIdle(()=>showDailyEnd(true))}
+    if(!S.dEnd&&S.time>=DAILY_LEN){S.dEnd=true;dLock();save();whenIdle(()=>showDailyEnd(true))}
   }
 }
 // ---------- daily moon rewards: claimed once per day, tiers stack; replaying only adds tiers not yet reached ----------
 const DTIERS=[{at:0,n:'Played',h:1},{at:100000,n:'100k points',h:1},{at:250000,n:'250k points',h:1,nova:1},{at:500000,n:'500k points',relic:1},{at:1000000,n:'1M points',relic:'rare'}];
+// Only the first attempt each day counts for prizes: it locks when that run finishes or is restarted
+function dPrize(date){return (META.dprize||{})[date]}
+function dLock(){if(S.mode!=='daily'||!S.daily||dPrize(S.daily)!=null)return false;META.dprize=META.dprize||{};META.dprize[S.daily]=Math.floor(S.dscore||0);const ks=Object.keys(META.dprize).sort();while(ks.length>30)delete META.dprize[ks.shift()];saveMeta();return true}
 function dTierOf(sc){let t=-1;DTIERS.forEach((q,i)=>{if(sc>=q.at)t=i});return t}
 function dClaimed(date){return (META.dclaim||{})[date]??-1}
-function dTierText(q){const a=[];if(q.h)a.push(`${q.h} h of offline production`);if(q.nova)a.push('1 Nova shard');if(q.relic)a.push(q.relic==='rare'?'your 500k Relic choice becomes Rare or better':'a Relic choice');return a.join(' + ')}
+function dTierText(q){const a=[];if(q.h)a.push(`${q.h} h of offline production`);if(q.nova)a.push('1 Nova shard');if(q.relic)a.push(q.relic==='rare'?'your Relic choice is Rare or better':'a Relic choice');return a.join(' + ')}
 function campSlots(){return SLOT_KEYS.map((k,i)=>{const d=readSlot(k);return d&&(!d.mode||d.mode==='campaign')?{k,i,d}:null}).filter(Boolean)}
 let dSend=null;
 function showDailyEnd(auto){
-  const sc=Math.floor(S.dscore||0),t=dTierOf(sc),cl=dClaimed(S.daily),slots=campSlots(),fresh=t>cl;
+  const sc=Math.floor(S.dscore||0),pz=dPrize(S.daily),ps=pz==null?sc:pz,t=dTierOf(ps),cl=dClaimed(S.daily),slots=campSlots(),fresh=cl<0&&pz!=null;
   if(!dSend||!slots.some(q=>q.k===dSend))dSend=(slots.find(q=>q.k===META.lastCamp)||slots[0]||{}).k||null;
-  const rows=DTIERS.map((q,i)=>`<div class="ms ${i<=cl?'done':i<=t?'cur':'future'}"><div class="ms-top"><h4>${q.n}</h4><span class="st">${i<=cl?'Claimed':i<=t?'Ready':'Not reached'}</span></div><div class="ms-unl">${dTierText(q)}</div></div>`).join('');
-  openModal(`<span class="eyebrow">Daily moon · ${S.daily}</span><h1>${auto?'Time’s up':'Run finished'}</h1><p>You scored <strong>${sc.toLocaleString()}</strong> points. Today’s best: ${Math.floor(META.daily[S.daily]||0).toLocaleString()}.</p>
-  <div class="sec-label">Rewards · once a day, every tier you reach</div><div class="ms-list">${rows}</div>
-  ${fresh?(slots.length?`<div class="sec-label">Send rewards to</div><div class="seg">${slots.map(q=>`<button data-dsend="${q.k}" class="${dSend===q.k?'on':''}">Slot ${q.i+1}</button>`).join('')}</div><p style="font-size:13px">${escHtml(slotSummary(slots.find(q=>q.k===dSend).d))}</p><div class="actions"><button class="btn primary" data-dclaim>Claim rewards</button></div>`:'<p>Start a main game in a save slot to receive rewards. They’ll wait here for today.</p>'):'<p>You’ve claimed everything this score reaches today. Restart the daily to try for a higher tier.</p>'}
+  const rows=DTIERS.map((q,i)=>`<div class="ms ${cl>=0&&i<=t?'done':i<=t?'cur':'future'}"><div class="ms-top"><h4>${q.n}</h4><span class="st">${cl>=0&&i<=t?'Claimed':i<=t?'Ready':'Not reached'}</span></div><div class="ms-unl">${dTierText(q)}</div></div>`).join('');
+  openModal(`<span class="eyebrow">Daily moon · ${S.daily}</span><h1>${auto?'Time’s up':'Run finished'}</h1><p>You scored <strong>${sc.toLocaleString()}</strong> points. Today’s best: ${Math.floor(META.daily[S.daily]||0).toLocaleString()}.</p>${pz!=null&&pz!==sc?`<p>Today’s prize is set by your first attempt: <strong>${pz.toLocaleString()}</strong> points. Later runs are practice.</p>`:''}
+  <div class="sec-label">Rewards · first attempt each day, every tier it reaches</div><div class="ms-list">${rows}</div>
+  ${fresh?(slots.length?`<div class="sec-label">Send rewards to</div><div class="seg">${slots.map(q=>`<button data-dsend="${q.k}" class="${dSend===q.k?'on':''}">Slot ${q.i+1}</button>`).join('')}</div><p style="font-size:13px">${escHtml(slotSummary(slots.find(q=>q.k===dSend).d))}</p><div class="actions"><button class="btn primary" data-dclaim>Claim rewards</button></div>`:'<p>Start a main game in a save slot to receive rewards. They’ll wait here for today.</p>'):cl>=0?'<p>Today’s prize is claimed. Come back tomorrow for a new moon.</p>':'<p>Finish this run to lock in today’s prize.</p>'}
   <div class="actions"><button class="btn" data-close>Keep building</button><button class="btn" data-mm="title">Main menu</button></div>`);
 }
 function claimDaily(){
-  const sc=Math.floor(S.dscore||0),t=dTierOf(sc),cl=dClaimed(S.daily);if(t<=cl||!dSend)return;
+  const pz=dPrize(S.daily);if(pz==null||dClaimed(S.daily)>=0||!dSend)return;const t=dTierOf(pz),cl=-1;
   const d=readSlot(dSend);if(!d||(d.mode&&d.mode!=='campaign'))return;
   let h=0,nova=0,rel=0,relR=0;for(let i=cl+1;i<=t;i++){const q=DTIERS[i];h+=q.h||0;nova+=q.nova||0;if(q.relic==='rare'){if(rel>0){rel--;relR++}else if(+d.relicExtra>0){d.relicExtra--;relR++}}else if(q.relic)rel++}
   // offline production for that save, at its own Night shift efficiency and recent delivery rates
@@ -1964,7 +1967,7 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.up){const k=b.dataset.up;if(UPG[k].max&&(S.up[k]||0)>=UPG[k].max)return;const c=UPG[k].cost(S.up[k]||0);if(!canAfford(c)){showToast('Need '+missing(c)+' more');return}pay(c,-1);S.up[k]=(S.up[k]||0)+1;save();showMenu();showToast(UPG[k].n+' is now level '+S.up[k])}
   else if(b.dataset.tech){const id=b.dataset.tech;S.res.cur=S.res.cur===id?null:id;sfx('tick');showResearch();hudTick(true)}
   else if(b.hasAttribute('data-stats'))showStats();
-  else if(b.hasAttribute('data-dfinish')){if(S.mode!=='daily'||S.dEnd)return;if(Date.now()-(b._arm||0)>3000){b._arm=Date.now();b.textContent=`Tap again: final score ${Math.floor(S.dscore||0).toLocaleString()}`;return}S.dEnd=true;save();showDailyEnd(false)}
+  else if(b.hasAttribute('data-dfinish')){if(S.mode!=='daily'||S.dEnd)return;if(Date.now()-(b._arm||0)>3000){b._arm=Date.now();b.textContent=`Tap again: final score ${Math.floor(S.dscore||0).toLocaleString()}`;return}S.dEnd=true;dLock();save();showDailyEnd(false)}
   else if(b.hasAttribute('data-dend'))showDailyEnd(false);
   else if(b.dataset.dsend){dSend=b.dataset.dsend;showDailyEnd(false)}
   else if(b.hasAttribute('data-dclaim'))claimDaily();
@@ -2015,7 +2018,7 @@ elCard.addEventListener('click',e=>{
   else if(b.hasAttribute('data-help'))showHelp();
   else if(b.hasAttribute('data-news'))showNews();
   else if(b.hasAttribute('data-reset')){
-    if(Date.now()-resetArm<3000){if(S.mode==='daily'){startRun(DAILY_KEY,dailyData());showToast('Daily moon restarted')}else if(S.mode==='challenge'){const c=S.ch;startRun(CH_KEY,chData(c));showToast('Challenge restarted')}else{try{localStorage.removeItem(CUR)}catch(_){}start(null,true);closeModal();showToast('New world generated')}}
+    if(Date.now()-resetArm<3000){if(S.mode==='daily'){const first=dLock();startRun(DAILY_KEY,dailyData());showToast(first?'Daily moon restarted. Your first attempt is locked in for today’s prize':'Daily moon restarted: practice run')}else if(S.mode==='challenge'){const c=S.ch;startRun(CH_KEY,chData(c));showToast('Challenge restarted')}else{try{localStorage.removeItem(CUR)}catch(_){}start(null,true);closeModal();showToast('New world generated')}}
     else{resetArm=Date.now();b.textContent='Tap again to wipe';setTimeout(()=>{if(b.isConnected)b.innerHTML='Start over'},3000)}
   }
 });
