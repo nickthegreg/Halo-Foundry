@@ -2558,9 +2558,9 @@ function showMap(){
   const L=mapLim(),lo=192-L,n=2*L;
   openModal(`<div class="card-head"><h3>Map</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><canvas id="mm" width="${n}" height="${n}"></canvas><p>Tap anywhere to jump there. The teal box is your current view.</p>`);
   const c=$('#mm'),g=c.getContext('2d'),img=g.createImageData(n,n),d=img.data,hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
-  const OC={1:hex('#c0643a'),2:hex('#2fae8a'),3:hex('#aea5d8'),4:hex('#6a5e96')},ground=hex(BI().base),spent=hex(BI().spent),core=hex('#f3c25a'),cache={};
+  const OC={};ORE_KEYS.forEach((k,i)=>{if(k)OC[i]=hex(ORE_COL[k][0])});const ground=hex(BI().base),spent=hex(BI().spent),core=hex('#f3c25a'),cache={};
   for(let y=0;y<n;y++)for(let x=0;x<n;x++){const i=(lo+y)*W+lo+x,id=S.grid[i];let col;
-    if(id){const b=S.bs.get(id);col=b.t==='core'?core:(cache[b.t]=cache[b.t]||hex(BP_COL[b.t]||'#8c82c8'))}else col=ORE[i]?OC[ORE[i]]:RES0[i]>0?spent:ground;
+    if(id){const b=S.bs.get(id);col=b.t==='core'?core:(cache[b.t]=cache[b.t]||hex(BP_COL[b.t]||'#8c82c8'))}else col=ORE[i]&&OC[ORE[i]]?OC[ORE[i]]:RES0[i]>0?spent:ground;
     const k=(y*n+x)*4;d[k]=col[0];d[k+1]=col[1];d[k+2]=col[2];d[k+3]=255}
   g.putImageData(img,0,0);
   const vw=VW/cam.z,vh=VH/cam.z;g.strokeStyle='#7ff0d0';g.lineWidth=Math.max(1,n/160);g.strokeRect(cam.x-vw/2-lo,cam.y-vh/2-lo,vw,vh);

@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:41,date:'2026-10-30',title:'Map fix',items:[
+    'The map works again on moons with Starsand and Voidstone, and shows both ores.'
+  ]},
   {n:40,date:'2026-10-29',title:'Daily moon rewards',items:[
     'You can finish a daily moon run early from the Menu. Your score locks and the results screen opens.',
     'Daily rewards, claimed once a day: playing at all gives 1 hour of offline production for a save of your choice. 100k points adds another hour, and 250k a third hour plus a Nova shard. 500k gives a Relic choice, and at 1M that choice is Rare or better.',
