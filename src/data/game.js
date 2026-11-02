@@ -77,7 +77,8 @@ const B={
   incinerator:{n:'Incinerator',cost:{steel:20,circuit:10},pw:1000000,d:'Destroys anything fed into it, from any side, but draws 1 GW while it burns. Usually it’s better to belt or Uplink spare Slag to the Core.'},
   spaceport:{n:'Spaceport',cost:{servo:10000,slagcrete:5000,magnet:2000,frame:1000,guidance:200,voidglass:2000},pw:1000000,w:7,d:'A 7×7 launch silo. Pick a mission, then belt in a rocket’s Hull plates and Guidance units, the payload and Aether fuel, from any side. Once everything is in, the rocket takes 60 seconds to assemble and lift off. Machine speed bonuses don’t apply. Draws 1 GW while it stands, 10 GW while a rocket is being built.'},
   railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to another terminal by Mag-rail. A sending terminal takes items from any side; its shuttle carries up to 200 at a time along the rail to a receiving terminal, which pushes them out of three slots on its bright edge.'},
-  rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Track for Rail Terminal shuttles. Drag to lay a line. Rails join in straight lines and right angles.'},
+  rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Raised track for Rail Terminal shuttles. It passes over buildings and conveyors, but needs a Pylon on open ground at least every 5 tiles; they’re placed for you. Lay it like conveyors: Line, Free or Route.'},
+  pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed automatically as you lay track. Remove the rail above it first.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
 };
 const MS=[

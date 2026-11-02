@@ -20,6 +20,9 @@ Everything gates on `late()` in `src/main.js` (main game, `S.asc.n>=2`). Data is
   Deep tap, Ring design, Orbital overcharge). Incinerator draws 1 GW while burning. Voidstone slower everywhere
   (0.04/s base, 8 s smelt, Void lens 4 glass/10 s) with a new use: Void cells (Guidance units, Lab modules, Ring
   segments); Spaceport costs 2,000 Void glass. Magnets 5 s.
+- 2026-11-01: Mag-rail is an elevated layer (`S.rail`, tile indices) over buildings, laid with Line/Free/Route.
+  Pylons (1×1 buildings) go on open ground automatically, max 4 unsupported tiles in a row (`RAIL_GAP`); Rail
+  Terminals count as support. Rails are instant; Pylons ride the conveyor pulse grouping. Not captured by blueprints.
 - Owner's wish for later: raise recipe input counts across the board (most recipes use 1–4 of each input today).
 
 Problem: by the second or third ascension, machines run several times faster than base, power is plentiful and a

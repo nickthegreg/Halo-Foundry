@@ -36,6 +36,7 @@ Regenerate with `node tests/reference.mjs`.
 | Spaceport | 7×7 | 10000 Servo, 5000 Slagcrete, 2000 Magnet, 1000 Frame, 200 Guidance unit, 2000 Void glass | uses 1 GW standing, 10 GW while building a rocket |  |
 | Rail Terminal | 3×3 | 200 Magnet, 50 Gyro, 100 Void glass | uses 300 kW |  |
 | Mag-rail | 1×1 | 4 Magnet, 2 Slagcrete | – |  |
+| Pylon | 1×1 | 10 Slagcrete, 10 Steel | – |  |
 | Core | 3×3 | – | makes 120 kW |  |
 
 Deep Drill cost in Ember shards climbs 1, 1, 2, 3, 5, 8… with each one you own.

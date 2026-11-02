@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:42,date:'2026-11-01',title:'Raised Mag-rail',items:[
+    'Mag-rail is now raised track. It passes over buildings and conveyors, and Pylons hold it up on open ground at least every 5 tiles. Pylons are placed for you as you lay track.',
+    'Lay it like conveyors: Line, Free or Route (the mode button next to the bar). Route finds a path with room for Pylons. While you drag, a preview shows where Pylons go and what it costs.',
+    'Removing on a rail tile takes the track off first. A Pylon can only be removed once nothing rests on it.',
+    'Existing Mag-rail becomes raised track with a Pylon under every tile it already used.'
+  ]},
   {n:41,date:'2026-10-30',title:'Map fix',items:[
     'The map works again on moons with Starsand and Voidstone, and shows both ores.'
   ]},
