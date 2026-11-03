@@ -1,6 +1,14 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:44,date:'2026-11-02',title:'Smarter Mag-rail, more Nova, more orbital research',items:[
+    'Rail Terminals have letters. A sender can go to the nearest receiver that takes its load (Auto) or always to a letter you pick. A receiver can accept only chosen items, so one line can feed several factories.',
+    'New Mag-rail research: Wider shuttles (300 a load), Rail express (50% faster) and Big terminals (twice the storage).',
+    'Thirteen new Nova workshop upgrades. Nova resonance slows the Deep Drill power climb and Nova grant gives free Deep Drills. Echo, crucible, reactor, still, sparks, haul and silo each add about 10% a level. One-offs: Nova heart (9×9 Core), seed (Voidstone seed tiles), lens, lantern and keystone.',
+    'Over 20 new orbital projects, including Survey drones, Prefab pulses, Bulk logistics, Void tempering, Rare sieve, Solar sails, Star tether, kit lines, Hardened hulls, Ring efficiency, Stellar refining, Aether condensers, Orbital relays, Sky trickle, Launch cadence, Relic attunement and Deep core.',
+    'New repeating orbital research: Husk reclaim (a growing chance that Lattice cores send their husk back), Orbital flow, Deep harvest, Stellar yield and Starseed bloom.',
+    'Orbital research is now grouped: repeats first, then projects you can study, then locked, then done.'
+  ]},
   {n:43,date:'2026-11-02',title:'Ladder and Deep Drill changes',items:[
     'Past Overclock 4 the grid ladder alternates: Overclock tiers make machines 8% faster (was 10%), and new Flow tiers make conveyors 5% faster.',
     'Each Deep Drill draws more power than the last, on the same 1, 1, 2, 3, 5, 8… climb as its Ember cost (× 40 kW). Each drill’s panel shows what it draws, and Nova cooling still helps.',

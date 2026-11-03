@@ -134,7 +134,34 @@ Every launch needs a rocket (30 Hull plate + 4 Guidance unit, assembled in 60 s)
 | Mag-rail | 1,000 Field kit + 1,000 Void kit | Rail Terminals and Mag-rail: a shuttle hauls 200 items at a time from far fields. |
 | Deep tap | 2,000 Void kit + 1,000 Stellar kit | Every Starsand patch gets a seed tile that never runs out and regrows the sand around it. |
 | Ring design | 3,000 Field kit + 3,000 Void kit + 3,000 Stellar kit | The Spaceport can build and launch segments of the Halo Ring. |
+| Wider shuttles | 4,000 Field kit + 4,000 Void kit | Mag-rail shuttles carry 300 instead of 200. |
+| Rail express | 6,000 Field kit + 6,000 Void kit | Mag-rail shuttles move 50% faster. |
+| Big terminals | 5,000 Void kit | Rail Terminals hold twice as much. |
+| Survey drones | 6,000 Field kit | Every ore patch holds 25% more ore. |
+| Prefab pulses | 4,000 Field kit | Construction pulses travel 50% faster. |
+| Bulk logistics | 6,000 Field kit | Batchers hold twice as much and Uplinks beam 50% faster. |
+| Field kit lines | 8,000 Field kit | Field kits are made 2 at a time. |
+| Void tempering | 6,000 Void kit | Void glass smelts and Void lenses craft 50% faster. |
+| Rare sieve | 6,000 Void kit | Separators give 10 more Rare earth in every 100 Starsand, taken from the Slag. |
+| Void kit lines | 8,000 Void kit | Void kits are made 2 at a time. |
+| Solar sails | 6,000 Stellar kit | Each sail petal in orbit gives 32 kW instead of 24. |
+| Star tether | 8,000 Stellar kit | Sun Leaves, Film Arrays and Prism Collectors keep at least half their output at night. |
+| Stellar kit lines | 10,000 Stellar kit | Stellar kits are made 2 at a time. |
+| Hardened hulls | 5,000 Field kit + 5,000 Void kit | Rockets need 20 Hull plates instead of 30. |
+| Ring efficiency | 8,000 Void kit + 8,000 Stellar kit | Ring segments need 20% fewer parts. |
+| Stellar refining | 8,000 Void kit + 8,000 Stellar kit | Refineries need 25% less ore. |
+| Aether condensers | 6,000 Void kit + 6,000 Stellar kit | Aether Reactors make 25% more power. |
+| Orbital relays | 5,000 Field kit + 5,000 Stellar kit | Construction pulses travel twice as fast everywhere. |
+| Sky trickle | 6,000 Field kit + 6,000 Stellar kit | Trickle items arrive twice as fast. |
+| Launch cadence | 4,000 Field kit + 4,000 Stellar kit | Launch Rings fling petals and Lattice cores twice as fast. |
+| Relic attunement | 15,000 Field kit + 15,000 Void kit + 15,000 Stellar kit | Every Relic choice shows one more option. |
+| Deep core | 10,000 Field kit + 10,000 Void kit + 10,000 Stellar kit | The Deep Drill power climb grows half as fast. |
 | Orbital overcharge (repeats) | 1,000 Field kit + 1,000 Void kit + 1,000 Stellar kit ×1.5 per level | Every machine works 10% faster per level. |
+| Husk reclaim (repeats) | 2,000 Void kit + 1,000 Stellar kit ×1.4 per level | Each Lattice core made has a 5% chance per level to send its Aether husk back to storage, up to 100%. |
+| Orbital flow (repeats) | 2,000 Field kit + 1,000 Stellar kit ×1.5 per level | Conveyors move items 5% faster per level. |
+| Deep harvest (repeats) | 2,000 Field kit + 1,000 Void kit ×1.5 per level | Every drill mines 10% faster per level. |
+| Stellar yield (repeats) | 1,000 Void kit + 2,000 Stellar kit ×1.5 per level | All power sources make 10% more per level. |
+| Starseed bloom (repeats) | 3,000 Field kit + 3,000 Void kit + 3,000 Stellar kit ×1.8 per level | +5% Starseeds when you Ascend, per level. |
 
 ### Halo Ring
 Each segment: +10% power from every source, +3% machine speed, +10% Starseeds when you Ascend.

@@ -76,7 +76,7 @@ const B={
   separator:{n:'Separator',cost:{frame:40,servo:20,composite:80,steel:200},pw:400,dir:1,w:3,d:'Takes 1,000 Starsand and, 20 seconds later, sends out a mixed stream from three slots on its bright edge: about 10% Rare earth, plus ferrite, cuprite, silica and Slag. Sort it with Sorters. If any item can’t get out, the Separator stops.'},
   incinerator:{n:'Incinerator',cost:{steel:20,circuit:10},pw:1000000,d:'Destroys anything fed into it, from any side, but draws 1 GW while it burns. Usually it’s better to belt or Uplink spare Slag to the Core.'},
   spaceport:{n:'Spaceport',cost:{servo:10000,slagcrete:5000,magnet:2000,frame:1000,guidance:200,voidglass:2000},pw:1000000,w:7,d:'A 7×7 launch silo. Pick a mission, then belt in a rocket’s Hull plates and Guidance units, the payload and Aether fuel, from any side. Once everything is in, the rocket takes 60 seconds to assemble and lift off. Machine speed bonuses don’t apply. Draws 1 GW while it stands, 10 GW while a rocket is being built.'},
-  railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to another terminal by Mag-rail. A sending terminal takes items from any side; its shuttle carries up to 200 at a time along the rail to a receiving terminal, which pushes them out of three slots on its bright edge.'},
+  railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to other terminals by Mag-rail. Each has a letter. A sending terminal takes items from any side; its shuttle carries a load to the nearest receiving terminal that accepts it, or always to the letter you pick. A receiving terminal can accept only chosen items, and pushes them out of three slots on its bright edge.'},
   rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Raised track for Rail Terminal shuttles. It passes over buildings and conveyors, but needs a Pylon on open ground at least every 5 tiles; they’re placed for you. Lay it like conveyors: Line, Free or Route.'},
   pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed automatically as you lay track. Remove the rail above it first.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
@@ -142,9 +142,42 @@ const ORB={
   // mixed kits
   maglev:{n:'Mag-rail',kits:{kitf:1000,kitv:1000},unl:['railterm','rail'],d:'Rail Terminals and Mag-rail: a shuttle hauls 200 items at a time from far fields.'},
   deeptap:{n:'Deep tap',kits:{kitv:2000,kits:1000},d:'Every Starsand patch gets a seed tile that never runs out and regrows the sand around it.'},
-  ringdesign:{n:'Ring design',kits:{kitf:3000,kitv:3000,kits:3000},d:'The Spaceport can build and launch segments of the Halo Ring.'}
+  ringdesign:{n:'Ring design',kits:{kitf:3000,kitv:3000,kits:3000},d:'The Spaceport can build and launch segments of the Halo Ring.'},
+  // Mag-rail upgrades (kept modest)
+  railcap:{n:'Wider shuttles',kits:{kitf:4000,kitv:4000},req:['maglev'],d:'Mag-rail shuttles carry 300 instead of 200.'},
+  railexp:{n:'Rail express',kits:{kitf:6000,kitv:6000},req:['maglev'],d:'Mag-rail shuttles move 50% faster.'},
+  bigterm:{n:'Big terminals',kits:{kitv:5000},req:['maglev'],d:'Rail Terminals hold twice as much.'},
+  // the long game: one colour
+  surv2:{n:'Survey drones',kits:{kitf:6000},req:['survey'],d:'Every ore patch holds 25% more ore.'},
+  prefab:{n:'Prefab pulses',kits:{kitf:4000},d:'Construction pulses travel 50% faster.'},
+  bulk:{n:'Bulk logistics',kits:{kitf:6000},d:'Batchers hold twice as much and Uplinks beam 50% faster.'},
+  kitf2:{n:'Field kit lines',kits:{kitf:8000},req:['lab4'],d:'Field kits are made 2 at a time.'},
+  temper:{n:'Void tempering',kits:{kitv:6000},req:['zerog'],d:'Void glass smelts and Void lenses craft 50% faster.'},
+  sieve2:{n:'Rare sieve',kits:{kitv:6000},req:['sieve'],d:'Separators give 10 more Rare earth in every 100 Starsand, taken from the Slag.'},
+  kitv2:{n:'Void kit lines',kits:{kitv:8000},req:['lab4'],d:'Void kits are made 2 at a time.'},
+  sails3:{n:'Solar sails',kits:{kits:6000},d:'Each sail petal in orbit gives 32 kW instead of 24.'},
+  tether:{n:'Star tether',kits:{kits:8000},d:'Sun Leaves, Film Arrays and Prism Collectors keep at least half their output at night.'},
+  kits2:{n:'Stellar kit lines',kits:{kits:10000},req:['lab4'],d:'Stellar kits are made 2 at a time.'},
+  // two colours
+  hulls:{n:'Hardened hulls',kits:{kitf:5000,kitv:5000},d:'Rockets need 20 Hull plates instead of 30.'},
+  ringeff:{n:'Ring efficiency',kits:{kitv:8000,kits:8000},req:['ringdesign'],d:'Ring segments need 20% fewer parts.'},
+  stelref:{n:'Stellar refining',kits:{kitv:8000,kits:8000},d:'Refineries need 25% less ore.'},
+  condense:{n:'Aether condensers',kits:{kitv:6000,kits:6000},d:'Aether Reactors make 25% more power.'},
+  orelays:{n:'Orbital relays',kits:{kitf:5000,kits:5000},d:'Construction pulses travel twice as fast everywhere.'},
+  skytrickle:{n:'Sky trickle',kits:{kitf:6000,kits:6000},d:'Trickle items arrive twice as fast.'},
+  cadence:{n:'Launch cadence',kits:{kitf:4000,kits:4000},d:'Launch Rings fling petals and Lattice cores twice as fast.'},
+  // all three
+  attune:{n:'Relic attunement',kits:{kitf:15000,kitv:15000,kits:15000},d:'Every Relic choice shows one more option.'},
+  deepcore:{n:'Deep core',kits:{kitf:10000,kitv:10000,kits:10000},d:'The Deep Drill power climb grows half as fast.'}
 };
-const ORB_REP={orbover:{n:'Orbital overcharge',kits:{kitf:1000,kitv:1000,kits:1000},grow:1.5,d:'Every machine works 10% faster per level.'}};
+const ORB_REP={
+  orbover:{n:'Orbital overcharge',kits:{kitf:1000,kitv:1000,kits:1000},grow:1.5,d:'Every machine works 10% faster per level.'},
+  reclaim:{n:'Husk reclaim',kits:{kitv:2000,kits:1000},grow:1.4,max:20,d:'Each Lattice core made has a 5% chance per level to send its Aether husk back to storage, up to 100%.'},
+  flow:{n:'Orbital flow',kits:{kitf:2000,kits:1000},grow:1.5,d:'Conveyors move items 5% faster per level.'},
+  harvest:{n:'Deep harvest',kits:{kitf:2000,kitv:1000},grow:1.5,d:'Every drill mines 10% faster per level.'},
+  yield:{n:'Stellar yield',kits:{kitv:1000,kits:2000},grow:1.5,d:'All power sources make 10% more per level.'},
+  bloom:{n:'Starseed bloom',kits:{kitf:3000,kitv:3000,kits:3000},grow:1.8,d:'+5% Starseeds when you Ascend, per level.'}
+};
 // Spaceport missions. Every launch also needs a rocket and Aether fuel. Rockets take ROCKET_T seconds, untouched by machine speed.
 const ROCKET={hull:30,guidance:4},ROCKET_T=60;
 const MISSIONS={
@@ -312,7 +345,22 @@ const NUP={
   bore:{n:'Nova bore',max:10,cost:L=>1+L,d:'Deep Drills mine 20% faster per level.',eff:L=>`+${L*20}% speed`},
   reach:{n:'Nova reach',max:2,cost:L=>[3,8][L],d:'Deep Drills reach one tile farther in every direction: 6×6, then 8×8, then 10×10.',eff:L=>`${6+2*L}×${6+2*L}`},
   thrift:{n:'Nova thrift',max:5,cost:L=>2+L,d:'Deep Drills use up ore 15% slower per level, so patches last longer.',eff:L=>`×${Math.pow(.85,L).toFixed(2)} ore used`},
-  cool:{n:'Nova cooling',max:3,cost:L=>1+L,d:'Deep Drills draw 25% less power per level.',eff:L=>`${40*(1-.25*L)} kW each`}
+  cool:{n:'Nova cooling',max:3,cost:L=>1+L,d:'Deep Drills draw 25% less power per level.',eff:L=>`−${25*L}%`},
+  resonance:{n:'Nova resonance',max:5,cost:L=>4+3*L,d:'The Deep Drill power climb starts one step later per level: more of your drills draw the base 40 kW.',eff:L=>`${L+1} at base power`},
+  grant:{n:'Nova grant',max:5,cost:L=>3+3*L,d:'Your first Deep Drills on each moon cost no Ember shards: one more per level.',eff:L=>`${L} free`},
+  echo:{n:'Nova echo',max:5,cost:L=>3+2*L,d:'Each Deep Drill dig has a 10% chance per level to bring up a second ore.',eff:L=>`${10*L}% chance`},
+  crucible:{n:'Nova crucible',max:5,cost:L=>3+2*L,d:'Foundries smelt 10% faster per level.',eff:L=>`+${10*L}%`},
+  reactor:{n:'Nova reactor',max:5,cost:L=>3+2*L,d:'Aether Reactors make 10% more power per level.',eff:L=>`+${10*L}%`},
+  still:{n:'Nova still',max:5,cost:L=>3+2*L,d:'Refineries need 5% less ore per level.',eff:L=>`−${5*L}%`},
+  sparks:{n:'Nova sparks',max:3,cost:L=>[5,10,20][L],d:'Nova shards drop 25% more often per level.',eff:L=>`+${25*L}%`},
+  haul:{n:'Nova haul',max:3,cost:L=>[4,8,12][L],d:'Mag-rail shuttles carry 10% more and move 10% faster per level.',eff:L=>`+${10*L}%`},
+  silo:{n:'Nova silo',max:3,cost:L=>[4,8,12][L],d:'Rockets assemble 10% faster per level.',eff:L=>`−${10*L}% time`},
+  // one-offs
+  heart:{n:'Nova heart',max:1,cost:()=>30,d:'With Core size maxed, the Core grows once more, to 9×9.',eff:L=>L?'9×9':'off'},
+  seed:{n:'Nova seed',max:1,cost:()=>25,d:'Every Voidstone patch gets a seed tile that never runs out.',eff:L=>L?'on':'off'},
+  lens:{n:'Nova lens',max:1,cost:()=>20,d:'Deep Drills on Voidstone mine 50% faster.',eff:L=>L?'on':'off'},
+  lantern:{n:'Nova lantern',max:1,cost:()=>15,d:'Offline time counts 4 hours longer.',eff:L=>L?'+4 h':'off'},
+  keystone:{n:'Nova keystone',max:1,cost:()=>35,d:'Rare-or-better Relics turn up 25% more often in every Relic choice.',eff:L=>L?'on':'off'}
 };
 // Past the named rungs the ladder alternates: machines +8%, then conveyors +5%, ×3 power each tier
 function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486000*Math.pow(3,k+1);

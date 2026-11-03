@@ -283,3 +283,32 @@ Kits: F = Field (red), V = Void (purple), St = Stellar (yellow). Costs assume 4 
 | *Repeat:* Deep harvest | 2k F + 1k V, ×1.5 | Drills +10% per level |
 | *Repeat:* Stellar yield | 1k V + 2k St, ×1.5 | All power +10% per level |
 | *Repeat:* Starseed bloom | 3k each, ×1.8 | +5% Starseeds when you Ascend, per level |
+
+**Built 2026-11-02:** Mag-rail labels / destinations / receiver filters and Wider shuttles, Rail express, Big
+terminals; all Nova upgrades above (output ones at 10%/level) plus Nova grant (free Deep Drills) and keystone;
+"Clean lattice" became the repeat **Husk reclaim** (+5%/level chance the husk goes back to storage, max 20); the
+orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and Uplinks +50%).
+
+### Next ideas: mechanics, resources, goals
+**Mechanics**
+- **Core contracts**: the Core posts timed orders ("400 Motors in 10 minutes") for Starseeds, Nova shards or Relic
+  shards. Gives every phase of a run short goals.
+- **Moon surveys**: each moon rolls 3 objectives (e.g. "launch 5 rockets", "close 3 ring segments", "reach Flow 2")
+  worth bonus Starseeds when you Ascend.
+- **Tunnels**: underground conveyor pairs that hop up to 6 tiles, the ground-level answer to Mag-rail.
+- **Warehouse**: a 3×3 store with item filters and a set output rate, for buffering big lines.
+- **Drone hub**: ferries items between buildings within a radius; slow but needs no belts. Late game.
+- **Heat and coolant**: Foundries, Separators and Reactors run hot; coolant (from Ice) lets them overclock +50%.
+- **Meteor showers**: an event that drops rich temporary patches of a random ore somewhere on the map.
+
+**Resources and items**
+- **Ice** (new ore on cold moons) → **Coolant**.
+- **Helium-3**: a rare Separator output → **Fusion cell** → a Fusion Reactor (huge power, needs coolant).
+- **Geodes**: rare Deep Drill finds that crack into **Relic shards**; spend shards to reroll or upgrade a Relic.
+- **Quantum chip** (photonic + Void cell + Rare earth), the top-tier part for new buildings and the next megaproject.
+
+**Goals**
+- **Dyson swarm**: a megaproject after the Halo Ring, needing Quantum chips and Fusion cells. Each node gives power
+  and, when complete, a new prestige currency.
+- **Achievements** with small permanent bonuses (first rocket, 1 GW, 100 Relics forged…).
+- **Galaxy map**: pick the next moon from a map of moons with visible traits, working outward through sectors.
