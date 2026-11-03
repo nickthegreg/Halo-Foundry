@@ -115,7 +115,7 @@ function burnPow(){return (1+fPerk('pow'))*(1+.1*crownLv('forge'))*rp('burn')}
 // Hotter burners: more power and they burn fuel proportionally faster (more Ember shards and husks per minute)
 function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
 function emberChance(){return .02*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
-function toolTip(t){const d=B[t];return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+fmtW(d.pw):''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
+function toolTip(t){const d=B[t];if(t==='deepdrill'&&S)return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))} · ${fmtW(ddPw(countOf(t)))}</span><br>${d.d}`;return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+fmtW(d.pw):''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
 function costStr(c){return Object.keys(c).map(k=>c[k]+' '+ITEMS[k].s).join(' · ')}
 function addInv(t,n){S.inv[t]=(S.inv[t]||0)+(n||1);S.seen[t]=1}
 
@@ -215,8 +215,11 @@ function outputsTo(nb,x,y){
   if(B[nb.t].dir){const o=outTile(nb,nb.d);return o[0]===x&&o[1]===y}
   return false;
 }
+function fib(k){let a=1,b=1;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}return a}
+// Deep Drills: the n-th one draws 40 kW × the n-th Fibonacci number (Nova cooling still cuts it)
+function ddPw(k){return B.deepdrill.pw*fib(k)*(1-.25*nupLv('cool'))}
 function recalc(){
-  const cnt={};
+  const cnt={};{let k=0;for(const b of [...S.bs.values()].filter(q=>q.t==='deepdrill').sort((p,q)=>p.id-q.id))b.ord=k++}
   for(const b of S.bs.values()){
     cnt[b.t]=(cnt[b.t]||0)+1;
     if(b.t!=='belt')continue;
@@ -317,14 +320,14 @@ function dayPhase(){return (S.time/DAY_LEN+0.18)%1}
 function daylight(){if(modOn('eternal'))return 1;return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*1.3+(modOn('longnight')?-.15:.5)))}
 
 function sim(dt){
-  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1);
+  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1)*(1+rungSum('belt'));
   const day=daylight();
   let demand=0,solar=S.petals*petalKW()+(S.lat||0)*latticeKW(),cap=0;const comb=[];
   for(const b of S.bs.values()){
     if(b.bp)continue;
     if(b.t==='relay')b.active=true;
     if(b.t==='spaceport')demand+=b.st?1e7:1e6;
-    else if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):b.t==='deepdrill'?B.deepdrill.pw*(1-.25*nupLv('cool')):B[b.t].pw;
+    else if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):b.t==='deepdrill'?ddPw(b.ord||0):B[b.t].pw;
     if(b.t==='solar')solar+=45*day;
     else if(b.t==='collector')solar+=400*(.25+.75*day);
     else if(b.t==='filmarray')solar+=300*(.4+.6*day);
@@ -642,7 +645,8 @@ function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
 function uplinkRate(b){return 4*rp('up')/(1+Math.max(0,coreDist(b)-3)/8)}
 function uplinkPw(b){return Math.round(60+3*coreDist(b))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)+ssLv('xpulse')}
-function gridMul(){let n=0;for(let i=0;i<S.gt;i++)if(rung(i).oc)n++;return (1+0.1*n)*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
+function rungSum(k){let n=0;for(let i=0;i<S.gt;i++)n+=rung(i)[k]||0;return n}
+function gridMul(){return (1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -797,13 +801,14 @@ function showMoonPick(){
 function doAscend(mod){
   const A=S.asc||{n:0,seeds:0,total:0},got=ascSeeds(),inv={iron:400,copper:200};mod=mod&&MODS[mod]?mod:null;
   for(const k of ['ember','nova'])if(S.inv[k]>0)inv[k]=S.inv[k];
+  let ddRefund=0;{const n=countOf('deepdrill');for(let k=0;k<n;k++)ddRefund+=costOf('deepdrill',k).ember||0;if(ddRefund>0)inv.ember=(inv.ember||0)+ddRefund}
   const nl=ssLv('notes'),done={};if(nl)for(const id in TECH)if(TECH[id].t<=nl&&!TECH[id].late)done[id]=1;const warm=ssLv('warm')?1:0;
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv,ms:TUT,prog:{},petals:0,gt:warm,gavg:0,ft:warm,favg:0,rsh:{done,cur:null,p:{},lv:{}},free:ssLv('crate')?{drill:4,smelter:4,fab:2}:{},ringWins:S.ringWins||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,relicRR:ssLv('reroll'),
     cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,crown:S.crown||{},crownBank:(S.crownBank||0)+crownN(),crownSpent:S.crownSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
     up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,nova:S.flags.nova,ascHint:1},refined:S.refined||0,seen:S.seen,bs:[],fromCode:1,
     ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod};if(S.relicPick)d.relicExtra++;
   start(d);cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,'#d8b4ff',60);sfx('fanfare');
-  setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p>${mod?`<p>This moon: <strong>${MODS[mod].n}</strong>. ${MODS[mod].d}</p>`:''}<p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
+  setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards${ddRefund?` (${ddRefund.toLocaleString()} refunded from your Deep Drills)`:''}`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p>${mod?`<p>This moon: <strong>${MODS[mod].n}</strong>. ${MODS[mod].d}</p>`:''}<p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
 }
 
 // ================= main menu, daily moon, challenges =================
@@ -1858,7 +1863,7 @@ function bufRow(b){
   const cnt=a=>{const o={};a.forEach(t=>o[t]=(o[t]||0)+1);return Object.keys(o).map(k=>chip(k,o[k])).join('')};
   switch(b.t){
     case 'junction':{const a=b.lanes.flat().map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
-    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}/s</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
+    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}/s${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore);return rateLine([[ore,c]],[[SMELT[ore],c]],rateNote())})();
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/4')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;

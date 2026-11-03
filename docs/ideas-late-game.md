@@ -216,3 +216,70 @@ in its branch. Costs are tuned so a ~700-seed ascension buys one or two real nod
   rewards or Starseeds for beating a target time) without a public board.
 - Public board later: Cloudflare Worker + D1 (free), `POST /daily` {day, name, time, save code}, `GET /daily/:day`,
   rate-limited, with save codes kept so suspicious runs can be checked.
+
+---
+
+## Ideas backlog (2026-11-02, not built yet)
+
+### Mag-rail: how several stations behave today
+- Each **sending** terminal has one shuttle. It leaves when 200 items are loaded, or after 6 s idle with anything
+  loaded, and goes to the **nearest receiving terminal along the track** (shortest path by tiles). It unloads as much
+  as fits (receivers hold 800), then comes back.
+- Several senders can share track and a receiver; shuttles pass through each other (no collisions or signals).
+- A sender never chooses: on a branched network it always serves its nearest receiver. Cargo is mixed, first in,
+  first out; receivers push out of three slots on their bright edge.
+
+### Mag-rail customization
+1. **Destination**: label terminals (A, B, C… or a colour) and pick "Nearest" or a named receiver on a sender.
+2. **Cargo filter** on receivers (one or more items); a sender splits each load by filter, so one line can feed
+   several factories.
+3. **Departure rule**: when full / at N items / every N seconds / when the receiver runs low (on demand).
+4. **Two-way terminal**: send and receive in one building.
+5. **Multi-stop route**: a shuttle visits a list of stations in order, loading and unloading by filter.
+6. **Shuttle upgrades** (research or Nova): capacity 200→400→800, speed, 2–3 shuttles per terminal.
+7. Selecting a terminal highlights its route and destination on the map.
+
+### Nova shard sinks
+- **Nova resonance** (tree, 5 lv): the Deep Drill power sequence starts one Fibonacci step later per level.
+- **Nova echo** (5 lv): Deep Drills have a 5% chance per level to mine 2.
+- **Nova crucible** (5 lv): Foundries +20% speed per level.
+- **Nova reactor** (5 lv): Aether Reactors +20% power per level.
+- **Nova still** (5 lv): Refineries need 5% less ore per level.
+- **Nova sparks** (3 lv): Nova shard drops +50% per level.
+- **Nova haul** (3 lv): Mag-rail shuttles carry +100 per level and move 25% faster.
+- **Nova silo** (3 lv): rockets assemble 10 s faster per level.
+- One-offs: **Nova heart** (Core 9×9), **Nova seed** (Voidstone patches get seed tiles), **Nova keel** (keep one
+  built Spaceport's Lab modules when you Ascend), **Nova lens** (Deep Drills on Voidstone ×2).
+- Costs about 5–40 shards a level, growing.
+
+### Orbital research list (aimed at ascension 5+, ~10k lifetime Starseeds, ~10 Relics)
+Kits: F = Field (red), V = Void (purple), St = Stellar (yellow). Costs assume 4 labs and big kit lines.
+
+| Research | Kits | Effect |
+|---|---|---|
+| Survey drones II | 6k F | Every ore patch holds 25% more |
+| Prefab pulses | 4k F | Construction pulses 50% faster |
+| Bulk logistics | 6k F | Batchers hold 2×; Splitters and Sorters pass 2 items a tick |
+| Field kits II | 8k F | Field kits craft 2 at once |
+| Void tempering | 6k V | Void glass and Void lenses craft 50% faster |
+| Clean lattice | 10k V | Lattice cores no longer need an Aether husk |
+| Rare sieve | 6k V | Separators give +10 points of Rare earth |
+| Void kits II | 8k V | Void kits craft 2 at once |
+| Solar sails III | 6k St | Sail petals give 32 kW |
+| Star tether | 8k St | Solar keeps 50% at night |
+| Stellar kits II | 10k St | Stellar kits craft 2 at once |
+| Mag-rail capacity | 4k F + 4k V | Shuttles carry 400 |
+| Rail express | 6k F + 6k V | Shuttles twice as fast |
+| Hardened hulls | 5k F + 5k V | Rockets need a third fewer Hull plates |
+| Ring efficiency | 8k V + 8k St | Ring segments cost 20% less |
+| Stellar refining | 8k V + 8k St | Refineries need 25% less ore |
+| Aether condensers | 6k V + 6k St | Aether Reactors +50% power |
+| Orbital relays | 5k F + 5k St | Pulses twice as fast everywhere |
+| Sky trickle | 6k F + 6k St | Trickle ×2 |
+| Launch cadence | 4k F + 4k St | Launch Rings twice as fast |
+| Relic attunement | 15k each | Relic choices show one more option |
+| Deep core | 10k each | Deep Drill power sequence grows half as fast |
+| *Repeat:* Orbital flow | 2k F + 1k St, ×1.5 | Conveyors +5% per level |
+| *Repeat:* Deep harvest | 2k F + 1k V, ×1.5 | Drills +10% per level |
+| *Repeat:* Stellar yield | 1k V + 2k St, ×1.5 | All power +10% per level |
+| *Repeat:* Starseed bloom | 3k each, ×1.8 | +5% Starseeds when you Ascend, per level |

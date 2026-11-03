@@ -53,7 +53,7 @@ const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'Moves items one tile at a time. Drag to lay a line that follows your finger. Dragging across another conveyor adds a Crossing.'},
   junction:{n:'Crossing',cost:{iron:3,copper:2},d:'Two conveyor lines pass over each other here. Items leave on the side opposite where they came in.'},
   drill:{n:'Drill',cost:{iron:8,copper:4},pw:12,dir:1,r:1,d:'Mines one ore type from the 3×3 area around it and pushes it out of its bright edge. Patches run dry over time.'},
-  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:1},pw:40,dir:1,w:2,r:2,mult:2.5,d:'A 2×2 drill that mines the 6×6 area around it at 2.5× speed and uses up ore half as fast. Ore leaves through two slots on its bright edge and two on the back. Each one costs more Ember shards than the last.'},
+  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:1},pw:40,fibPw:1,dir:1,w:2,r:2,mult:2.5,d:'A 2×2 drill that mines the 6×6 area around it at 2.5× speed and uses up ore half as fast. Ore leaves through two slots on its bright edge and two on the back. Each one costs more Ember shards and draws more power than the last (1, 1, 2, 3, 5, 8… × 40 kW). Ember shards spent on them come back when you Ascend.'},
   smelter:{n:'Smelter',cost:{iron:10},pw:25,dir:1,d:'Melts ferrite, cuprite or silica into ingots and glass. Takes ore from any side.'},
   fab:{n:'Fabricator',cost:{iron:12,copper:8},pw:35,dir:1,d:'Builds the recipe you pick. Feed it the inputs from any side.'},
   fab2:{n:'Fabricator Mk II',cost:{composite:10,servo:4,circuit:30},pw:110,dir:1,w:2,mult:2.5,d:'Runs Fabricator recipes 2.5× as fast. Feed it from any side; output leaves its bright edge.'},
@@ -98,10 +98,10 @@ const RUNGS=[
   {kw:600,n:'Hum',spd:1.5,d:'Pulses travel 50% faster. Opens tier 2 research.'},
   {kw:2000,n:'Thrum',d:'Opens tier 3 research.'},
   {kw:6000,n:'Roar',spd:1.5,map:96,d:'Pulses travel 50% faster. The frontier opens to 192×192 tiles. Opens tier 4 research.'},
-  {kw:18000,n:'Overclock 1',oc:1,d:'Every machine works 10% faster. Opens tier 5 research.'},
-  {kw:54000,n:'Overclock 2',oc:1,map:128,d:'Every machine works 10% faster. The frontier opens to 256×256 tiles, a third pulse can fly at once, and tier 6 research opens.'},
-  {kw:162000,n:'Overclock 3',oc:1,d:'Every machine works 10% faster.'},
-  {kw:486000,n:'Overclock 4',oc:1,map:192,d:'Every machine works 10% faster. The whole moon opens: 384×384 tiles.'}
+  {kw:18000,n:'Overclock 1',oc:.1,d:'Every machine works 10% faster. Opens tier 5 research.'},
+  {kw:54000,n:'Overclock 2',oc:.1,map:128,d:'Every machine works 10% faster. The frontier opens to 256×256 tiles, a third pulse can fly at once, and tier 6 research opens.'},
+  {kw:162000,n:'Overclock 3',oc:.1,d:'Every machine works 10% faster.'},
+  {kw:486000,n:'Overclock 4',oc:.1,map:192,d:'Every machine works 10% faster. The whole moon opens: 384×384 tiles.'}
 ];
 // Research: spent with Charge (stored spare power, in MJ) plus items from storage.
 // Tier n opens once grid tier n-1 is reached (tier 1 opens with the Grid Charter).
@@ -314,7 +314,9 @@ const NUP={
   thrift:{n:'Nova thrift',max:5,cost:L=>2+L,d:'Deep Drills use up ore 15% slower per level, so patches last longer.',eff:L=>`×${Math.pow(.85,L).toFixed(2)} ore used`},
   cool:{n:'Nova cooling',max:3,cost:L=>1+L,d:'Deep Drills draw 25% less power per level.',eff:L=>`${40*(1-.25*L)} kW each`}
 };
-function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-2;return{kw:6000*Math.pow(3,k),n:'Overclock '+k,oc:1,d:'Every machine works 10% faster.'}}
+// Past the named rungs the ladder alternates: machines +8%, then conveyors +5%, ×3 power each tier
+function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486000*Math.pow(3,k+1);
+  return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','remove'];

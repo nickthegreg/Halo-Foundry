@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:43,date:'2026-11-02',title:'Ladder and Deep Drill changes',items:[
+    'Past Overclock 4 the grid ladder alternates: Overclock tiers make machines 8% faster (was 10%), and new Flow tiers make conveyors 5% faster.',
+    'Each Deep Drill draws more power than the last, on the same 1, 1, 2, 3, 5, 8… climb as its Ember cost (× 40 kW). Each drill’s panel shows what it draws, and Nova cooling still helps.',
+    'When you Ascend, the Ember shards you spent on Deep Drills come back to you.'
+  ]},
   {n:42,date:'2026-11-01',title:'Raised Mag-rail',items:[
     'Mag-rail is now raised track. It passes over buildings and conveyors, and Pylons hold it up on open ground at least every 5 tiles. Pylons are placed for you as you lay track.',
     'Lay it like conveyors: Line, Free or Route (the mode button next to the bar). Route finds a path with room for Pylons. While you drag, a preview shows where Pylons go and what it costs.',
