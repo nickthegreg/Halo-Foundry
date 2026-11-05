@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:47,date:'2026-11-05',title:'Dense items work everywhere',items:[
+    'Dense items now act like a stack of 2: every machine takes them as 2 of the plain item, in either mode. That covers Smelters, Foundries, Fabricators, Assemblers, Refineries, Separators, Combustors and Turbines.',
+    'Dense mode now only changes what a machine makes. It uses 5× the inputs per batch, plain or dense, runs 1.5× longer, and makes dense output.',
+    'Sorter and Rail Terminal filters set to an item also catch its dense version, and the filter lists no longer show dense items separately.'
+  ]},
   {n:46,date:'2026-11-05',title:'Compression',items:[
     'New Starseed upgrade from ascension 3: Compression (300 Starseeds). It unlocks the Compressor and a Dense mode on Drills, Deep Drills, Smelters, Foundries, Fabricators and Assemblers.',
     'A dense item is made from 5 and is worth 2 wherever it lands: at the Core, through Uplinks, in machines and in the Spaceport. Each belt slot carries twice as much.',

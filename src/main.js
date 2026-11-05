@@ -180,8 +180,8 @@ function contents(b){
     case 'drill':case 'deepdrill':add(dOut(b,b.ore),b.out);break;
     case 'compressor':if(b.inT)add(b.inT,b.inN);if(b.outT)add(b.outT,b.outN);break;
     case 'junction':b.lanes.forEach(l=>l.forEach(i=>o.push(i.t)));break;
-    case 'smelter':case 'foundry':if(b.inT)add(dOut(b,b.inT),b.inN);if(b.outT)add(dOut(b,b.outT),b.outN);if(b.run&&b.cur)add(dOut(b,Object.keys(SMELT).find(k=>SMELT[k]===b.cur)),1);break;
-    case 'fab':case 'fab2':case 'assembler':for(const k in b.buf)add(dOut(b,k),b.buf[k]);if(b.rec)add(dOut(b,b.rec),b.outN);break;
+    case 'smelter':case 'foundry':if(b.inT)add(b.inT,b.inN);if(b.outT)add(dOut(b,b.outT),b.outN);if(b.run&&b.cur)add(Object.keys(SMELT).find(k=>SMELT[k]===b.cur),b.dn?5:1);break;
+    case 'fab':case 'fab2':case 'assembler':for(const k in b.buf)add(k,b.buf[k]);if(b.rec)add(dOut(b,b.rec),b.outN);break;
     case 'refinery':add('aether',b.outN);break;
     case 'reactor':add('aether',b.fuel);add('husk',b.husk||0);break;
     case 'splitter':case 'sorter':if(b.hold)o.push(b.hold);break;
@@ -254,27 +254,26 @@ function accept(nb,t,side,p0){
       const L=nb.items[nb.items.length-1];if(L&&L.p<SP)return false;
       nb.items.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),f:side});return true;}
     case 'junction':{const lane=nb.lanes[side],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),d:opp(side)});return true;}
-    case 'smelter':case 'foundry':
-      t=dIn(nb,t);if(!t)return false;
-      if(!SMELT[t]||(t==='voidstone'&&nb.t!=='foundry')||nb.inN>=(nb.t==='foundry'?30:6)||(nb.inN>0&&nb.inT!==t))return false;
-      nb.inT=t;nb.inN++;return true;
+    case 'smelter':case 'foundry':{
+      const u=BASE_OF[t]?2:1;t=BASE_OF[t]||t;
+      if(!SMELT[t]||(t==='voidstone'&&nb.t!=='foundry')||nb.inN+u>(nb.t==='foundry'?30:6)*(nb.dn?5:1)||(nb.inN>0&&nb.inT!==t))return false;
+      nb.inT=t;nb.inN+=u;return true;}
     case 'fab':case 'fab2':case 'assembler':{
-      if(!nb.rec)return false;t=dIn(nb,t);if(!t)return false;const need=RECIPES[nb.rec].in[t];if(!need)return false;
-      const c=nb.buf[t]||0;if(c>=Math.max(need*2,4))return false;nb.buf[t]=c+1;return true;}
+      if(!nb.rec)return false;const u=BASE_OF[t]?2:1;t=BASE_OF[t]||t;const k=nb.dn?5:1,need=RECIPES[nb.rec].in[t]*k;if(!need)return false;
+      const c=nb.buf[t]||0;if(c+u>Math.max(need*2,4*k)+1)return false;nb.buf[t]=c+u;return true;}
     case 'splitter':case 'sorter':if(nb.hold)return false;nb.hold=t;nb.hf=side;return true;
     case 'batcher':{
       if(side===nb.d)return false;const has=Object.keys(nb.ratio).length;
       if(has&&!nb.ratio[t])return false;
       if(!has&&!nb.st[t]&&Object.keys(nb.st).filter(k=>nb.st[k]>0).length>=6)return false;
       if((nb.st[t]||0)>=batCap())return false;nb.st[t]=(nb.st[t]||0)+1;return true;}
-    case 'combustor':if(t!=='carbon'||nb.fuel>=8)return false;nb.fuel++;return true;
-    case 'turbine':if(t!=='carbon'||nb.fuel>=20)return false;nb.fuel++;return true;
+    case 'combustor':case 'turbine':{const u=t==='D_carbon'?2:1;if((t!=='carbon'&&t!=='D_carbon')||nb.fuel+u>(nb.t==='combustor'?8:20))return false;nb.fuel+=u;return true;}
     case 'reactor':if(t!=='aether'||nb.fuel>=4)return false;nb.fuel++;return true;
-    case 'refinery':if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n++;stat('c',t);return true;
+    case 'refinery':{const u=BASE_OF[t]?2:1;t=BASE_OF[t]||t;if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n+=u;stat('c',t,u);return true;}
     case 'uplink':if(t==='husk'||nb.q.length>=6)return false;nb.q.push(t);return true;
     case 'ring':if((t!=='petal'&&t!=='lattice')||nb.n+(nb.l||0)>=4)return false;if(t==='lattice')nb.l=(nb.l||0)+1;else nb.n++;return true;
     case 'compressor':{const ok=nb.mode?!!BASE_OF[t]:!!DENSE_OF[t];if(!ok||(nb.inN>0&&nb.inT!==t)||nb.inN>=(nb.mode?4:10))return false;nb.inT=t;nb.inN++;return true}
-    case 'separator':if(t!=='starsand'||nb.n>=1200)return false;nb.n++;return true;
+    case 'separator':{const u=t==='D_starsand'?2:1;if((t!=='starsand'&&t!=='D_starsand')||nb.n+u>1200)return false;nb.n+=u;return true;}
     case 'incinerator':stat('c',t);nb.heat=1;return true;
     case 'spaceport':if(BASE_OF[t]){const bt=BASE_OF[t],n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)+2>n)return false;nb.h[bt]=(nb.h[bt]||0)+2;return true}return padAccept(nb,t);
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
@@ -377,7 +376,7 @@ function sim(dt){
       case 'combustor':if(b.ember>0&&pushDir(b,'ember',b.d))b.ember--;break;
       case 'reactor':if(b.husk>0&&pushDir(b,'husk',b.d))b.husk--;break;
       case 'smelter':case 'foundry':
-        if(!b.run&&b.inN>0&&b.outN<(b.t==='foundry'?16:4)&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=(b.dn?1.5:1)*SMELT_T[b.inT]*(b.inT==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1);stat('c',b.inT);b.inN--;if(!b.inN)b.inT=null}
+        if(!b.run&&b.inN>=(b.dn?5:1)&&b.outN<(b.t==='foundry'?16:4)&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=(b.dn?1.5:1)*SMELT_T[b.inT]*(b.inT==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1);stat('c',b.inT,b.dn?5:1);b.inN-=b.dn?5:1;if(!b.inN)b.inT=null}
         b.active=b.run;
         if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('smelt')*(b.t==='foundry'?1+.1*nupLv('crucible'):1)/(b.ct||1);if(b.prog>=1){b.run=false;b.outT=b.cur;b.outN++;stat('p',dOut(b,b.cur));sfx('smelt',b.x+.5,b.y+.5)}}
         b.heat+=((b.run?sat:0)-b.heat)*Math.min(1,dt*2.5);
@@ -386,8 +385,8 @@ function sim(dt){
       case 'fab':case 'fab2':case 'assembler':{
         const r=b.rec&&RECIPES[b.rec];
         if(r&&!b.run&&b.outN+r.out<=Math.max(4,r.out*2)){
-          let ok=true;for(const k in r.in)if((b.buf[k]||0)<r.in[k]){ok=false;break}
-          if(ok){for(const k in r.in){b.buf[k]-=r.in[k];stat('c',k,r.in[k])}b.run=true;b.prog=0}
+          const m=b.dn?5:1;let ok=true;for(const k in r.in)if((b.buf[k]||0)<r.in[k]*m){ok=false;break}
+          if(ok){for(const k in r.in){b.buf[k]-=r.in[k]*m;stat('c',k,r.in[k]*m)}b.run=true;b.prog=0}
         }
         b.active=b.run;
         if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')*recSpd(b.rec)/(r.t*(b.dn?1.5:1));b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;const ro=recOut(b.rec);b.outN+=ro;stat('p',dOut(b,b.rec),ro);{const x=dupN();if(x){b.outN+=ro*x;stat('p',dOut(b,b.rec),ro*x)}}if(b.rec==='lattice'&&Math.random()<.05*orbLv('reclaim')){addInv('husk');stat('p','husk')}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
@@ -415,7 +414,7 @@ function sim(dt){
       case 'sorter':
         if(b.hold){
           const all=[b.d,(b.d+3)&3,(b.d+1)&3],sd=b.sd||0,pick=all[sd],rest=all.filter((_,i)=>i!==sd);
-          if(!b.filter||b.hold===b.filter){if(pushDir(b,b.hold,pick))b.hold=null}
+          if(!b.filter||(BASE_OF[b.hold]||b.hold)===b.filter){if(pushDir(b,b.hold,pick))b.hold=null}
           else{for(let k=0;k<2;k++){const i=(b.rr+k)%2;if(rest[i]===b.hf&&rest[1-i]!==b.hf)continue;if(pushDir(b,b.hold,rest[i])){b.hold=null;b.rr=(i+1)%2;break}}}
         }
         break;
@@ -652,7 +651,7 @@ function railRoutes(){
     b.route=b.routes[0]||null;
   }
 }
-function termAccepts(t,it){return !t.flt||!t.flt.length||t.flt.includes(it)}
+function termAccepts(t,it){return !t.flt||!t.flt.length||t.flt.includes(BASE_OF[it]||it)}
 // Pick where the next load goes: the first queued item some allowed receiver takes decides it
 function pickRoute(b){
   const rs=(b.routes||[]).filter(r=>{const t=S.bs.get(r.to);return t&&!t.bp&&t.role&&(b.dest==null||t.lab===b.dest)&&t.q.length<termCap(1)});
@@ -1971,7 +1970,7 @@ function renderSheet(){
   if(b.t==='splitter'){const opts=[[null,'Even'],[0,'Forward'],[1,'Left'],[2,'Right']];ctrl=`<div class="sec-label">Priority output</div><div class="seg">${opts.map(([v,n])=>`<button data-pri="${v==null?'':v}" class="${(b.pri==null?null:b.pri)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">The priority side gets every item it can take. The other sides only get the overflow when it backs up.</p>`}
   if(b.t==='sorter'){
     const so=[[0,'Forward'],[1,'Left'],[2,'Right']];
-    ctrl=`<div class="sec-label">Chosen item leaves</div><div class="seg">${so.map(([v,n])=>`<button data-sd="${v}" class="${(b.sd||0)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">Everything else leaves through the other two sides, taking turns.</p><div class="sec-label">Chosen item</div><div class="grid items"><button class="opt${!b.filter?' on':''}" data-filter="" aria-label="Everything">All</button>${ITEM_ORDER.map(k=>`<button class="opt${b.filter===k?' on':''}" data-filter="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`;
+    ctrl=`<div class="sec-label">Chosen item leaves</div><div class="seg">${so.map(([v,n])=>`<button data-sd="${v}" class="${(b.sd||0)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">Everything else leaves through the other two sides, taking turns.</p><div class="sec-label">Chosen item</div><div class="grid items"><button class="opt${!b.filter?' on':''}" data-filter="" aria-label="Everything">All</button>${ITEM_ORDER.filter(k=>!BASE_OF[k]).map(k=>`<button class="opt${b.filter===k?' on':''}" data-filter="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`;
   }
   if(b.t==='spaceport'){const ms=Object.keys(MISSIONS).filter(m=>m!=='ring'||orbDone('ringdesign'));
     ctrl=`<div class="sec-label">Mission</div><div class="seg">${ms.map(m=>`<button data-mission="${m}" class="${b.m===m?'on':''}"${padOpen(m)?'':' disabled'}>${MISSIONS[m].n}</button>`).join('')}</div>${b.m?`<p class="desc">${MISSIONS[b.m].d} Every launch needs a rocket (${rocketParts().hull} Hull plates, ${ROCKET.guidance} Guidance units) and Aether fuel, all belted in.</p>${b.m==='kits'?`<div class="actions"><button class="btn" data-act="padgo">Launch when loaded</button></div>`:''}`:''}`}
@@ -1979,9 +1978,9 @@ function renderSheet(){
     const recv=[...S.bs.values()].filter(q=>q.t==='railterm'&&q.role&&!q.bp).sort((p,q)=>p.lab-q.lab);
     ctrl=`<div class="sec-label">Label</div><div class="seg">${[...TLAB.slice(0,8)].map((c,i)=>`<button data-tlab="${i}" class="${b.lab===i?'on':''}">${c}</button>`).join('')}</div>
     <div class="sec-label">This terminal</div><div class="seg"><button data-role="0" class="${b.role?'':'on'}">Send</button><button data-role="1" class="${b.role?'on':''}">Receive</button></div>`+
-    (b.role?`<div class="sec-label">Accepts</div><p class="desc">Shuttles only bring this terminal the items picked here. Pick nothing to take anything.</p><div class="grid items"><button class="opt${!b.flt.length?' on':''}" data-tflt="" aria-label="Anything">All</button>${ITEM_ORDER.filter(k=>S.seen[k]||b.flt.includes(k)).map(k=>`<button class="opt${b.flt.includes(k)?' on':''}" data-tflt="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`
+    (b.role?`<div class="sec-label">Accepts</div><p class="desc">Shuttles only bring this terminal the items picked here, dense or not. Pick nothing to take anything.</p><div class="grid items"><button class="opt${!b.flt.length?' on':''}" data-tflt="" aria-label="Anything">All</button>${ITEM_ORDER.filter(k=>!BASE_OF[k]&&(S.seen[k]||b.flt.includes(k))).map(k=>`<button class="opt${b.flt.includes(k)?' on':''}" data-tflt="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`
     :`<div class="sec-label">Send to</div><div class="seg" style="flex-wrap:wrap"><button data-tdest="" class="${b.dest==null?'on':''}">Auto</button>${recv.map(q=>`<button data-tdest="${q.lab}" class="${b.dest===q.lab?'on':''}">${TLAB[q.lab]}</button>`).join('')}</div><p class="desc">Auto sends each load to the nearest receiver that accepts it. Pick a letter to always go there.</p>`);}
-  if(DM.includes(b.t)&&ssLv('dense'))ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-dn="0" class="${b.dn?'':'on'}">Normal</button><button data-dn="1" class="${b.dn?'on':''}">Dense ×2</button></div><p class="desc">${b.dn?(b.t==='drill'||b.t==='deepdrill'?'Each dig uses 5 ore and makes 1 dense ore, 1.5× slower.':'Takes only dense inputs and makes dense output, 1.5× slower. Each dense item is worth 2.'):'Dense mode works with dense items: worth 2 each, made from 5.'}</p>`+ctrl;
+  if(DM.includes(b.t)&&ssLv('dense'))ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-dn="0" class="${b.dn?'':'on'}">Normal</button><button data-dn="1" class="${b.dn?'on':''}">Dense ×2</button></div><p class="desc">${b.dn?(b.t==='drill'||b.t==='deepdrill'?'Each dig uses 5 ore and makes 1 dense ore (worth 2), 1.5× slower.':'Uses 5× the inputs per batch, plain or dense, and makes dense output (each worth 2), 1.5× slower.'):'Takes plain or dense items: a dense item counts as 2. Dense mode makes dense output from 5× the inputs.'}</p>`+ctrl;
   if(b.t==='compressor')ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-cmode="0" class="${b.mode?'':'on'}">Pack 5 → 1 dense</button><button data-cmode="1" class="${b.mode?'on':''}">Unpack 1 → 2</button></div>`+ctrl;
   const acts=b.t==='core'?'':`<div class="actions">${d.dir?`<button class="btn" data-act="rot">${SVG.rot}Rotate</button>`:''}<button class="btn danger" data-act="del">${SVG.trash}Remove</button></div>`;
   elSheet.innerHTML=`<div class="sh-head"><img src="${ICON_B[b.t]}" alt=""><div class="sh-title"><h2>${d.n}</h2><span class="pill" id="shStatus"></span></div><button class="x" data-act="close" aria-label="Close">${SVG.x}</button></div>
