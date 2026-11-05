@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:46,date:'2026-11-05',title:'Compression',items:[
+    'New Starseed upgrade from ascension 3: Compression (300 Starseeds). It unlocks the Compressor and a Dense mode on Drills, Deep Drills, Smelters, Foundries, Fabricators and Assemblers.',
+    'A dense item is made from 5 and is worth 2 wherever it lands: at the Core, through Uplinks, in machines and in the Spaceport. Each belt slot carries twice as much.',
+    'Switch a machine with Normal / Dense ×2 in its panel. In Dense mode, drills use 5 ore per dig, and machines take only dense inputs and make dense output, 1.5× slower. Machines in Dense mode show a small violet dot.',
+    'The Compressor (1×1) sits in a conveyor line and packs 5 of an item into 1 dense, or unpacks 1 dense into 2.'
+  ]},
   {n:45,date:'2026-11-05',title:'❄️ Winter is here',items:[
     'The Halloween ground has packed up for the year. In its place is a Winter ground: fresh snow and drifts, frozen ice patches, snow-capped pines (some strung with lights and a star), snowmen, wrapped presents and candy canes.',
     'On the Winter ground, snow drifts down across the screen, an aurora glows in the sky beyond the frontier, and the panels get a touch of frost.',

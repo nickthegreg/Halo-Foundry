@@ -312,3 +312,10 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
   and, when complete, a new prestige currency.
 - **Achievements** with small permanent bonuses (first rocket, 1 GW, 100 Relics forged…).
 - **Galaxy map**: pick the next moon from a map of moons with visible traits, working outward through sectors.
+
+### Compression (built 2026-11-05)
+- Starseed node `dense` (300, shown from ascension 3). Dense items `D_<item>` for everything except Aether, Ember,
+  Nova, husks, kits, petals and Lattice cores (`DENSE_OF` / `BASE_OF` in game.js).
+- 5 → 1 dense, worth 2 (deliver/addInv convert to 2 of the base). Dense mode (`b.dn`) on Drill, Deep Drill, Smelter,
+  Foundry, Fabricator, Assembler: 1.5× time, dense in/out; drills dig 5 ore per dense ore. Compressor 1×1 inline,
+  pack 5→1 or unpack 1→2, 0.5 s. One level only for now; a packed tier (5 dense → worth 4) is the obvious next step.

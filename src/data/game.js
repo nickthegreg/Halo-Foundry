@@ -79,6 +79,7 @@ const B={
   railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to other terminals by Mag-rail. Each has a letter. A sending terminal takes items from any side; its shuttle carries a load to the nearest receiving terminal that accepts it, or always to the letter you pick. A receiving terminal can accept only chosen items, and pushes them out of three slots on its bright edge.'},
   rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Raised track for Rail Terminal shuttles. It passes over buildings and conveyors, but needs a Pylon on open ground at least every 5 tiles; they’re placed for you. Lay it like conveyors: Line, Free or Route.'},
   pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed automatically as you lay track. Remove the rail above it first.'},
+  compressor:{n:'Compressor',cost:{steel:20,circuit:20,motor:4},pw:60,dir:1,d:'Packs 5 of an item into 1 dense item worth 2, or unpacks a dense item into 2. Takes items from the back and sides, sends them out of the bright edge. Machines and drills set to Dense mode work with dense items.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
 };
 const MS=[
@@ -228,6 +229,7 @@ const SS={
   core:{n:'Core size',max:2,cost:L=>[8,20][L],d:'The Core grows to 5×5, then 7×7, so more lines can feed it. It grows as soon as the tiles around it are clear.',eff:L=>`${3+2*L}×${3+2*L}`},
   trkT:{n:'Trickle: items',max:5,cost:L=>[2,4,8,16,32][L],d:'The Core makes items on its own, as if they were delivered. Each level adds better items.',eff:L=>`tier ${L}`},
   trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`},
+  dense:{n:'Compression',max:1,minAsc:3,cost:()=>300,d:'Unlocks the Compressor and a Dense mode on every Drill, Deep Drill, Smelter, Foundry, Fabricator and Assembler. Dense items are worth 2 each but cost 5 to make, and Dense mode takes 1.5× as long. One belt slot carries twice as much.',eff:L=>L?'on':'off'},
   // Logistics
   lfit:{br:'Logistics',n:'Light fittings',max:1,cost:()=>40,d:'Splitters, Sorters and Crossings cost nothing to build.',eff:L=>L?'free':'off'},
   bins:{br:'Logistics',n:'Deep bins',req:'lfit',max:2,cost:L=>[60,200][L],d:'Batchers hold 100 of each item, then 200.',eff:L=>`${50*Math.pow(2,L)} each`},
@@ -367,8 +369,12 @@ function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486
   return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','compressor','remove'];
+// Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
+const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits','petal','lattice'];
+const DENSE_OF={},BASE_OF={};
+for(const k of ITEM_ORDER.slice()){if(DENSE_EX.includes(k))continue;const d='D_'+k;DENSE_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Dense '+ITEMS[k].n.charAt(0).toLowerCase()+ITEMS[k].n.slice(1),s:'dense '+ITEMS[k].s,dense:k};ITEM_ORDER.push(d)}
 // Late-game buildings stay out of the bar until ascension 2
 const LATE_T=['separator','incinerator','railterm','rail','spaceport'];
 
-export {ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {DENSE_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};

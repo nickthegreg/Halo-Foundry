@@ -37,6 +37,7 @@ Regenerate with `node tests/reference.mjs`.
 | Rail Terminal | 3×3 | 200 Magnet, 50 Gyro, 100 Void glass | uses 300 kW |  |
 | Mag-rail | 1×1 | 4 Magnet, 2 Slagcrete | – |  |
 | Pylon | 1×1 | 10 Slagcrete, 10 Steel | – |  |
+| Compressor | 1×1 | 20 Steel, 20 Circuit, 4 Motor | uses 60 kW |  |
 | Core | 3×3 | – | makes 120 kW |  |
 
 Deep Drill cost in Ember shards climbs 1, 1, 2, 3, 5, 8… with each one you own.
