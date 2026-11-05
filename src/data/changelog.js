@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:45,date:'2026-11-05',title:'❄️ Winter is here',items:[
+    'The Halloween ground has packed up for the year. In its place is a Winter ground: fresh snow and drifts, frozen ice patches, snow-capped pines (some strung with lights and a star), snowmen, wrapped presents and candy canes.',
+    'On the Winter ground, snow drifts down across the screen, an aurora glows in the sky beyond the frontier, and the panels get a touch of frost.',
+    'Turn it on in Menu → Ground → Winter. If you were using the Halloween ground, you’re on Winter already. It only changes the look: your ore, buildings and save stay the same.'
+  ]},
   {n:44,date:'2026-11-02',title:'Smarter Mag-rail, more Nova, more orbital research',items:[
     'Rail Terminals have letters. A sender can go to the nearest receiver that takes its load (Auto) or always to a letter you pick. A receiver can accept only chosen items, so one line can feed several factories.',
     'New Mag-rail research: Wider shuttles (300 a load), Rail express (50% faster) and Big terminals (twice the storage).',

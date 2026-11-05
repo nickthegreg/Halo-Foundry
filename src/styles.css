@@ -230,3 +230,6 @@ textarea.code{width:100%;min-height:88px;resize:vertical;border-radius:12px;bord
 .news{margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.4;color:var(--text)}
 .news li::marker{color:var(--sun)}
 .seg button:disabled{opacity:.4;cursor:default}
+/* Winter ground: frosted panels */
+body[data-biome="winter"] .glass,body[data-biome="winter"] .band{border-color:rgba(190,225,255,.32);box-shadow:inset 0 1px 0 rgba(220,240,255,.22)}
+body[data-biome="winter"] .sheet,body[data-biome="winter"] .card{border-color:rgba(190,225,255,.3);box-shadow:0 -24px 48px rgba(0,0,0,.5),inset 0 2px 0 rgba(230,245,255,.25)}
