@@ -1,6 +1,7 @@
 import {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {genGalaxy,moonSeedMul,QUADS,BANDS,bandOf,SPECIALS,BIAS,GAL_RINGS} from './data/galaxy.js';
+import {FIRST_STEPS,HOWTO,FAQ} from './data/guide.js';
 import {CLIENTS,TIMED_SIZES,OBJECTIVES,OBJ_BONUS,OBJ_ALL,BANES,ACH} from './data/goals.js';
 import {EV,CANDY_UP} from './data/event.js';
 import {makeDefense} from './defense.js';
@@ -339,11 +340,11 @@ function checkMs(){
 function launchLattice(b){
   const c0=crownN();S.lat=(S.lat||0)+1;LAUNCHED_L++;sfx('launch',b.x+1.5,b.y+1.5);
   PARTS.push({k:'lattice',x:b.x+1.5,y:b.y+1.5,vx:(Math.random()-.5)*.4,vy:-1.2,life:3.2,max:3.2});
-  if(crownN()>c0){const n=crownN();burst(CX,CY,'#c99bff',50);sfx('fanfare');showBanner('Crown '+roman(n)+' complete',`${S.lat} Lattice cores in orbit. +1 Crown point: spend it in Menu → Crown. Next Crown at ${crownReq(n)}.`);save()}
+  if(crownN()>c0){const n=crownN();burst(CX,CY,'#c99bff',50);sfx('fanfare');showBanner('Crown '+roman(n)+' complete',`${S.lat} Lattice cores in orbit. +1 Crown point: spend it in Menu → Powers. Next Crown at ${crownReq(n)}.`);save()}
 }
 function launch(b){
   const c0=constN(S.petals);S.petals++;LAUNCHED++;sfx('launch',b.x+1.5,b.y+1.5);
-  if(constN(S.petals)>c0){const n=constN(S.petals);burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showBanner('Constellation '+roman(n)+' complete',`${S.petals} petals in orbit. +1 Commander point: spend it in Menu → Commander. Next constellation at ${constReq(n)}.`);save()}
+  if(constN(S.petals)>c0){const n=constN(S.petals);burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showBanner('Constellation '+roman(n)+' complete',`${S.petals} petals in orbit. +1 Commander point: spend it in Menu → Powers. Next constellation at ${constReq(n)}.`);save()}
   PARTS.push({k:'petal',x:b.x+1.5,y:b.y+1.5,vx:(Math.random()-.5)*.4,vy:-1.2,life:3.2,max:3.2});
   const m=MS[S.ms];
   if(m&&m.launch){S.prog.petal=Math.min(PET_GOAL,(S.prog.petal||0)+1);checkMs()}
@@ -995,18 +996,22 @@ function novaMenu(){
 function showAscension(){
   const A=S.asc,T=lifeSeeds(),n=ascN();
   const card=(title,eff,desc,right)=>`<div class="ms cur"><div class="ms-top"><h4>${title}</h4><span class="st">${eff}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${desc}</div>${right||''}</div></div>`;
-  let h=`<div class="card-head"><h3>Ascension</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
-  <p><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend · ${T.toLocaleString()} earned in all · ${n} ascension${n===1?'':'s'}</p>
+  const sl=starMenu(),tb=[['ascend','Ascend'],['shop','Shop'],['relics','Relics']];if(sl)tb.push(['star','Starlight']);
+  const head=`<div class="card-head"><h3>Ascension</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${tabs('asc',tb)}`,t=TAB.asc;
+  let h=`<p><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend · ${T.toLocaleString()} earned in all · ${n} ascension${n===1?'':'s'}</p>
   ${S.moon?`<p style="font-size:14px">This moon: <strong>${S.moon.n}</strong> (${moonWhere(S.moon)}). ${moonTraits({mods:modList(),bias:S.moon.bias,sp:S.moon.sp}).join(' ')} Starseeds ×${modSeedMul()} when you leave.</p>`:S.mod&&MODS[S.mod]?`<p style="font-size:14px">This moon: <strong>${MODS[S.mod].n}</strong>. ${MODS[S.mod].d} Starseeds ×${MODS[S.mod].seeds} when you leave.</p>`:''}
   <div class="actions"><button class="btn" data-galaxy>Galaxy map</button></div>
   <div class="sec-label">Always on</div><div class="ms-list">
-  ${card('Starseeds earned',T+' total',`Starseeds you have ever earned add ore to every tile and a chance that a Fabricator makes an extra batch or an Uplink beams an item twice. Both start fast, then keep growing with the square root of the total, with no cap: about +2.8× ore and 74% duplication at 10,000, +8.7× ore and 233% duplication at 100,000. Now: +${Math.round(seedOreB()*100)}% ore, ${Math.round(seedDupB()*100)}% duplication.`)}
-  ${card('Ascensions',n+' so far',`Each ascension gives +1 Commander point and +20% Core power (${fmtW(coreKW())} now). Every ascension you choose a Relic.`)}
+  ${card('Starseeds earned',T.toLocaleString()+' total',`Every Starseed you have ever earned keeps working for you, spent or not. Each tile holds more ore, and Fabricators and Uplinks get a growing chance to make or send one extra for free. The gains come fastest early and never stop. Now: <strong>+${Math.round(seedOreB()*100)}% ore</strong> and a <strong>${Math.round(seedDupB()*100)}% chance</strong> of an extra (past 100%, always one and sometimes two).`)}
+  ${card('Ascensions',n+' so far',`Each ascension gives +1 Commander point and +20% Core power (${fmtW(coreKW())} now), a Relic to choose, and a bane to accept.`)}
   </div>`;
   if(S.relicPick)h+=`<div class="actions"><button class="btn primary" data-relicshow>Choose your Relic</button></div>`;
+  const hAsc=h;h='';
   const rc={};for(const r of S.relics||[])rc[r]=(rc[r]||0)+1;
   if(META.crelics.length)for(const r of META.crelics)rc[r]=(rc[r]||0)+1;
-  if(Object.keys(rc).length)h+=`<div class="sec-label">Relics · ${Object.values(rc).reduce((a,b)=>a+b,0)}</div><div class="ms-list">${Object.keys(rc).sort((a,b)=>'lerc'.indexOf(RELICS[a].r)-'lerc'.indexOf(RELICS[b].r)).map(k=>card(relicTitle(k),(rc[k]>1?'×'+rc[k]+' · ':'')+RARITY[RELICS[k].r].n,relicText(k)+(RELICS[k].sig?' From the '+CHALLENGES[RELICS[k].sig].n+' challenge; works in every main game.':k==='moonheart'?' For reaching the heart of a moon.':RELICS[k].ring?' For closing the Halo Ring.':''))).join('')}</div>`+forgeRow()+baneRow()+starMenu();
+  if(Object.keys(rc).length)h+=`<div class="sec-label">Relics · ${Object.values(rc).reduce((a,b)=>a+b,0)}</div><div class="ms-list">${Object.keys(rc).sort((a,b)=>'lerc'.indexOf(RELICS[a].r)-'lerc'.indexOf(RELICS[b].r)).map(k=>card(relicTitle(k),(rc[k]>1?'×'+rc[k]+' · ':'')+RARITY[RELICS[k].r].n,relicText(k)+(RELICS[k].sig?' From the '+CHALLENGES[RELICS[k].sig].n+' challenge; works in every main game.':k==='moonheart'?' For reaching the heart of a moon.':RELICS[k].ring?' For closing the Halo Ring.':''))).join('')}</div>`+forgeRow();
+  else h+='<p class="guide">No Relics yet. You choose one each time you Ascend, and a few other feats award them.</p>';
+  h+=baneRow();const hRel=h;h='';
   const brs=[...new Set(Object.keys(SS).map(k=>SS[k].br||''))];
   for(const br of brs){
   h+=`<div class="sec-label">${br?'Starseeds · '+br:'Starseed shop'}</div>${br==='Deep space'&&ascN()<2?'<p style="font-size:14px">For the late game, which opens from your second ascension.</p>':''}<div class="ms-list">${Object.keys(SS).filter(k=>(SS[k].br||'')===br&&!(SS[k].minAsc&&ascN()<SS[k].minAsc&&!ssLv(k))).map(k=>{const u=SS[k],L=ssLv(k),mx=L>=u.max,lock=u.req&&!ssLv(u.req),c=mx?0:u.cost(L),ok=!mx&&!lock&&A.seeds>=c;
@@ -1016,10 +1021,12 @@ function showAscension(){
     if(lock)d+=` Needs ${SS[u.req].n} first.`;
     return card(`${u.n} · level ${L}`,u.eff(L),d,mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-ss="${k}">✦ ${c}</button>`)}).join('')}</div>`;
   }
-  const g=ascSeeds();
-  h+=`<div class="sec-label">Ascend</div>`+(canAscend()?`<p style="font-size:14px">Start again on a new moon, at the start of the main game. You keep Ember shards, Nova shards and Nova upgrades, Starseeds and the shop, Relics, your Commander, and blueprints. Everything else resets: buildings, storage, research, Menu upgrades, petals and tiers. Starseeds = √(Aether in storage + 3 × Aether husks in storage), +5% for every grid and furnace tier reached${ringN()?`, ×${ringSeedMul().toFixed(2)} from ${ringN()} Halo Ring segment${ringN()===1?'':'s'}`:''}. Husks come from burning Aether in Reactors and must be belted to the Core. Right now: ${(S.inv.aether||0).toLocaleString()} Aether and ${(S.inv.husk||0).toLocaleString()} husks, ×${seedTierMul().toFixed(2)}, gives ${g}.</p>
-  <div class="actions"><button class="btn primary" data-ascend>Ascend for +${g} Starseed${g===1?'':'s'} →</button></div>`:hasAether()?`<p style="font-size:14px">Ascension ${ascN()+1} needs at least <strong>${ascMin().toLocaleString()} Starseeds</strong>. Right now you’d get ${ascSeeds().toLocaleString()}: store more Aether and husks, or climb more grid and furnace tiers.</p>`:'<p style="font-size:14px">Store some Aether to Ascend again.</p>');
-  openModal(h);
+  const hShop=h,g=ascSeeds();
+  const mulTxt=[seedTierMul()>1?`×${seedTierMul().toFixed(2)} from tiers`:'',modSeedMul()!==1?`×${modSeedMul()} from this moon`:'',ringN()?`×${ringSeedMul().toFixed(2)} from the Halo Ring`:'',objMul()>1?`×${objMul().toFixed(2)} from objectives`:''].filter(Boolean).join(', ');
+  const asc=`<div class="sec-label">Ascend</div>`+(canAscend()?`<div class="ms cur"><div class="ms-unl">Leave this moon for a fresh one and bank <strong>${g.toLocaleString()} Starseed${g===1?'':'s'}</strong>.<br><b>You keep:</b> Starseeds and everything bought with them, Relics, Ember and Nova shards, Nova upgrades, your Commander and blueprints.<br><b>Left behind:</b> buildings, storage, research, Factory upgrades, petals and tiers.</div><div class="ms-unl" style="font-size:12.5px;opacity:.8">Starseeds grow with the square root of what’s in storage: ${(S.inv.aether||0).toLocaleString()} Aether + 3 × ${(S.inv.husk||0).toLocaleString()} husks${mulTxt?', '+mulTxt:''}. Husks are what Reactors leave behind; belt them to the Core.</div>
+  <button class="btn primary" data-ascend>Choose your next moon →</button></div>`:hasAether()?`<p class="guide">Ascension ${ascN()+1} needs at least <strong>${ascMin().toLocaleString()} Starseeds</strong>, and right now you’d get ${ascSeeds().toLocaleString()}. Store more Aether and husks, or climb more grid and furnace tiers.</p>`:'<p class="guide">Ascending trades the Aether in your storage for Starseeds and a fresh moon. Build a Refinery, keep some Aether in storage, and this is where you leave from.</p>');
+  {const k='<div class="sec-label">Always on</div>',x=hAsc.indexOf(k);h=hAsc.slice(0,x)+asc+hAsc.slice(x)}
+  openModal(head+(t==='shop'?`<p class="guide"><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend. Everything here is permanent.</p>`+hShop:t==='relics'?hRel:t==='star'?sl:h));
 }
 function relicTitle(k){return `<span style="color:${RARITY[RELICS[k].r].col}">${RELICS[k].n}</span>`}
 // Three different Relics, weighted by rarity; challenge relics never come from here
@@ -2207,7 +2214,7 @@ function hudTick(force){
     $('#goalReqs').classList.toggle('rs',S.ms>=MS.length);$('#goalReqs').innerHTML=cur?techHudChips(cur):'<span class="req">Pick what to research next</span>';
   }
   runTick();{const L=runLabel();if(L)$('#goalEyebrow').textContent=L}
-  if(!S.flags.ascHint&&canAscend()){S.flags.ascHint=1;showBanner('Ascension unlocked','You have Aether in storage. Open Menu → Ascension to start a new moon and earn Starseeds.');save()}
+  if(!S.flags.ascHint&&canAscend()){S.flags.ascHint=1;showBanner('Ascension unlocked','You have Aether in storage. Open Menu → Powers → Ascension to trade it for Starseeds and start on a new moon, stronger than before.');save()}
   if(S.bs&&coreWant()>3){const c=coreB();if(c&&c.w<coreWant())growCore()}
   // grid and furnace ladder markers
   const lb=$('#ladBox'),lo=S.ms>=MS.length;if(lb.hidden===lo)lb.hidden=!lo;
@@ -2377,20 +2384,26 @@ elSheet.addEventListener('click',e=>{
 function openModal(html){STATS_OPEN=false;RES_OPEN=false;elCard.innerHTML=html;elModal.hidden=false}
 function closeModal(){STATS_OPEN=false;RES_OPEN=false;elModal.hidden=true}
 elModal.addEventListener('click',e=>{if(e.target===elModal)closeModal()});
-const HOWTO=`<ol class="howto">
-<li><span>1</span><span>Pick a building in the bottom bar, then tap the ground. It goes down as a <strong>blueprint</strong> and the Core sends a pulse out to build it. In the tutorial, Conveyors and Crossings appear instantly. In the main game they need pulses too, and one pulse builds a whole dragged line.</span></li>
-<li><span>2</span><span>Machines push items out of their <strong>bright edge</strong> and take items in from the other sides. Aim with the round arrow button before placing.</span></li>
-<li><span>3</span><span>With <strong>Conveyor</strong> picked, drag one finger to lay a line. Dragging across another conveyor adds a <strong>Crossing</strong>.</span></li>
-<li><span>4</span><span>Two fingers pan and pinch-zoom. With <strong>Inspect</strong> picked, one finger pans too.</span></li>
-<li><span>5</span><span>Cuprite and ferrite mine fast but run dry. <strong>Carbon</strong> is slow and nearly endless, so claim the ground around it.</span></li>
-<li><span>6</span><span>Belt items into the <strong>Core</strong>. They count toward the milestone first, then go to storage for building.</span></li>
-<li><span>7</span><span>Over the power budget, everything slows down. Nights are dark for solar.</span></li>
-<li><span>8</span><span>The first six milestones are the tutorial. After two more, you climb <strong>grid tiers</strong> by raising sustained power output.</span></li>
-</ol>`;
+const ol=a=>`<ol class="howto">${a.map((t,i)=>`<li><span>${i+1}</span><span>${t}</span></li>`).join('')}</ol>`;
+// Tabs inside a modal: TAB remembers the last tab of each panel
+const TAB={menu:'factory',asc:'ascend',prog:'goals',help:'how'};
+function tabs(g,list){if(!list.some(([k])=>k===TAB[g]))TAB[g]=list[0][0];return `<div class="seg tabs">${list.map(([k,n])=>`<button data-tab="${g}:${k}" class="${TAB[g]===k?'on':''}">${n}</button>`).join('')}</div>`}
+const TAB_SHOW={menu:()=>showMenu(),asc:()=>showAscension(),prog:()=>showMilestones(),help:()=>showHelp()};
+// What to do next, in one or two sentences, from where the player is now
+function nextStep(){
+  if(!isCamp())return S.mode==='daily'?'Deliver as much as you can to the Core before the clock runs out. Better parts score more.':'Reach this challenge’s goal under its one rule. Progress shows the goal.';
+  if(S.ms<TUT){const m=MS[S.ms];return `Tutorial goal ${S.ms+1} of ${TUT}: <strong>${m.n}</strong>. ${m.b} The counters at the top of the screen show what the Core still needs.`}
+  if(S.ms<MS.length){const m=MS[S.ms];return `Main game goal: <strong>${m.n}</strong>. ${m.b}`}
+  if(canAscend())return 'You have enough Aether to <strong>Ascend</strong> (Powers → Ascension). Staying longer earns more Starseeds, but each one costs more than the last.';
+  if(!(S.refined>0)&&!ascN()){const r=S.unl.includes('refinery');return r?'Build a <strong>Refinery</strong> and feed it raw ore to make your first Aether. With Aether in storage, you can Ascend.':'Keep your power surplus up to fill Charge, and spend it on <strong>research</strong> (tap the top bar). Climb grid and furnace tiers to open more research; the Refinery, and Aether, lie that way.'}
+  return 'Store Aether and husks for Starseeds, work on this moon’s objectives (Progress → Goals), and Ascend when the moon starts to feel slow.'}
 function showWelcome(){
-  openModal(`<span class="eyebrow">A moon, a star, a factory</span><h1>Halo Foundry</h1><p>Drill the moon, smelt and assemble, and belt it all into the Core. The tutorial ends with sail petals in orbit around the star. Then the real work begins: a power grid that keeps growing.</p>${HOWTO}<button class="btn primary" data-close>Start building</button>`);
+  openModal(`<span class="eyebrow">A moon, a star, a factory</span><h1>Halo Foundry</h1><p>Somewhere above this little moon is a star worth catching. Dig, smelt, build, and send what you make to the Core. Your first job is to light a halo of sails around the star. After that the moon is yours, and then the next one.</p><div class="sec-label">Your first five minutes</div>${ol(FIRST_STEPS)}<p style="font-size:13px">Stuck later on? Menu → Guide has How to play, answers to common questions, and a hint for what to do next.</p><button class="btn primary" data-close>Start building</button>`);
 }
-function showHelp(){openModal(`<div class="card-head"><h3>How to play</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${HOWTO}<p>Desktop: drag to pan, wheel to zoom, R rotates, Esc returns to Inspect, right-drag always pans.</p>`)}
+function showHelp(){
+  const how=HOWTO.map(([t,ls])=>`<div class="sec-label">${t}</div>${ls.map(l=>`<p class="guide">${l}</p>`).join('')}`).join('');
+  const faq=FAQ.map(([q,a])=>`<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join('');
+  openModal(`<div class="card-head"><h3>Guide</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${tabs('help',[['how','How to play'],['faq','Questions']])}${S?`<div class="ms cur"><div class="ms-top"><h4>What now?</h4></div><div class="ms-unl">${nextStep()}</div></div>`:''}${TAB.help==='faq'?faq:how}`)}
 function msCard(m,i){
   const done=i<S.ms,cur=i===S.ms,cls=done?'done':cur?'cur':'future';
   const reqs=Object.keys(m.req).map(k=>{const h=done?m.req[k]:cur?Math.min(S.prog[k]||0,m.req[k]):0;return `<span class="req${h>=m.req[k]?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${h}/${m.req[k]}<i style="width:${h/m.req[k]*100}%"></i></span>`}).join('');
@@ -2399,9 +2412,13 @@ function msCard(m,i){
 }
 function showMilestones(){
   const sec=t=>`<div class="sec-label">${t}</div>`;
-  let h=`<div class="card-head"><h3>Progress</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><div class="ms-list">`;
-  h+=objSection();
-  MS.forEach((m,i)=>{if(i===0)h+=sec('Tutorial');if(i===TUT)h+=sec('Main game');h+=msCard(m,i)});
+  const tb=[['goals','Goals'],['tiers','Tiers'],['orbit','Orbit']];if(isCamp())tb.push(['awards','Awards']);
+  const head=`<div class="card-head"><h3>Progress</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${tabs('prog',tb)}<div class="ms-list">`,t=TAB.prog;
+  let h=objSection();
+  // finished tutorial goals fold away once the main game starts
+  if(S.ms>=TUT){h+=sec('Main game');MS.forEach((m,i)=>{if(i>=TUT)h+=msCard(m,i)});h+=`<details class="faq"><summary>Tutorial · complete</summary><div class="ms-list">${MS.slice(0,TUT).map((m,i)=>msCard(m,i)).join('')}</div></details>`}
+  else MS.forEach((m,i)=>{if(i===0)h+=sec('Tutorial');if(i===TUT)h+=sec('Main game');h+=msCard(m,i)});
+  const hGoals=h;h=S.ms<MS.length?'<p class="guide">The two ladders open once you sign the Grid Charter, the last main-game goal. From then on you climb by holding your power output at each tier’s level.</p>':'';
   h+=sec('Grid ladder · solar power');
   const top=Math.max(S.gt+3,RUNGS.length+1);
   for(let i=0;i<top;i++){
@@ -2417,6 +2434,7 @@ function showMilestones(){
   }
   if(late()&&(orbDone('ringdesign')||ringN())){h+=sec(`Halo Ring · ${ringN()} of 12 segments`);h+=`<p style="font-size:14px">Launched from a Spaceport. Each segment: +10% power from every source, +3% machine speed, +10% Starseeds when you Ascend.</p>`;
     for(const [n,t] of RING_MS){const done=ringN()>=n;h+=`<div class="ms ${done?'done':'cur'}"><div class="ms-top"><h4>${n} segments</h4><span class="st">${done?'Reached':ringN()+' / '+n}</span></div><div class="ms-unl">${t}${n===12&&(S.ringWins||0)>0?` Closed ${S.ringWins} time${S.ringWins===1?'':'s'} so far.`:''}</div></div>`}}
+  const hTiers=h;h='<p class="guide">Everything you launch from a Launch Ring stays in orbit for good. Petals build Constellations and Lattice cores build Crowns; each one completed gives a point to spend in Menu → Powers.</p>';
   h+=sec('Crowns · Lattice cores in orbit');
   {const cn=crownN();for(let i=0;i<cn+2;i++){const q=crownReq(i),done=i<cn,cur=i===cn,prev=i?crownReq(i-1):0,f=done?1:cur?Math.max(0,Math.min(1,((S.lat||0)-prev)/(q-prev))):0;
     h+=`<div class="ms ${done?'done':cur?'cur':'future'}"><div class="ms-top"><h4>Crown ${roman(i+1)}</h4><span class="st">${done?'Complete':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}"><img src="${ICON.lattice}" alt="Lattice core">${cur?(S.lat||0)+' / ':''}${q} cores<i style="width:${f*100}%"></i></span></div><div class="ms-unl">+1 Crown point. Each Lattice core in orbit adds ${fmtW(latticeKW())} of solar.</div></div>`}}
@@ -2426,8 +2444,7 @@ function showMilestones(){
     const q=constReq(i),done=i<cn,cur=i===cn,prev=i?constReq(i-1):0,f=done?1:cur?Math.max(0,Math.min(1,(S.petals-prev)/(q-prev))):0;
     h+=`<div class="ms ${done?'done':cur?'cur':'future'}"><div class="ms-top"><h4>Constellation ${roman(i+1)}</h4><span class="st">${done?'Complete':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}"><img src="${ICON.petal}" alt="Sail petal">${cur?S.petals+' / ':''}${q} petals<i style="width:${f*100}%"></i></span></div><div class="ms-unl">+1 Commander point.</div></div>`;
   }
-  if(isCamp())h+=achSection();
-  openModal(h+'</div>');
+  openModal(head+(t==='tiers'?hTiers:t==='orbit'?h:t==='awards'?achSection():hGoals)+'</div>');
 }
 // ---------- what's new ----------
 const SEEN_KEY='halo-foundry-seen';
@@ -2453,28 +2470,35 @@ setInterval(()=>{if(!document.hidden)checkUpdate()},600000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 let resetArm=0;
 function showMenu(){
-  openModal(`<div class="card-head"><h3>Menu</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
+  const T=tabs('menu',[['factory','Factory'],['powers','Powers'],['guide','Guide'],['settings','Settings']]),t=TAB.menu;let h='';
+  if(t==='factory')h=`<p class="guide">Upgrades for this moon, paid from Core storage. They reset when you Ascend.</p>
   <div class="sec-label">Upgrades</div><div class="ms-list">${Object.keys(UPG).map(k=>{const u=UPG[k],L=S.up[k]||0,mx=u.max&&L>=u.max,c=mx?{}:u.cost(L),ok=!mx&&canAfford(c);
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${u.eff(L)}</span></div><div class="ms-unl">${u.d}</div><div class="actions" style="align-items:center"><div class="ms-req" style="flex:1">${Object.keys(c).map(i=>`<span class="req${(S.inv[i]||0)>=c[i]?' done':''}"><img src="${ICON[i]}" alt="${ITEMS[i].n}">${(S.inv[i]||0).toLocaleString()}/${c[i].toLocaleString()}</span>`).join('')}</div>${mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 18px" data-up="${k}">Upgrade</button>`}</div></div>`}).join('')}</div>
   <div class="sec-label">Halo</div><p style="font-size:14px">Each sail petal gives <strong>${petalKW().toFixed(1)} kW</strong> before other bonuses: ×${haloMul().toFixed(2)} from ${upTotal()} upgrade level${upTotal()===1?'':'s'} (+1% each, compounding).</p>
+  <div class="actions"><button class="btn" data-stats>Production</button><button class="btn" data-prog>Progress</button></div>
+  <div class="actions"><button class="btn${bneck?' primary':''}" data-bneck>Bottleneck markers: ${bneck?'on':'off'}</button></div>
+  ${S.mode==='daily'?`<div class="actions">${S.dEnd?`<button class="btn primary" data-dend>Daily results and rewards</button>`:`<button class="btn primary" data-dfinish>Finish daily run now</button>`}</div>`:''}
+`;
+  else if(t==='powers')h=`<p class="guide">Lasting strengths. Commander and Crown points come from what you put in orbit; Nova upgrades and everything under Ascension stay with you from moon to moon.</p>
+  ${ascMenu()}
   <div class="sec-label">Commander · ${cmdPts()} point${cmdPts()===1?'':'s'} to spend</div><p style="font-size:14px">Earn a point for every Constellation of sail petals in orbit. Next at ${constReq(constN(S.petals))} petals (${S.petals} now). Points and levels carry over when you Ascend.</p><div class="ms-list">${Object.keys(CMD).map(k=>{const u=CMD[k],L=cmdLv(k),mx=u.max&&L>=u.max,ct=cmdCost(k),ok=!mx&&cmdPts()>=ct;
-    return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4>${mx?'<span class="st">Maxed</span>':''}</div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-cmd="${k}">+1 · ${ct} pt${ct===1?'':'s'}</button>`}</div></div>`}).join('')}</div>
+    return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4>${mx?'<span class="st">Maxed</span>':''}</div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${testerOK()?u.d:u.d.split(' Candy Defense:')[0]}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-cmd="${k}">+1 · ${ct} pt${ct===1?'':'s'}</button>`}</div></div>`}).join('')}</div>
   ${evOver()&&(META.candy||0)>0?'<div class="actions"><button class="btn" data-evshop>🍬 Candy shop</button></div>':''}
   ${crownMenu()}
-  ${novaMenu()}
-  ${ascMenu()}
-  <div class="sec-label">Ground</div><div class="seg">${BIOME_KEYS.map(k=>`<button data-biome="${k}" class="${BIOME===k?'on':''}">${BIOMES[k].n}</button>`).join('')}</div>
+  ${novaMenu()}`;
+  else if(t==='guide')h=`<div class="ms cur"><div class="ms-top"><h4>What now?</h4></div><div class="ms-unl">${nextStep()}</div></div>
+  <div class="actions"><button class="btn primary" data-help>How to play</button><button class="btn" data-faq>Questions</button></div>
+  <div class="actions"><button class="btn" data-prog>Progress</button><button class="btn" data-news>What's new</button></div>`;
+  else h=`<div class="sec-label">Ground</div><div class="seg">${BIOME_KEYS.map(k=>`<button data-biome="${k}" class="${BIOME===k?'on':''}">${BIOMES[k].n}</button>`).join('')}</div>
   <div class="sec-label">Sound</div>
   <label class="slider" for="musicVol"><span>Music</span><input id="musicVol" type="range" min="0" max="100" value="${Math.round(AU.mv*100)}"></label>
   <label class="slider" for="sfxVol"><span>Effects</span><input id="sfxVol" type="range" min="0" max="100" value="${Math.round(AU.sv*100)}"></label>
   <div class="actions" style="align-items:center"><p style="flex:1;font-size:14px">${AU.cur?`Now playing <strong>${AU.cur}</strong> · ${AU.genre}`:AU.ctx?'Between tunes':'Sound starts after your first tap'}</p><button class="btn" style="flex:none;padding:0 16px" data-next>Next tune</button></div>
   ${testerOK()?`<div class="sec-label">Game speed · tester</div><div class="seg">${[1,2,3].map(v=>`<button data-speed="${v}" class="${speed===v?'on':''}">${v}×</button>`).join('')}</div>`:`<div class="sec-label">Tester access</div><form class="seg" id="testerForm"><input id="testerPw" type="password" autocomplete="off" placeholder="Password" aria-label="Tester password" style="flex:2;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--raise);color:var(--text);padding:0 12px;font:inherit"><button type="submit">Unlock</button></form><p id="testerMsg" style="font-size:13px">Unlocks game speed controls for testing.</p>`}
-  <p>Progress saves on this device every few seconds.</p>
-  <div class="actions"><button class="btn" data-stats>Production</button><button class="btn" data-savecode>Save code</button></div>
-  <div class="actions"><button class="btn${bneck?' primary':''}" data-bneck>Bottleneck markers: ${bneck?'on':'off'}</button></div>
-  <div class="actions"><button class="btn" data-news>What's new</button><button class="btn" data-help>How to play</button></div>
-  ${S.mode==='daily'?`<div class="actions">${S.dEnd?`<button class="btn primary" data-dend>Daily results and rewards</button>`:`<button class="btn primary" data-dfinish>Finish daily run now</button>`}</div>`:''}
-  <div class="actions"><button class="btn" data-mm="title">Main menu</button><button class="btn danger" data-reset>${isCamp()?'Start over':'Restart run'}</button></div>`);
+  <div class="sec-label">Save</div><p class="guide">Progress saves on this device every few seconds. A save code moves this game to another device.</p>
+  <div class="actions"><button class="btn" data-savecode>Save code</button><button class="btn" data-mm="title">Main menu</button></div>
+  <div class="actions"><button class="btn danger" data-reset>${isCamp()?'Start over':'Restart run'}</button></div>`;
+  openModal(`<div class="card-head"><h3>Menu</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${T}${h}`);
 }
 function showFinale(){openModal(`<span class="eyebrow">Tutorial complete</span><h1>The halo is lit</h1><p>${PET_GOAL} sail petals now circle the star. From here on, conveyors need construction pulses too, and the Core can send a second pulse at once. Two milestones stand between you and the <strong>Grid Charter</strong>. After that, progress is measured in sustained power, and the ladder has no top.</p><button class="btn primary" data-close>Start the main game</button>`)}
 function testerOK(){try{return localStorage.getItem('halo-foundry-tester')==='1'}catch(_){return false}}
@@ -2548,7 +2572,10 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.bpuse!=null){const x=loadBPS()[+b.dataset.bpuse];if(x)startPaste(x.L)}
   else if(b.dataset.bpdel!=null){if(Date.now()-(b._arm||0)<3000){const a=loadBPS();a.splice(+b.dataset.bpdel,1);storeBPS(a);showBlueprints()}else{b._arm=Date.now();b.textContent='Tap again'}}
   else if(b.hasAttribute('data-next')){musicNext();setTimeout(showMenu,60)}
-  else if(b.hasAttribute('data-help'))showHelp();
+  else if(b.dataset.tab){const [g,k]=b.dataset.tab.split(':');if(TAB_SHOW[g]){TAB[g]=k;sfx('tick');TAB_SHOW[g]()}}
+  else if(b.hasAttribute('data-help')){TAB.help='how';showHelp()}
+  else if(b.hasAttribute('data-faq')){TAB.help='faq';showHelp()}
+  else if(b.hasAttribute('data-prog'))showMilestones();
   else if(b.hasAttribute('data-news'))showNews();
   else if(b.hasAttribute('data-reset')){
     if(Date.now()-resetArm<3000){if(S.mode==='daily'){const first=dLock();startRun(DAILY_KEY,dailyData());showToast(first?'Daily moon restarted. Your first attempt is locked in for today’s prize':'Daily moon restarted: practice run')}else if(S.mode==='challenge'){const c=S.ch;startRun(CH_KEY,chData(c));showToast('Challenge restarted')}else{try{localStorage.removeItem(CUR)}catch(_){}start(null,true);closeModal();showToast('New world generated')}}
@@ -3021,7 +3048,7 @@ function grantOffline(sec){
   <p>You were away <strong>${fmtAway(sec)}</strong>. It ran at <strong>${Math.round(e*100)}%</strong> while you were gone, without using up ore or fuel.${sec>t?` Offline time counts up to ${offCapH()} hours; Long haul raises that.`:''}</p>
   <div class="ms-req">${keys.map(k=>`<span class="req done"><img src="${ICON[k]}" alt="${ITEMS[k].n}">+${got[k].toLocaleString()}</span>`).join('')}${ch>=1?`<span class="req done">${BOLT}+${Math.floor(ch).toLocaleString()} MJ</span>`:''}</div>
   ${ll>0?`<p><strong>${ll.toLocaleString()}</strong> Lattice core${ll===1?' was':'s were'} launched into orbit (${S.lat.toLocaleString()} now).</p>`:''}
-  ${pl>0?`<p><strong>${pl.toLocaleString()}</strong> sail petal${pl===1?' was':'s were'} launched into orbit (${S.petals.toLocaleString()} now).${cg>0?` <strong>${cg===1?'A Constellation':cg+' Constellations'}</strong> completed: +${cg} Commander point${cg===1?'':'s'} in Menu → Commander.`:''}</p>`:''}
+  ${pl>0?`<p><strong>${pl.toLocaleString()}</strong> sail petal${pl===1?' was':'s were'} launched into orbit (${S.petals.toLocaleString()} now).${cg>0?` <strong>${cg===1?'A Constellation':cg+' Constellations'}</strong> completed: +${cg} Commander point${cg===1?'':'s'} in Menu → Powers.`:''}</p>`:''}
   <button class="btn primary" data-close>Collect</button>`);
   hudTick(true);save();
 }

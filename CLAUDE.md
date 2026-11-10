@@ -9,3 +9,4 @@
 - `docs/reference.md` and `docs/reference.csv` (base building speeds, mining, smelting, recipes, power) are generated from `src/data/game.js`: rerun `node tests/reference.mjs` after changing game data.
 - Late-game content (ascension 2+: new ores, Separator, Spaceport, orbital research, Mag-rail, Halo Ring, Starseed branches) is gated by `late()` in main.js; see `docs/ideas-late-game.md`.
 - Design ideas for future features live in `docs/` (e.g. `docs/ideas-ascension.md`, `docs/candy-defense.md`). Read them before building those features.
+- Player guide text (welcome steps, How to play, FAQ) lives in `src/data/guide.js`. Modal panels with tabs use `tabs(group, list)` and the `TAB` state in main.js. Write descriptions for the player: what a thing is for first, then how it works, in plain second person; update the FAQ when a new system lands.

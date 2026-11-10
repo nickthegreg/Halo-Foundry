@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:52,date:'2026-11-10',title:'Tidier menus, a proper guide and an FAQ',items:[
+    'The Menu is now four tabs: Factory (this moon’s upgrades, Production, bottleneck markers), Powers (Ascension, Commander, Crown, Nova workshop), Guide and Settings.',
+    'New Guide: a rewritten How to play that explains where the game is heading, a Questions tab with answers to the things people get stuck on, and a “What now?” hint that tells you your next step from wherever you are.',
+    'Ascension and Progress are tabbed too, so the Starseed shop, Relics, tiers and achievements are a tap away instead of a long scroll. The Ascend button now sits at the top with a plain list of what you keep and what you leave behind.',
+    'Every building has a new description that says what it’s for as well as how it works, and the tutorial goals each come with a hint. New players get a short “first five minutes” instead of a wall of rules.'
+  ]},
   {n:51,date:'2026-11-10',title:'Galaxy map and new megaprojects',items:[
     'Galaxy map: when you Ascend you now choose your next moon on a map of 60 moons in 5 rings. Travel to any moon next to one you’ve visited. Moons farther out carry two modifiers and pay up to 40% more Starseeds. Some moons are rich in one ore. Open it any time from the Ascension panel.',
     'Special moons: Derelict (wrecks near the Core to salvage for parts), Bazaar (Market pays double, one more contract), Anomaly (a Rare or better Relic when you land) and Storm moon (30% less solar; reach the last milestone within 4 hours for a Rare Relic and +25% Starseeds).',
