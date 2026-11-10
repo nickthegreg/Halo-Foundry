@@ -229,7 +229,7 @@ const SS={
   core:{n:'Core size',max:2,cost:L=>[8,20][L],d:'The Core grows to 5×5, then 7×7, so more lines can feed it. It grows as soon as the tiles around it are clear.',eff:L=>`${3+2*L}×${3+2*L}`},
   trkT:{n:'Trickle: items',max:5,cost:L=>[2,4,8,16,32][L],d:'The Core makes items on its own, as if they were delivered. Each level adds better items.',eff:L=>`tier ${L}`},
   trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`},
-  dense:{n:'Compression',max:2,minAsc:3,cost:L=>[300,1200][L],d:'Level 1: the Compressor and a Dense mode on Drills, Deep Drills, Smelters, Foundries, Fabricators and Assemblers. A dense item is worth 2 and costs 5; drills dig at full speed, machines take 1.5× as long. Level 2 adds Packed: worth 4, costs 20, machines take 2.25× as long.',eff:L=>['off','Dense','Dense + Packed'][L]},
+  dense:{n:'Compression',max:2,minAsc:3,cost:L=>[300,1200][L],d:'Level 1: a Dense mode on Drills, Deep Drills, Smelters, Foundries, Fabricators and Assemblers. A dense item is worth 2 and costs 5; drills dig at full speed, machines take 1.5× as long. Level 2 adds Packed: worth 4, costs 20, machines take 2.25× as long.',eff:L=>['off','Dense','Dense + Packed'][L]},
   // Logistics
   lfit:{br:'Logistics',n:'Light fittings',max:1,cost:()=>40,d:'Splitters, Sorters and Crossings cost nothing to build.',eff:L=>L?'free':'off'},
   bins:{br:'Logistics',n:'Deep bins',req:'lfit',max:2,cost:L=>[60,200][L],d:'Batchers hold 100 of each item, then 200.',eff:L=>`${50*Math.pow(2,L)} each`},
@@ -369,7 +369,7 @@ function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486
   return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','compressor','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
 const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits','petal','lattice'];
 // Packed (second level): 20 → 1 packed item worth 4

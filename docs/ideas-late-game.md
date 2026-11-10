@@ -326,3 +326,5 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
   Packed items `P_<item>` (`PACK_OF`), SS `dense` level 2. Compressor modes 0 dense / 1 packed / 2 unpack.
 - Aether Reactor: 40 MW, 10 s per Aether, +25% per touching reactor (`reactorMul`, `b.nb`), fuel 10; `NOVA_P` /12.
 - Open question: Refinery ratio and speed (see chat 2026-11-10): ratio by ascension, higher floor, flat speed.
+- 2026-11-10: the Compressor building was retired (owner: machines should do the packing). `B.compressor` stays so old
+  saves load; any built ones are removed with their cost refunded on load.

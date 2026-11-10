@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:49,date:'2026-11-10',title:'Compressor retired',items:[
+    'The Compressor is gone, so machines and drills do the packing themselves in Dense and Packed mode. Any Compressors you built are removed and their cost refunded.'
+  ]},
   {n:48,date:'2026-11-10',title:'Packed items and faster Reactors',items:[
     'Drills in Dense mode now dig at full speed: 5 ore per dig for a dense ore worth 2. Only machines take longer in Dense mode (1.5×).',
     'New second level of Compression (1,200 Starseeds): Packed. A packed item is worth 4 and costs 20. Drills dig 20 ore per packed ore at full speed, and machines take 20× the inputs at 2.25× the time. The Compressor gets a Packed mode, and its Unpack mode handles both.',
