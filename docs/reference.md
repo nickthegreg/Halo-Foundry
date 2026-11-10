@@ -37,6 +37,8 @@ Regenerate with `node tests/reference.mjs`.
 | Rail Terminal | 3×3 | 200 Magnet, 50 Gyro, 100 Void glass | uses 300 kW |  |
 | Mag-rail | 1×1 | 4 Magnet, 2 Slagcrete | – |  |
 | Pylon | 1×1 | 10 Slagcrete, 10 Steel | – |  |
+| Space Elevator | 5×5 | 4000 Slagcrete, 1000 Magnet, 1500 Composite plate, 800 Frame | uses 200 MW |  |
+| Deep Core Bore | 5×5 | 5000 Steel, 3000 Slagcrete, 800 Motor, 500 Servo | uses 300 MW |  |
 | Market Uplink | 5×5 | 40 Frame, 200 Circuit, 30 Motor | uses 500 kW |  |
 | Compressor | 1×1 | 20 Steel, 20 Circuit, 4 Motor | uses 60 kW |  |
 | Core | 3×3 | – | makes 120 kW |  |
@@ -105,6 +107,8 @@ Drill reach: 3×3 around it. Deep Drill: 6×6 around its 2×2 body, mines 2.5× 
 | Field kit | 2 Circuit + 2 Gear + 1 Magnet | 4 s | Fabricator, Mk II | 0.25/s | 0.63/s | – |
 | Void kit | 1 Void lens + 1 Processor + 2 Slagcrete | 6 s | Assembler | – | – | 0.17/s |
 | Stellar kit | 2 Photonic chip + 2 Magnet + 2 Void glass + 1 Gyro | 10 s | Assembler | – | – | 0.1/s |
+| Quantum chip | 2 Photonic chip + 1 Void cell + 4 Rare earth + 2 Magma glass | 20 s | Assembler | – | – | 0.05/s |
+| Fusion cell | 4 Helium-3 + 6 Heavy metal + 2 Void glass | 16 s | Assembler | – | – | 0.06/s |
 
 Inputs per second = output per second ÷ output count × each input amount.
 
@@ -120,6 +124,9 @@ Every launch needs a rocket (30 Hull plate + 4 Guidance unit, assembled in 60 s)
 | Lab module | 300 Processor + 200 Photonic chip + 50 Gyro + 100 Void lens + 50 Void cell | 1000 | Adds an orbital lab. Each one studies 1 Experiment kit a second. You start with room for one; orbital research opens a second, third and fourth. |
 | Kit run | 500 Experiment kits (1,000 with Launch logistics) | 500 | Carries Experiment kits up to your labs: 500 a launch, or 1,000 with Launch logistics. |
 | Ring segment | 400 Void glass + 200 Magnet + 100 Gyro + 300 Composite plate + 50 Lattice core + 100 Void cell | 3000 | One of the 12 segments of the Halo Ring. Each costs 25% more than the last. |
+| Deep Array dish | 400 Void lens + 300 Photonic chip + 120 Gyro + 60 Guidance unit | 2000 | A dish for the Deep Array telescope. Each one lets you see one link farther on the galaxy map. Dishes stay up for good, through every ascension. Up to 3; each costs twice the last. |
+| Swarm node | 60 Quantum chip + 60 Fusion cell + 800 Void glass + 60 Lattice core | 4000 | A collector node for a Dyson swarm around the star. Each one adds 5% power and 4% Starseeds on this moon. Every 8 nodes close a shell and earn a Starlight, spent on permanent perks in the Ascension panel. Up to 24 per moon; each costs 12% more. |
+| Seed Ark module | 600 Composite plate + 120 Void cell + 400 Servo + 300 Frame | 1500 | A cargo pod for your next moon. Besides the module itself, belt in up to 5,000 items of anything as cargo (dense and packed items count as one each), then launch. When you Ascend, the cargo is waiting at your new Core. Up to 5 per moon; each costs 40% more than the last. |
 
 ### Orbital research (paid in Experiment kits)
 
@@ -174,6 +181,23 @@ Each segment: +10% power from every source, +3% machine speed, +10% Starseeds wh
 | 6 | Separators give 50% more Rare earth. |
 | 9 | Starseeds ×2 when you Ascend from this moon. |
 | 12 | Ring closed: a unique Relic the first time, a Relic choice every time after. |
+
+### Megaprojects (belted in, one of each per moon)
+
+| Project | Stages | Stage 1 needs | Growth per stage | Effect |
+|---|---|---|---|---|
+| Space Elevator | 8 | 1,500 Slagcrete + 600 Magnet + 800 Composite plate + 600 Void glass | ×1.3 | −6% launch Aether per stage |
+| Deep Core Bore | 6 | 3,000 Steel + 400 Motor + 1,500 Slagcrete + 80 Void cell | ×1.5 | Brings up items (below); last stage: Moonheart Relic, then a Relic choice |
+
+Deep Core Bore output from all sides (before machine speed bonuses):
+
+| Item | From stage | Per second per stage |
+|---|---|---|
+| Heavy metal | 1 | 0.4 |
+| Magma glass | 3 | 0.25 |
+| Helium-3 | 5 | 0.15 |
+
+Starlight (1 per 8-node Dyson swarm shell; level n costs n): Captured sun (max 4): +25% power from every source per level. Star forge (max 4): Every machine works 10% faster per level. Stellar bloom (max 4): +15% Starseeds when you Ascend per level. Deep holds (max 3): Seed Ark modules carry 5,000 more items per level.
 
 ## Power and fuel
 

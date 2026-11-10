@@ -29,6 +29,8 @@ Spaceport,7×7,"10000 Servo, 5000 Slagcrete, 2000 Magnet, 1000 Frame, 200 Guidan
 Rail Terminal,3×3,"200 Magnet, 50 Gyro, 100 Void glass",uses 300 kW,
 Mag-rail,1×1,"4 Magnet, 2 Slagcrete",–,
 Pylon,1×1,"10 Slagcrete, 10 Steel",–,
+Space Elevator,5×5,"4000 Slagcrete, 1000 Magnet, 1500 Composite plate, 800 Frame",uses 200 MW,
+Deep Core Bore,5×5,"5000 Steel, 3000 Slagcrete, 800 Motor, 500 Servo",uses 300 MW,
 Market Uplink,5×5,"40 Frame, 200 Circuit, 30 Motor",uses 500 kW,
 Compressor,1×1,"20 Steel, 20 Circuit, 4 Motor",uses 60 kW,
 Core,3×3,–,makes 120 kW,
@@ -78,3 +80,5 @@ Guidance unit,1 Gyro + 2 Photonic chip + 1 Void cell,10 s,Assembler,–,–,0.1/
 Field kit,2 Circuit + 2 Gear + 1 Magnet,4 s,"Fabricator, Mk II",0.25/s,0.63/s,–
 Void kit,1 Void lens + 1 Processor + 2 Slagcrete,6 s,Assembler,–,–,0.17/s
 Stellar kit,2 Photonic chip + 2 Magnet + 2 Void glass + 1 Gyro,10 s,Assembler,–,–,0.1/s
+Quantum chip,2 Photonic chip + 1 Void cell + 4 Rare earth + 2 Magma glass,20 s,Assembler,–,–,0.05/s
+Fusion cell,4 Helium-3 + 6 Heavy metal + 2 Void glass,16 s,Assembler,–,–,0.06/s

@@ -81,6 +81,13 @@ export const ACH={
   dense:{n:'Packing it in',d:'Make a dense item.',s:3},
   rocket:{n:'Liftoff',d:'Launch a rocket from a Spaceport.',s:5},
   ring:{n:'Ringmaker',d:'Close the Halo Ring.',s:15},
+  explorer:{n:'Explorer',d:'Visit 10 moons on the galaxy map.',s:8},
+  sector:{n:'Cartographer',d:'Earn a sector perk on the galaxy map.',s:6},
+  elevator:{n:'Going up',d:'Finish a Space Elevator.',s:10},
+  heart:{n:'Heart of the moon',d:'Take a Deep Core Bore all the way down.',s:10},
+  ark:{n:'Bon voyage',d:'Launch a Seed Ark module.',s:4},
+  shell:{n:'Shell game',d:'Close a shell of the Dyson swarm.',s:15},
+  salvage:{n:'Scrapper',d:'Salvage a wreck on a Derelict moon.',s:3},
   daily:{n:'Daily driver',d:'Claim a daily moon prize.',s:3},
   challenge:{n:'Challenger',d:'Win a challenge.',s:5}
 };

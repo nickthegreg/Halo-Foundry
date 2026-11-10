@@ -365,3 +365,20 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 - Special nodes: Derelict (ruins to salvage for parts), Bazaar (Market clients pay double), Anomaly (a guaranteed
   rare Relic), Storm moon (a timed challenge with a big reward).
 - Visiting every moon in a sector gives a permanent sector perk. The Deep Array widens sight range.
+
+### Galaxy map and megaprojects (built 2026-11-10)
+- Galaxy: `src/data/galaxy.js` (`genGalaxy(seed)`: home + rings of 4r moons up to 5 rings; quadrants `QUADS` with
+  perks, bands `BANDS` Near 1–2 / Mid 3–4 / Far 5 worth 5/10/15%). State `S.gal` {seed, vis, at} kept across
+  ascensions. Ring 1–2 moons: 0–1 modifier, ring 3+: 2 (clashes avoided). Starseed mul = (1 + 0.1·(ring−1)) × mods.
+  Ore bias doubles one ore. `S.mods` holds every modifier (`S.mod` is the first, for older code); `S.moon` the traits.
+  Sight = 1 + Deep Array dishes (`S.arrLv`, max 3, permanent). The old modifier pick stays as the fallback once every
+  moon is visited.
+- Specials: derelict (`placeWrecks`, B.wreck 2×2, salvage = its cost × (1 + 0.5·(ring−1))), bazaar (`rollReward` ×2,
+  +1 slot), anomaly (`relicExtraR`), storm (solar ×0.7, `stormTick`, 4 h window → rare Relic + `stormWon` ×1.25).
+- Megaprojects fed by belt: `MEGA` in game.js, state `S.mega[k]` {st, have} per moon. Space Elevator (`padFuel` ×
+  (1 − 0.06·stage)); Deep Core Bore (outputs `BORE_OUT` from all 20 edge ports, unlocks Quantum chip at stage 3 and
+  Fusion cell at 5, Moonheart Relic at 6).
+- Spaceport missions: `array`, `ark` (cargo = anything belted beyond the module's own needs, `S.ark` lands in the next
+  moon's inventory; aether/husk/ember/nova refused), `swarm` (after `ringWins`; `S.orb.swarm`, +5% power and +4%
+  Starseeds each; every 8 → `S.starlight`). Starlight perks `STARLIGHT` (`S.sl`).
+- Not built yet: Ice/Coolant moons, Fusion Reactor building, Geodes/Relic shards.

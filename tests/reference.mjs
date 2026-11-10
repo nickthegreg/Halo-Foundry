@@ -2,7 +2,7 @@
 // Run after changing game data:  node tests/reference.mjs
 import {writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {B,ITEMS,RECIPES,SMELT,SMELT_T,ORE_P,BELT_V,SP,CORE_GEN,MISSIONS,ROCKET,ROCKET_T,ORB,ORB_REP,RING_MS} from '../src/data/game.js';
+import {B,ITEMS,RECIPES,SMELT,SMELT_T,ORE_P,BELT_V,SP,CORE_GEN,MISSIONS,ROCKET,ROCKET_T,ORB,ORB_REP,RING_MS,MEGA,BORE_OUT,STARLIGHT} from '../src/data/game.js';
 
 const n=k=>ITEMS[k]?ITEMS[k].n:k, f=(v,d=2)=>{const r=Number(v.toFixed(d));return String(r)};
 const cost=c=>c?Object.keys(c).map(k=>`${c[k]} ${n(k)}`).join(', '):'free';
@@ -16,7 +16,7 @@ Regenerate with \`node tests/reference.mjs\`.
 `);
 
 // ---------- buildings ----------
-const rows=[];for(const k in B){const b=B[k];if(k==='core')continue;
+const rows=[];for(const k in B){const b=B[k];if(k==='core'||b.nobuild)continue;
   const size=(b.w||1)+'×'+(b.w||1),power=b.pw?`uses ${b.pw>=1e6?f(b.pw/1e6)+' GW':b.pw>=1000?f(b.pw/1000)+' MW':b.pw+' kW'}${k==='spaceport'?' standing, 10 GW while building a rocket':k==='incinerator'?' while burning':''}`:b.gen?`makes up to ${b.gen>=1000?f(b.gen/1000)+' MW':b.gen+' kW'}`:'–',speed=b.mult?`×${b.mult}`:'';
   rows.push([b.n,size,cost(b.cost),power,speed])}
 rows.push([B.core.n,'3×3','–',`makes ${CORE_GEN} kW`,'']);
@@ -66,6 +66,16 @@ ${table(['Research','Kits','Effect'],[...Object.keys(ORB).map(k=>[ORB[k].n,kits(
 Each segment: +10% power from every source, +3% machine speed, +10% Starseeds when you Ascend.
 
 ${table(['Segments','Reward'],RING_MS.map(([k,t])=>[String(k),t]))}`);
+
+// ---------- megaprojects ----------
+out.push(`### Megaprojects (belted in, one of each per moon)
+
+${table(['Project','Stages','Stage 1 needs','Growth per stage','Effect'],Object.keys(MEGA).map(k=>{const M=MEGA[k];return [M.n,String(M.stages),kits(M.need),'×'+M.grow,k==='elevator'?'−6% launch Aether per stage':'Brings up items (below); last stage: Moonheart Relic, then a Relic choice']}))}
+Deep Core Bore output from all sides (before machine speed bonuses):
+
+${table(['Item','From stage','Per second per stage'],BORE_OUT.map(([k,st,r])=>[n(k),String(st),f(r)]))}
+Starlight (1 per 8-node Dyson swarm shell; level n costs n): ${Object.values(STARLIGHT).map(u=>`${u.n} (max ${u.max}): ${u.d}`).join(' ')}
+`);
 
 // ---------- power and fuel ----------
 out.push(`## Power and fuel

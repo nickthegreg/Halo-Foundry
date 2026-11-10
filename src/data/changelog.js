@@ -1,6 +1,17 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:51,date:'2026-11-10',title:'Galaxy map and new megaprojects',items:[
+    'Galaxy map: when you Ascend you now choose your next moon on a map of 60 moons in 5 rings. Travel to any moon next to one you’ve visited. Moons farther out carry two modifiers and pay up to 40% more Starseeds. Some moons are rich in one ore. Open it any time from the Ascension panel.',
+    'Special moons: Derelict (wrecks near the Core to salvage for parts), Bazaar (Market pays double, one more contract), Anomaly (a Rare or better Relic when you land) and Storm moon (30% less solar; reach the last milestone within 4 hours for a Rare Relic and +25% Starseeds).',
+    'Visit every moon of a band (Near, Mid, Far) in a quadrant for a permanent perk: machine speed, power, ore or Starseeds, +5%, +10% and +15%.',
+    'Space Elevator (Spaceport tier, 5×5): built in 8 belt-fed stages. Each stage cuts the Aether that launches burn by 6%.',
+    'Deep Core Bore (Separator tier, 5×5): sunk in 6 belt-fed stages. It brings up three new resources from every side: Heavy metal, Magma glass (stage 3) and Helium-3 (stage 5). Reaching the heart earns the Moonheart Relic the first time, a Relic choice after that.',
+    'New parts made in the Assembler: Quantum chips (photonic, Void cell, Rare earth, Magma glass) and Fusion cells (Helium-3, Heavy metal, Void glass).',
+    'New Spaceport missions. Deep Array dish (up to 3, kept forever): see one link farther on the galaxy map. Seed Ark module (up to 5 per moon): carries up to 5,000 items of cargo to your next moon (dense items count as one). Swarm node (after you’ve closed a Halo Ring): +5% power and +4% Starseeds each, and every 8 nodes earn a Starlight.',
+    'Starlight buys permanent perks in the Ascension panel: more power, faster machines, more Starseeds and bigger Ark holds.',
+    'Seven new achievements.'
+  ]},
   {n:50,date:'2026-11-10',title:'Market Uplink, Moon objectives, banes and achievements',items:[
     'New building after the last milestone: the Market Uplink (5×5, one per moon). Clients post 2 to 5 open contracts for goods you belt in from any side. Fill one and they pay Starseeds plus a bonus: a speed, conveyor, power or drill boost for this moon, extra Starseeds when you Ascend, Ember shards, a load of goods, Nova shards, and now and then a Relic. Clients remember you across moons and come back with bigger orders, and two odd ones want strange things.',
     'Timed contracts: one is offered every hour, from Small to Huge. Accept it and you have an hour to fill it. Bigger ones pay much more, Large ones add a Nova shard and Huge ones a Relic.',

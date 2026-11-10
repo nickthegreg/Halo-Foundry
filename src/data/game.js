@@ -5,13 +5,13 @@ const opp=d=>(d+2)&3;
 const BELT_V=1.75, SP=0.34, DAY_LEN=300, PET_GOAL=40, CORE_GEN=120;
 const SAVE_KEY='halo-foundry-v2';
 
-const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice','voidstone','starsand','rare','slag','voidglass','slagcrete','magnet','voidlens','voidcell','gyro','hull','guidance','kitf','kitv','kits'];
+const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice','voidstone','starsand','rare','slag','voidglass','slagcrete','magnet','voidlens','voidcell','gyro','hull','guidance','kitf','kitv','kits','heavy','magma','he3','quantum','fusion'];
 const ITEMS={
   ferrite:{n:'Ferrite ore',s:'ferrite'},cuprite:{n:'Cuprite ore',s:'cuprite'},silica:{n:'Silica sand',s:'silica'},carbon:{n:'Carbon',s:'carbon'},
   iron:{n:'Iron ingot',s:'iron'},copper:{n:'Copper ingot',s:'copper'},glass:{n:'Glass',s:'glass'},
   gear:{n:'Gear',s:'gear'},wire:{n:'Wire',s:'wire'},circuit:{n:'Circuit',s:'circuit'},steel:{n:'Steel',s:'steel'},
   lens:{n:'Lens',s:'lens'},motor:{n:'Motor',s:'motor'},prism:{n:'Prism',s:'prism'},petal:{n:'Sail petal',s:'petal'},frame:{n:'Frame',s:'frame'},processor:{n:'Processor',s:'processor'},servo:{n:'Servo',s:'servo'},wafer:{n:'Silicon wafer',s:'wafer'},film:{n:'Solar film',s:'film'},composite:{n:'Composite plate',s:'composite'},coil:{n:'Copper coil',s:'coil'},photonic:{n:'Photonic chip',s:'photonic'},lattice:{n:'Lattice core',s:'lattice'},aether:{n:'Aether',s:'aether'},ember:{n:'Ember shard',s:'ember'},nova:{n:'Nova shard',s:'nova'},husk:{n:'Aether husk',s:'husk'},
-  voidstone:{n:'Voidstone',s:'voidstone'},starsand:{n:'Starsand',s:'starsand'},rare:{n:'Rare earth',s:'rare earth'},slag:{n:'Slag',s:'slag'},voidglass:{n:'Void glass',s:'void glass'},slagcrete:{n:'Slagcrete',s:'slagcrete'},magnet:{n:'Magnet',s:'magnet'},voidlens:{n:'Void lens',s:'void lens'},voidcell:{n:'Void cell',s:'void cell'},gyro:{n:'Gyro',s:'gyro'},hull:{n:'Hull plate',s:'hull plate'},guidance:{n:'Guidance unit',s:'guidance'},kitf:{n:'Field kit',s:'field kit'},kitv:{n:'Void kit',s:'void kit'},kits:{n:'Stellar kit',s:'stellar kit'}
+  voidstone:{n:'Voidstone',s:'voidstone'},starsand:{n:'Starsand',s:'starsand'},rare:{n:'Rare earth',s:'rare earth'},slag:{n:'Slag',s:'slag'},voidglass:{n:'Void glass',s:'void glass'},slagcrete:{n:'Slagcrete',s:'slagcrete'},magnet:{n:'Magnet',s:'magnet'},voidlens:{n:'Void lens',s:'void lens'},voidcell:{n:'Void cell',s:'void cell'},gyro:{n:'Gyro',s:'gyro'},hull:{n:'Hull plate',s:'hull plate'},guidance:{n:'Guidance unit',s:'guidance'},kitf:{n:'Field kit',s:'field kit'},kitv:{n:'Void kit',s:'void kit'},kits:{n:'Stellar kit',s:'stellar kit'},heavy:{n:'Heavy metal',s:'heavy metal'},magma:{n:'Magma glass',s:'magma glass'},he3:{n:'Helium-3',s:'helium-3'},quantum:{n:'Quantum chip',s:'quantum chip'},fusion:{n:'Fusion cell',s:'fusion cell'}
 };
 const ORE_KEYS=[null,'ferrite','cuprite','silica','carbon','voidstone','starsand'];
 const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silica:['#b3a9da','#f6f2ff'],carbon:['#3c3552','#b3a5ef'],voidstone:['#2b1f5c','#8a6bff'],starsand:['#c99a4a','#ffe9a8']};
@@ -47,7 +47,9 @@ const RECIPES={
   guidance:{in:{gyro:1,photonic:2,voidcell:1},out:1,t:10,at:'asm'},
   kitf:{in:{circuit:2,gear:2,magnet:1},out:1,t:4},
   kitv:{in:{voidlens:1,processor:1,slagcrete:2},out:1,t:6,at:'asm'},
-  kits:{in:{photonic:2,magnet:2,voidglass:2,gyro:1},out:1,t:10,at:'asm'}
+  kits:{in:{photonic:2,magnet:2,voidglass:2,gyro:1},out:1,t:10,at:'asm'},
+  quantum:{in:{photonic:2,voidcell:1,rare:4,magma:2},out:1,t:20,at:'asm'},
+  fusion:{in:{he3:4,heavy:6,voidglass:2},out:1,t:16,at:'asm'}
 };
 const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'Moves items one tile at a time. Drag to lay a line that follows your finger. Dragging across another conveyor adds a Crossing.'},
@@ -79,6 +81,9 @@ const B={
   railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to other terminals by Mag-rail. Each has a letter. A sending terminal takes items from any side; its shuttle carries a load to the nearest receiving terminal that accepts it, or always to the letter you pick. A receiving terminal can accept only chosen items, and pushes them out of three slots on its bright edge.'},
   rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Raised track for Rail Terminal shuttles. It passes over buildings and conveyors, but needs a Pylon on open ground at least every 5 tiles; they’re placed for you. Lay it like conveyors: Line, Free or Route.'},
   pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed automatically as you lay track. Remove the rail above it first.'},
+  elevator:{n:'Space Elevator',cost:{slagcrete:4000,magnet:1000,composite:1500,frame:800},pw:200000,w:5,d:'A tether from the ground to orbit, built in 8 stages. Belt in each stage’s materials from any side; every finished stage cuts the Aether that Spaceport launches burn by 6%. You can have one.'},
+  bore:{n:'Deep Core Bore',cost:{steel:5000,slagcrete:3000,motor:800,servo:500},pw:300000,w:5,d:'A shaft into the moon’s mantle, sunk in 6 stages. Belt in each stage’s materials from any side. Once it’s down it brings up Heavy metal, then Magma glass (stage 3) and Helium-3 (stage 5), out of every side, faster with each stage. The last stage reaches the moon’s heart. You can have one.'},
+  wreck:{n:'Wreck',cost:{steel:150,gear:200,circuit:120,motor:40,processor:20,frame:10},w:2,nobuild:1,d:'A wrecked machine from an older foundry. Remove it to salvage its parts.'},
   market:{n:'Market Uplink',cost:{frame:40,circuit:200,motor:30},pw:500,w:5,d:'Your link to buyers across the system. Clients post contracts: belt in what they ask for, from any side, and they pay in Starseeds, boosts, shards, goods and sometimes Relics. Clients come back with bigger orders. A timed contract turns up every hour. Anything the contracts don’t need goes on to the Core. You can have one.'},
   compressor:{n:'Compressor',cost:{steel:20,circuit:20,motor:4},pw:60,dir:1,d:'Packs 5 worth of an item into 1 dense item (worth 2), or 20 worth into 1 packed item (worth 4), or unpacks dense and packed items back to plain ones. Takes items from the back and sides, sends them out of the bright edge.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
@@ -185,9 +190,26 @@ const ROCKET={hull:30,guidance:4},ROCKET_T=60;
 const MISSIONS={
   lab:{n:'Lab module',pay:{processor:300,photonic:200,gyro:50,voidlens:100,voidcell:50},fuel:1000,max:4,d:'Adds an orbital lab. Each one studies 1 Experiment kit a second. You start with room for one; orbital research opens a second, third and fourth.'},
   kits:{n:'Kit run',fuel:500,d:'Carries Experiment kits up to your labs: 500 a launch, or 1,000 with Launch logistics.'},
-  ring:{n:'Ring segment',pay:{voidglass:400,magnet:200,gyro:100,composite:300,lattice:50,voidcell:100},fuel:3000,grow:1.25,max:12,d:'One of the 12 segments of the Halo Ring. Each costs 25% more than the last.'}
+  ring:{n:'Ring segment',pay:{voidglass:400,magnet:200,gyro:100,composite:300,lattice:50,voidcell:100},fuel:3000,grow:1.25,max:12,d:'One of the 12 segments of the Halo Ring. Each costs 25% more than the last.'},
+  array:{n:'Deep Array dish',pay:{voidlens:400,photonic:300,gyro:120,guidance:60},fuel:2000,grow:2,max:3,d:'A dish for the Deep Array telescope. Each one lets you see one link farther on the galaxy map. Dishes stay up for good, through every ascension. Up to 3; each costs twice the last.'},
+  swarm:{n:'Swarm node',pay:{quantum:60,fusion:60,voidglass:800,lattice:60},fuel:4000,grow:1.12,max:24,d:'A collector node for a Dyson swarm around the star. Each one adds 5% power and 4% Starseeds on this moon. Every 8 nodes close a shell and earn a Starlight, spent on permanent perks in the Ascension panel. Up to 24 per moon; each costs 12% more.'},
+  ark:{n:'Seed Ark module',pay:{composite:600,voidcell:120,servo:400,frame:300},fuel:1500,grow:1.4,max:5,cargo:5000,d:'A cargo pod for your next moon. Besides the module itself, belt in up to 5,000 items of anything as cargo (dense and packed items count as one each), then launch. When you Ascend, the cargo is waiting at your new Core. Up to 5 per moon; each costs 40% more than the last.'}
 };
 // Halo Ring milestones (segments in orbit)
+// Belt-fed megaprojects: stage n needs need × grow^n
+const MEGA={
+  elevator:{n:'Space Elevator',stages:8,grow:1.3,need:{slagcrete:1500,magnet:600,composite:800,voidglass:600},eff:L=>`Launches burn ${6*L}% less Aether`},
+  bore:{n:'Deep Core Bore',stages:6,grow:1.5,need:{steel:3000,motor:400,slagcrete:1500,voidcell:80},eff:L=>L>=6?'Reached the heart: Heavy metal, Magma glass and Helium-3 at full flow':`Brings up ${BORE_OUT.filter(o=>L>=o[1]).map(o=>o[0]==='heavy'?'Heavy metal':o[0]==='magma'?'Magma glass':'Helium-3').join(', ')||'nothing yet'}`}
+};
+// Bore output: [item, first stage, items/s per stage from then on]
+const BORE_OUT=[['heavy',1,.4],['magma',3,.25],['he3',5,.15]];
+// Starlight: earned for every full shell (8 nodes) of the Dyson swarm. Permanent perks.
+const STARLIGHT={
+  sun:{n:'Captured sun',max:4,d:'+25% power from every source per level.'},
+  forge:{n:'Star forge',max:4,d:'Every machine works 10% faster per level.'},
+  bloom:{n:'Stellar bloom',max:4,d:'+15% Starseeds when you Ascend per level.'},
+  hold:{n:'Deep holds',max:3,d:'Seed Ark modules carry 5,000 more items per level.'}
+};
 const RING_MS=[[3,'Pulses travel at full speed everywhere on the moon.'],[6,'Separators give 50% more Rare earth.'],[9,'Starseeds ×2 when you Ascend from this moon.'],[12,'Ring closed: a unique Relic the first time, a Relic choice every time after.']];
 // Ongoing research: repeats forever. Each level costs more Charge, and the item set rotates so many parts stay useful.
 const REPEAT={
@@ -313,7 +335,8 @@ const RELICS={
   deepcrown:{n:'Deep Crown',r:'l',sig:'deeponly',fx:{drill:20,nova:25}},
   seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:7.5,fab:12.5}},
   // Earned once, for closing the Halo Ring the first time
-  ringforged:{n:'Ringforged Halo',r:'l',ring:1,fx:{spd:15,solar:25,seeds:15}}
+  ringforged:{n:'Ringforged Halo',r:'l',ring:1,fx:{spd:15,solar:25,seeds:15}},
+  moonheart:{n:'Moonheart',r:'l',ring:1,fx:{ore:30,drill:20,seeds:10}}
 };
 const FX_TEXT={spd:'machines {v}% faster',belt:'conveyors {v}% faster',solar:'solar and halo +{v}%',burn:'burner power +{v}%',pulse:'pulses {v}% faster',ember:'Ember drops +{v}%',ore:'+{v}% ore per tile',off:'+{v}% offline output',haul:'+{v} h offline time',dup:'+{v}% duplication',core:'Core power +{v}%',cap:'Charge storage +{v}%',petal:'+{v}% power per petal',drill:'drills {v}% faster',seed:'seeds regrow {v}% faster',trk:'trickle {v}% faster',smelt:'smelting {v}% faster',fab:'fabricating {v}% faster',up:'Uplinks {v}% faster',cost:'buildings {v}% cheaper',fuel:'burners {v}% hotter',mj:'research needs {v}% less Charge',nova:'Nova drops +{v}%',seeds:'+{v}% Starseeds when you Ascend',refine:'Refineries need {v}% less ore'};
 function relicText(k){const f=RELICS[k].fx;const t=Object.keys(f).map(q=>FX_TEXT[q].replace('{v}',f[q])).join(', ');return t.charAt(0).toUpperCase()+t.slice(1)+'.'}
@@ -370,7 +393,7 @@ function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486
   return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','separator','incinerator','railterm','rail','spaceport','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','elevator','bore','separator','incinerator','railterm','rail','spaceport','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
 const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits','petal','lattice'];
 // Packed (second level): 20 → 1 packed item worth 4
@@ -379,6 +402,6 @@ const DENSE_OF={},PACK_OF={},BASE_OF={};
   for(const k of base){const d='D_'+k;DENSE_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Dense '+low(k),s:'dense '+ITEMS[k].s,dense:k,tier:1};ITEM_ORDER.push(d)}
   for(const k of base){const d='P_'+k;PACK_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Packed '+low(k),s:'packed '+ITEMS[k].s,dense:k,tier:2};ITEM_ORDER.push(d)}}
 // Late-game buildings stay out of the bar until ascension 2
-const LATE_T=['separator','incinerator','railterm','rail','spaceport'];
+const LATE_T=['separator','incinerator','railterm','rail','spaceport','elevator','bore'];
 
-export {DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
