@@ -74,7 +74,7 @@ ${table(['Generator','Output','Fuel'],[
   ['Core',`${CORE_GEN} kW`,'none'],
   ['Combustor',`up to ${B.combustor.gen} kW`,`1 carbon per ${B.combustor.burn} s at full output (${f(B.combustor.gen*B.combustor.burn/1000)} MJ each); about 1 in 50 leaves an Ember shard`],
   ['Turbine Hall',`up to ${f(B.turbine.gen/1000)} MW`,`1 carbon per ${B.turbine.burn} s at full output (${f(B.turbine.gen*B.turbine.burn/1000)} MJ each)`],
-  ['Aether Reactor',`${f(B.reactor.gen/1000)} MW`,`1 Aether per ${B.reactor.burn} s; leaves an Aether husk each; about 1 in 100 leaves a Nova shard`],
+  ['Aether Reactor',`${f(B.reactor.gen/1000)} MW`,`1 Aether per ${B.reactor.burn} s; leaves an Aether husk each; about 1 in 1,200 leaves a Nova shard; +25% power per touching reactor`],
   ['Sun Leaf',`up to ${B.solar.gen} kW`,'daylight only'],
   ['Film Array',`up to ${B.filmarray.gen} kW`,'daylight, 40% at night'],
   ['Prism Collector',`up to ${B.collector.gen} kW`,'daylight, 25% at night'],

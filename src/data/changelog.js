@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:48,date:'2026-11-10',title:'Packed items and faster Reactors',items:[
+    'Drills in Dense mode now dig at full speed: 5 ore per dig for a dense ore worth 2. Only machines take longer in Dense mode (1.5×).',
+    'New second level of Compression (1,200 Starseeds): Packed. A packed item is worth 4 and costs 20. Drills dig 20 ore per packed ore at full speed, and machines take 20× the inputs at 2.25× the time. The Compressor gets a Packed mode, and its Unpack mode handles both.',
+    'Machine panels now show the real cost in Dense and Packed mode. A Dense motor reads 15 gears, 5 steel and 40 wire in, 1 dense motor out, with the per-second rates to match.',
+    'Aether Reactors burn one Aether every 10 seconds instead of every 2 minutes, make 40 MW instead of 10, and hold 10 Aether. Each one gets +25% for every other Reactor lined up against one of its sides, up to +100%.',
+    'Nova shards drop at about the same rate per Reactor as before (1 in 1,200 Aether now that they burn faster).'
+  ]},
   {n:47,date:'2026-11-05',title:'Dense items work everywhere',items:[
     'Dense items now act like a stack of 2: every machine takes them as 2 of the plain item, in either mode. That covers Smelters, Foundries, Fabricators, Assemblers, Refineries, Separators, Combustors and Turbines.',
     'Dense mode now only changes what a machine makes. It uses 5× the inputs per batch, plain or dense, runs 1.5× longer, and makes dense output.',

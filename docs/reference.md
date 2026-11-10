@@ -30,7 +30,7 @@ Regenerate with `node tests/reference.mjs`.
 | Pulse Relay | 1×1 | 10 Steel, 10 Circuit, 4 Lens | uses 30 kW |  |
 | Assembler | 3×3 | 20 Frame, 40 Circuit, 10 Motor | uses 150 kW |  |
 | Refinery | 3×3 | 30 Frame, 60 Steel, 10 Processor | uses 200 kW |  |
-| Aether Reactor | 3×3 | 20 Servo, 40 Processor, 60 Frame | makes up to 10 MW |  |
+| Aether Reactor | 3×3 | 20 Servo, 40 Processor, 60 Frame | makes up to 40 MW |  |
 | Separator | 3×3 | 40 Frame, 20 Servo, 80 Composite plate, 200 Steel | uses 400 kW |  |
 | Incinerator | 1×1 | 20 Steel, 10 Circuit | uses 1 GW while burning |  |
 | Spaceport | 7×7 | 10000 Servo, 5000 Slagcrete, 2000 Magnet, 1000 Frame, 200 Guidance unit, 2000 Void glass | uses 1 GW standing, 10 GW while building a rocket |  |
@@ -181,7 +181,7 @@ Each segment: +10% power from every source, +3% machine speed, +10% Starseeds wh
 | Core | 120 kW | none |
 | Combustor | up to 150 kW | 1 carbon per 6 s at full output (0.9 MJ each); about 1 in 50 leaves an Ember shard |
 | Turbine Hall | up to 1.2 MW | 1 carbon per 1.5 s at full output (1.8 MJ each) |
-| Aether Reactor | 10 MW | 1 Aether per 120 s; leaves an Aether husk each; about 1 in 100 leaves a Nova shard |
+| Aether Reactor | 40 MW | 1 Aether per 10 s; leaves an Aether husk each; about 1 in 1,200 leaves a Nova shard; +25% power per touching reactor |
 | Sun Leaf | up to 45 kW | daylight only |
 | Film Array | up to 300 kW | daylight, 40% at night |
 | Prism Collector | up to 400 kW | daylight, 25% at night |

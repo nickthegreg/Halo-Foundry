@@ -72,14 +72,14 @@ const B={
   relay:{n:'Pulse Relay',cost:{steel:10,circuit:10,lens:4},pw:30,d:'Construction pulses for blueprints closer to this relay than to the Core launch from here. Pulses move at 40% speed outside the starting area, so relays out there save a lot of time.'},
   assembler:{n:'Assembler',cost:{frame:20,circuit:40,motor:10},pw:150,dir:1,w:3,d:'A large factory for advanced parts: Processors and Servos. Feed it from any side. Output leaves its bright edge.'},
   refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether. Starts at 1,000 ore per Aether and needs 1 ore less for every 1,000 Aether you have ever made, down to 50.'},
-  reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:10000,burn:120,w:3,dir:1,d:'Burns one Aether every 2 minutes for 10 MW. Takes Aether from any side. Each Aether burned leaves an Aether husk, pushed out of its bright edge; if four pile up, the Reactor stops. Husks can’t ride Uplinks: belt them to where they’re needed.'},
+  reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:40000,burn:10,w:3,dir:1,d:'Burns one Aether every 10 seconds for 40 MW, +25% for every other Aether Reactor lined up against one of its sides (up to +100%). Takes Aether from any side. Each Aether burned leaves an Aether husk, pushed out of its bright edge; if four pile up, it stops.'},
   separator:{n:'Separator',cost:{frame:40,servo:20,composite:80,steel:200},pw:400,dir:1,w:3,d:'Takes 1,000 Starsand and, 20 seconds later, sends out a mixed stream from three slots on its bright edge: about 10% Rare earth, plus ferrite, cuprite, silica and Slag. Sort it with Sorters. If any item can’t get out, the Separator stops.'},
   incinerator:{n:'Incinerator',cost:{steel:20,circuit:10},pw:1000000,d:'Destroys anything fed into it, from any side, but draws 1 GW while it burns. Usually it’s better to belt or Uplink spare Slag to the Core.'},
   spaceport:{n:'Spaceport',cost:{servo:10000,slagcrete:5000,magnet:2000,frame:1000,guidance:200,voidglass:2000},pw:1000000,w:7,d:'A 7×7 launch silo. Pick a mission, then belt in a rocket’s Hull plates and Guidance units, the payload and Aether fuel, from any side. Once everything is in, the rocket takes 60 seconds to assemble and lift off. Machine speed bonuses don’t apply. Draws 1 GW while it stands, 10 GW while a rocket is being built.'},
   railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to other terminals by Mag-rail. Each has a letter. A sending terminal takes items from any side; its shuttle carries a load to the nearest receiving terminal that accepts it, or always to the letter you pick. A receiving terminal can accept only chosen items, and pushes them out of three slots on its bright edge.'},
   rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Raised track for Rail Terminal shuttles. It passes over buildings and conveyors, but needs a Pylon on open ground at least every 5 tiles; they’re placed for you. Lay it like conveyors: Line, Free or Route.'},
   pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed automatically as you lay track. Remove the rail above it first.'},
-  compressor:{n:'Compressor',cost:{steel:20,circuit:20,motor:4},pw:60,dir:1,d:'Packs 5 of an item into 1 dense item worth 2, or unpacks a dense item into 2. Takes items from the back and sides, sends them out of the bright edge. Machines and drills set to Dense mode work with dense items.'},
+  compressor:{n:'Compressor',cost:{steel:20,circuit:20,motor:4},pw:60,dir:1,d:'Packs 5 worth of an item into 1 dense item (worth 2), or 20 worth into 1 packed item (worth 4), or unpacks dense and packed items back to plain ones. Takes items from the back and sides, sends them out of the bright edge.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
 };
 const MS=[
@@ -229,7 +229,7 @@ const SS={
   core:{n:'Core size',max:2,cost:L=>[8,20][L],d:'The Core grows to 5×5, then 7×7, so more lines can feed it. It grows as soon as the tiles around it are clear.',eff:L=>`${3+2*L}×${3+2*L}`},
   trkT:{n:'Trickle: items',max:5,cost:L=>[2,4,8,16,32][L],d:'The Core makes items on its own, as if they were delivered. Each level adds better items.',eff:L=>`tier ${L}`},
   trkR:{n:'Trickle: rate',req:'trkT',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Trickle items arrive 50% faster per level. The base rate is 6 of each item a minute.',eff:L=>`${(6*Math.pow(1.5,L)).toFixed(1)}/min each`},
-  dense:{n:'Compression',max:1,minAsc:3,cost:()=>300,d:'Unlocks the Compressor and a Dense mode on every Drill, Deep Drill, Smelter, Foundry, Fabricator and Assembler. Dense items are worth 2 each but cost 5 to make, and Dense mode takes 1.5× as long. One belt slot carries twice as much.',eff:L=>L?'on':'off'},
+  dense:{n:'Compression',max:2,minAsc:3,cost:L=>[300,1200][L],d:'Level 1: the Compressor and a Dense mode on Drills, Deep Drills, Smelters, Foundries, Fabricators and Assemblers. A dense item is worth 2 and costs 5; drills dig at full speed, machines take 1.5× as long. Level 2 adds Packed: worth 4, costs 20, machines take 2.25× as long.',eff:L=>['off','Dense','Dense + Packed'][L]},
   // Logistics
   lfit:{br:'Logistics',n:'Light fittings',max:1,cost:()=>40,d:'Splitters, Sorters and Crossings cost nothing to build.',eff:L=>L?'free':'off'},
   bins:{br:'Logistics',n:'Deep bins',req:'lfit',max:2,cost:L=>[60,200][L],d:'Batchers hold 100 of each item, then 200.',eff:L=>`${50*Math.pow(2,L)} each`},
@@ -372,9 +372,12 @@ const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','compressor','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
 const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits','petal','lattice'];
-const DENSE_OF={},BASE_OF={};
-for(const k of ITEM_ORDER.slice()){if(DENSE_EX.includes(k))continue;const d='D_'+k;DENSE_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Dense '+ITEMS[k].n.charAt(0).toLowerCase()+ITEMS[k].n.slice(1),s:'dense '+ITEMS[k].s,dense:k};ITEM_ORDER.push(d)}
+// Packed (second level): 20 → 1 packed item worth 4
+const DENSE_OF={},PACK_OF={},BASE_OF={};
+{const base=ITEM_ORDER.filter(k=>!DENSE_EX.includes(k)),low=k=>ITEMS[k].n.charAt(0).toLowerCase()+ITEMS[k].n.slice(1);
+  for(const k of base){const d='D_'+k;DENSE_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Dense '+low(k),s:'dense '+ITEMS[k].s,dense:k,tier:1};ITEM_ORDER.push(d)}
+  for(const k of base){const d='P_'+k;PACK_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Packed '+low(k),s:'packed '+ITEMS[k].s,dense:k,tier:2};ITEM_ORDER.push(d)}}
 // Late-game buildings stay out of the bar until ascension 2
 const LATE_T=['separator','incinerator','railterm','rail','spaceport'];
 
-export {DENSE_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};

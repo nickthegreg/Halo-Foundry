@@ -320,3 +320,9 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
   either mode. Dense mode (`b.dn`) on Drill, Deep Drill, Smelter, Foundry, Fabricator, Assembler: 5× inputs per batch,
   1.5× time, dense output; drills dig 5 ore per dense ore. Compressor 1×1 inline,
   pack 5→1 or unpack 1→2, 0.5 s. One level only for now; a packed tier (5 dense → worth 4) is the obvious next step.
+
+### 2026-11-10
+- Compression tiers: `TIN=[1,5,20]` inputs, worth `[1,2,4]`, machine time `TT=[1,1.5,2.25]`; drills ignore TT.
+  Packed items `P_<item>` (`PACK_OF`), SS `dense` level 2. Compressor modes 0 dense / 1 packed / 2 unpack.
+- Aether Reactor: 40 MW, 10 s per Aether, +25% per touching reactor (`reactorMul`, `b.nb`), fuel 10; `NOVA_P` /12.
+- Open question: Refinery ratio and speed (see chat 2026-11-10): ratio by ascension, higher floor, flat speed.

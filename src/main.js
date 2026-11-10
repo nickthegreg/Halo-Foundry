@@ -1,4 +1,4 @@
-import {DENSE_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {EV,CANDY_UP} from './data/event.js';
 import {makeDefense} from './defense.js';
@@ -87,7 +87,7 @@ function dupP(){return seedDupB()+relStat('dup')/100}
 function dupN(){const d=dupP();return Math.floor(d)+(Math.random()<d%1?1:0)}
 function coreKW(){return CORE_GEN*(1+.2*ascN())*rp('core')}
 function drillR(t){return B[t].r+(t==='deepdrill'?nupLv('reach'):0)}
-function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)*(b.ore==='voidstone'&&ssLv('vsight')?1.5:1)*(b.ore==='voidstone'&&b.t==='deepdrill'&&nupLv('lens')?1.5:1)*(1+.1*orbLv('harvest'))*(b.dn?1/1.5:1)}
+function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)*(b.ore==='voidstone'&&ssLv('vsight')?1.5:1)*(b.ore==='voidstone'&&b.t==='deepdrill'&&nupLv('lens')?1.5:1)*(1+.1*orbLv('harvest'))}
 function oreUse(b){return (b.t==='deepdrill'?.5*Math.pow(.85,nupLv('thrift')):1)*(modOn('thin')?2:1)}
 // Deep veins doesn't apply to carbon
 function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+seedOreB())*rp('ore')*((o==='voidstone'||o==='starsand')&&orbDone('survey')?1.5:1)*(orbDone('surv2')?1.25:1)}
@@ -117,17 +117,20 @@ function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
 function emberChance(){return .02*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
 function toolTip(t){const d=B[t];if(t==='deepdrill'&&S)return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))} · ${fmtW(ddPw(countOf(t)))}</span><br>${d.d}`;return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+fmtW(d.pw):''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
 function costStr(c){return Object.keys(c).map(k=>c[k]+' '+ITEMS[k].s).join(' · ')}
-function addInv(t,n){if(BASE_OF[t]){addInv(BASE_OF[t],2*(n||1));return}S.inv[t]=(S.inv[t]||0)+(n||1);S.seen[t]=1}
+// Compression tiers: [inputs per batch, worth of one item, time ×]
+const TIN=[1,5,20],TT=[1,1.5,2.25];
+function worth(t){const q=ITEMS[t];return q&&q.tier===2?4:q&&q.tier===1?2:1}
+function addInv(t,n){if(BASE_OF[t]){addInv(BASE_OF[t],worth(t)*(n||1));return}S.inv[t]=(S.inv[t]||0)+(n||1);S.seen[t]=1}
 const DM=['drill','deepdrill','smelter','foundry','fab','fab2','assembler'];
 // What a machine in Dense mode takes (base name) from an incoming item, or null
 function dIn(b,t){return b.dn?(BASE_OF[t]||null):(BASE_OF[t]?null:t)}
-function dOut(b,t){return b.dn&&DENSE_OF[t]?DENSE_OF[t]:t}
+function dOut(b,t){return b.dn===2&&PACK_OF[t]?PACK_OF[t]:b.dn&&DENSE_OF[t]?DENSE_OF[t]:t}
 // Switching mode sends whatever the machine holds to storage, then it starts clean
-function setDense(b,v){for(const t of contents(b))addInv(t);
+function setDense(b,v){v=v|0;for(const t of contents(b))addInv(t);
   if(b.t==='drill'||b.t==='deepdrill')b.out=0;
   else if(b.t==='smelter'||b.t==='foundry')Object.assign(b,{inT:null,inN:0,outT:null,outN:0,run:false,prog:0});
   else Object.assign(b,{buf:{},outN:0,run:false,prog:0});
-  b.dn=v?1:0}
+  b.dn=v}
 
 function init(t){
   switch(t){
@@ -180,7 +183,7 @@ function contents(b){
     case 'drill':case 'deepdrill':add(dOut(b,b.ore),b.out);break;
     case 'compressor':if(b.inT)add(b.inT,b.inN);if(b.outT)add(b.outT,b.outN);break;
     case 'junction':b.lanes.forEach(l=>l.forEach(i=>o.push(i.t)));break;
-    case 'smelter':case 'foundry':if(b.inT)add(b.inT,b.inN);if(b.outT)add(dOut(b,b.outT),b.outN);if(b.run&&b.cur)add(Object.keys(SMELT).find(k=>SMELT[k]===b.cur),b.dn?5:1);break;
+    case 'smelter':case 'foundry':if(b.inT)add(b.inT,b.inN);if(b.outT)add(dOut(b,b.outT),b.outN);if(b.run&&b.cur)add(Object.keys(SMELT).find(k=>SMELT[k]===b.cur),TIN[b.dn|0]);break;
     case 'fab':case 'fab2':case 'assembler':for(const k in b.buf)add(k,b.buf[k]);if(b.rec)add(dOut(b,b.rec),b.outN);break;
     case 'refinery':add('aether',b.outN);break;
     case 'reactor':add('aether',b.fuel);add('husk',b.husk||0);break;
@@ -230,8 +233,10 @@ function outputsTo(nb,x,y){
 function fib(k){let a=1,b=1;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}return a}
 // Deep Drills: the n-th one draws 40 kW × the n-th Fibonacci number (Nova cooling still cuts it)
 function ddPw(k){let q=Math.max(0,k-nupLv('resonance'));if(orbDone('deepcore'))q=Math.floor(q/2);return B.deepdrill.pw*fib(q)*(1-.25*nupLv('cool'))}
+// Aether Reactors: +25% for each reactor lined up against one of its sides
+function reactorMul(b){return (1+.25*(b.nb||0))*(1+.1*nupLv('reactor'))*(orbDone('condense')?1.25:1)}
 function recalc(){
-  const cnt={};{let k=0;for(const b of [...S.bs.values()].filter(q=>q.t==='deepdrill').sort((p,q)=>p.id-q.id))b.ord=k++}
+  const cnt={};for(const b of S.bs.values())if(b.t==='reactor'){let n=0;for(const [x,y] of [[b.x+1,b.y-1],[b.x+3,b.y+1],[b.x+1,b.y+3],[b.x-1,b.y+1]]){const q=at(x,y);if(q&&q.t==='reactor'&&!q.bp)n++}b.nb=n}{let k=0;for(const b of [...S.bs.values()].filter(q=>q.t==='deepdrill').sort((p,q)=>p.id-q.id))b.ord=k++}
   for(const b of S.bs.values()){
     cnt[b.t]=(cnt[b.t]||0)+1;
     if(b.t!=='belt')continue;
@@ -255,27 +260,30 @@ function accept(nb,t,side,p0){
       nb.items.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),f:side});return true;}
     case 'junction':{const lane=nb.lanes[side],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),d:opp(side)});return true;}
     case 'smelter':case 'foundry':{
-      const u=BASE_OF[t]?2:1;t=BASE_OF[t]||t;
-      if(!SMELT[t]||(t==='voidstone'&&nb.t!=='foundry')||nb.inN+u>(nb.t==='foundry'?30:6)*(nb.dn?5:1)||(nb.inN>0&&nb.inT!==t))return false;
+      const u=worth(t);t=BASE_OF[t]||t;
+      if(!SMELT[t]||(t==='voidstone'&&nb.t!=='foundry')||nb.inN+u>Math.max((nb.t==='foundry'?30:6)*TIN[nb.dn|0],2*TIN[nb.dn|0]+4)||(nb.inN>0&&nb.inT!==t))return false;
       nb.inT=t;nb.inN+=u;return true;}
     case 'fab':case 'fab2':case 'assembler':{
-      if(!nb.rec)return false;const u=BASE_OF[t]?2:1;t=BASE_OF[t]||t;const k=nb.dn?5:1,need=RECIPES[nb.rec].in[t]*k;if(!need)return false;
-      const c=nb.buf[t]||0;if(c+u>Math.max(need*2,4*k)+1)return false;nb.buf[t]=c+u;return true;}
+      if(!nb.rec)return false;const u=worth(t);t=BASE_OF[t]||t;const k=TIN[nb.dn|0],need=RECIPES[nb.rec].in[t]*k;if(!need)return false;
+      const c=nb.buf[t]||0;if(c+u>Math.max(need*2,4*k)+3)return false;nb.buf[t]=c+u;return true;}
     case 'splitter':case 'sorter':if(nb.hold)return false;nb.hold=t;nb.hf=side;return true;
     case 'batcher':{
       if(side===nb.d)return false;const has=Object.keys(nb.ratio).length;
       if(has&&!nb.ratio[t])return false;
       if(!has&&!nb.st[t]&&Object.keys(nb.st).filter(k=>nb.st[k]>0).length>=6)return false;
       if((nb.st[t]||0)>=batCap())return false;nb.st[t]=(nb.st[t]||0)+1;return true;}
-    case 'combustor':case 'turbine':{const u=t==='D_carbon'?2:1;if((t!=='carbon'&&t!=='D_carbon')||nb.fuel+u>(nb.t==='combustor'?8:20))return false;nb.fuel+=u;return true;}
-    case 'reactor':if(t!=='aether'||nb.fuel>=4)return false;nb.fuel++;return true;
-    case 'refinery':{const u=BASE_OF[t]?2:1;t=BASE_OF[t]||t;if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n+=u;stat('c',t,u);return true;}
+    case 'combustor':case 'turbine':{const u=worth(t);if((BASE_OF[t]||t)!=='carbon'||nb.fuel+u>(nb.t==='combustor'?8:20))return false;nb.fuel+=u;return true;}
+    case 'reactor':if(t!=='aether'||nb.fuel>=10)return false;nb.fuel++;return true;
+    case 'refinery':{const u=worth(t);t=BASE_OF[t]||t;if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n+=u;stat('c',t,u);return true;}
     case 'uplink':if(t==='husk'||nb.q.length>=6)return false;nb.q.push(t);return true;
     case 'ring':if((t!=='petal'&&t!=='lattice')||nb.n+(nb.l||0)>=4)return false;if(t==='lattice')nb.l=(nb.l||0)+1;else nb.n++;return true;
-    case 'compressor':{const ok=nb.mode?!!BASE_OF[t]:!!DENSE_OF[t];if(!ok||(nb.inN>0&&nb.inT!==t)||nb.inN>=(nb.mode?4:10))return false;nb.inT=t;nb.inN++;return true}
-    case 'separator':{const u=t==='D_starsand'?2:1;if((t!=='starsand'&&t!=='D_starsand')||nb.n+u>1200)return false;nb.n+=u;return true;}
+    case 'compressor':{
+      if(nb.mode===2){if(!BASE_OF[t]||(nb.inN>0&&nb.inT!==t)||nb.inN>=4)return false;nb.inT=t;nb.inN++;return true}
+      const bt=BASE_OF[t]||t,tg=nb.mode?2:1,need=TIN[tg],u=worth(t);
+      if(!(nb.mode?PACK_OF[bt]:DENSE_OF[bt])||(ITEMS[t].tier||0)>=tg||(nb.inN>0&&nb.inT!==bt)||nb.inN+u>need*2)return false;nb.inT=bt;nb.inN+=u;return true}
+    case 'separator':{const u=worth(t);if((BASE_OF[t]||t)!=='starsand'||nb.n+u>1200)return false;nb.n+=u;return true;}
     case 'incinerator':stat('c',t);nb.heat=1;return true;
-    case 'spaceport':if(BASE_OF[t]){const bt=BASE_OF[t],n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)+2>n)return false;nb.h[bt]=(nb.h[bt]||0)+2;return true}return padAccept(nb,t);
+    case 'spaceport':if(BASE_OF[t]){const bt=BASE_OF[t],u=worth(t),n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)+u>n)return false;nb.h[bt]=(nb.h[bt]||0)+u;return true}return padAccept(nb,t);
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
     case 'core':deliver(t);return true;
   }
@@ -294,7 +302,7 @@ function drillHasOut(b){const ts=b.t==='deepdrill'?outPorts(b).map(([d,j])=>edge
 function pushDir(b,t,d,p0){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||nb===b)return false;return accept(nb,t,opp(d),p0)}
 
 function deliver(t,quiet){
-  if(BASE_OF[t]){S.seen[t]=1;deliver(BASE_OF[t],quiet);deliver(BASE_OF[t],true);return}
+  if(BASE_OF[t]){S.seen[t]=1;const n=worth(t);for(let i=0;i<n;i++)deliver(BASE_OF[t],quiet||i>0);return}
   stat('d',t);S.flags.del++;S.seen[t]=1;if(!quiet)sfx('core',CX,CY);
   if(S.mode==='daily'&&S.time<DAILY_LEN&&!S.dEnd)S.dscore=(S.dscore||0)+(VAL[t]||1);
   if(S.ch==='handfed'&&EVERY_ITEMS.includes(t)){S.chd=S.chd||{};S.chd[t]=(S.chd[t]||0)+1}
@@ -346,7 +354,7 @@ function sim(dt){
     if(b.t==='solar')solar+=45*sday;
     else if(b.t==='collector')solar+=400*(.25+.75*sday);
     else if(b.t==='filmarray')solar+=300*(.4+.6*sday);
-    else if(B[b.t].burn&&(b.energy>0||b.fuel>0)&&!(b.t==='reactor'&&(b.husk||0)>=4)){cap+=B[b.t].gen*(b.t==='reactor'?(1+.1*nupLv('reactor'))*(orbDone('condense')?1.25:1):1);comb.push(b)}
+    else if(B[b.t].burn&&(b.energy>0||b.fuel>0)&&!(b.t==='reactor'&&(b.husk||0)>=4)){cap+=B[b.t].gen*(b.t==='reactor'?reactorMul(b):1);comb.push(b)}
   }
   const gridOn=S.ms>=MS.length,gmul=(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1)*(1+.1*ringN())*(1+.1*orbLv('yield'));solar*=gmul*stellarMul();cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
@@ -364,7 +372,7 @@ function sim(dt){
       case 'drill':case 'deepdrill':{
         const P=ORE_P[b.ore];
         b.active=b.out<drillCap(b)&&!b.dep&&!b.wait&&drillHasOut(b);
-        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){const mo=mineOne(b);if(mo<0){b.prog=1;b.wait=true;b.active=false}else if(mo){if(b.dn)for(let k=0;k<4;k++)if(mineOne(b)<=0)break;b.prog-=1;b.out++;stat('p',dOut(b,b.ore));if(b.t==='deepdrill'&&Math.random()<.1*nupLv('echo')){b.out++;stat('p',b.ore)}sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
+        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){const mo=mineOne(b);if(mo<0){b.prog=1;b.wait=true;b.active=false}else if(mo){if(b.dn)for(let k=1;k<TIN[b.dn];k++)if(mineOne(b)<=0)break;b.prog-=1;b.out++;stat('p',dOut(b,b.ore));if(b.t==='deepdrill'&&Math.random()<.1*nupLv('echo')){b.out++;stat('p',b.ore)}sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
         if(b.out>0&&(b.t==='deepdrill'?pushPorts(b,dOut(b,b.ore),outPorts(b)):pushDir(b,dOut(b,b.ore),b.d)))b.out--;
         break;}
       case 'junction':
@@ -376,7 +384,7 @@ function sim(dt){
       case 'combustor':if(b.ember>0&&pushDir(b,'ember',b.d))b.ember--;break;
       case 'reactor':if(b.husk>0&&pushDir(b,'husk',b.d))b.husk--;break;
       case 'smelter':case 'foundry':
-        if(!b.run&&b.inN>=(b.dn?5:1)&&b.outN<(b.t==='foundry'?16:4)&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=(b.dn?1.5:1)*SMELT_T[b.inT]*(b.inT==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1);stat('c',b.inT,b.dn?5:1);b.inN-=b.dn?5:1;if(!b.inN)b.inT=null}
+        if(!b.run&&b.inN>=TIN[b.dn|0]&&b.outN<(b.t==='foundry'?16:4)&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=TT[b.dn|0]*SMELT_T[b.inT]*(b.inT==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1);stat('c',b.inT,TIN[b.dn|0]);b.inN-=TIN[b.dn|0];if(!b.inN)b.inT=null}
         b.active=b.run;
         if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('smelt')*(b.t==='foundry'?1+.1*nupLv('crucible'):1)/(b.ct||1);if(b.prog>=1){b.run=false;b.outT=b.cur;b.outN++;stat('p',dOut(b,b.cur));sfx('smelt',b.x+.5,b.y+.5)}}
         b.heat+=((b.run?sat:0)-b.heat)*Math.min(1,dt*2.5);
@@ -385,11 +393,11 @@ function sim(dt){
       case 'fab':case 'fab2':case 'assembler':{
         const r=b.rec&&RECIPES[b.rec];
         if(r&&!b.run&&b.outN+r.out<=Math.max(4,r.out*2)){
-          const m=b.dn?5:1;let ok=true;for(const k in r.in)if((b.buf[k]||0)<r.in[k]*m){ok=false;break}
+          const m=TIN[b.dn|0];let ok=true;for(const k in r.in)if((b.buf[k]||0)<r.in[k]*m){ok=false;break}
           if(ok){for(const k in r.in){b.buf[k]-=r.in[k]*m;stat('c',k,r.in[k]*m)}b.run=true;b.prog=0}
         }
         b.active=b.run;
-        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')*recSpd(b.rec)/(r.t*(b.dn?1.5:1));b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;const ro=recOut(b.rec);b.outN+=ro;stat('p',dOut(b,b.rec),ro);{const x=dupN();if(x){b.outN+=ro*x;stat('p',dOut(b,b.rec),ro*x)}}if(b.rec==='lattice'&&Math.random()<.05*orbLv('reclaim')){addInv('husk');stat('p','husk')}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
+        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')*recSpd(b.rec)/(r.t*TT[b.dn|0]);b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;const ro=recOut(b.rec);b.outN+=ro;stat('p',dOut(b,b.rec),ro);{const x=dupN();if(x){b.outN+=ro*x;stat('p',dOut(b,b.rec),ro*x)}}if(b.rec==='lattice'&&Math.random()<.05*orbLv('reclaim')){addInv('husk');stat('p','husk')}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
         if(r&&b.outN>0&&pushDir(b,dOut(b,b.rec),b.d))b.outN--;
         break;}
       case 'batcher':{
@@ -441,8 +449,8 @@ function sim(dt){
         for(let k=0;k<3;k++){if(!b.nx){b.nx=sepPick(b);if(!b.nx)break}if(pushPorts(b,b.nx,outPorts(b))){b.oq[b.nx]--;if(b.oq[b.nx]<=0)delete b.oq[b.nx];b.nx=null}else break}
         break;}
       case 'compressor':{
-        if(!b.run&&!b.outN&&b.inN>=(b.mode?1:5)){b.run=true;b.prog=0;b.cur=b.inT;b.inN-=b.mode?1:5;if(!b.inN)b.inT=null}
-        b.active=b.run;if(b.run){b.prog+=dt*sat/.5;b.ang+=dt*sat*3;if(b.prog>=1){b.run=false;if(b.mode){b.outT=BASE_OF[b.cur];b.outN=2}else{b.outT=DENSE_OF[b.cur];b.outN=1;stat('p',b.outT)}}}
+        if(!b.run&&!b.outN&&b.inN>=(b.mode===2?1:TIN[b.mode+1])){b.run=true;b.prog=0;b.cur=b.inT;b.inN-=b.mode===2?1:TIN[b.mode+1];if(!b.inN)b.inT=null}
+        b.active=b.run;if(b.run){b.prog+=dt*sat/.5;b.ang+=dt*sat*3;if(b.prog>=1){b.run=false;if(b.mode===2){b.outT=BASE_OF[b.cur];b.outN=worth(b.cur)}else{b.outT=b.mode?PACK_OF[b.cur]:DENSE_OF[b.cur];b.outN=1;stat('p',b.outT)}}}
         if(b.outN>0&&pushDir(b,b.outT,b.d)){b.outN--;if(!b.outN)b.outT=null}
         break;}
       case 'incinerator':b.heat=Math.max(0,b.heat-dt*1.5);b.active=b.heat>.01;b.ang+=dt*(.3+b.heat*4);break;
@@ -749,10 +757,10 @@ function climbRung(){
   burst(CX,CY,'#7ff0d0',40);sfx('fanfare');showBanner('Grid tier '+S.gt+' · '+r.n,r.d+' Next: '+fmtW(rung(S.gt).kw)+' sustained.');buildDock();save();
 }
 
-// Nova shards: the Aether reactor's Ember shard. About 1 in 100 Aether burned leaves one.
-const NOVA_P=.01;
+// Nova shards: the Aether reactor's Ember shard. About 1 in 1,200 Aether burned leaves one (reactors burn 12× faster than they used to).
+const NOVA_P=.01/12;
 function novaFound(){if(S.flags.nova)return;S.flags.nova=1;save();
-  setTimeout(()=>openModal(`<span class="eyebrow">Something rare</span><h1>A Nova shard</h1><div class="ms-req"><span class="req done"><img src="${ICON.nova}" alt="Nova shard">+1</span></div><p>Your Aether Reactor left behind a <strong>Nova shard</strong>, the Aether version of an Ember shard. Only about 1 in 100 Aether burned leaves one, and it goes straight to storage.</p><p>Nova shards are kept when you Ascend. Hold on to them: future upgrades will use them.</p><button class="btn primary" data-close>Keep it</button>`),400)}
+  setTimeout(()=>openModal(`<span class="eyebrow">Something rare</span><h1>A Nova shard</h1><div class="ms-req"><span class="req done"><img src="${ICON.nova}" alt="Nova shard">+1</span></div><p>Your Aether Reactor left behind a <strong>Nova shard</strong>, the Aether version of an Ember shard. Only about 1 in 1,200 Aether burned leaves one, and it goes straight to storage.</p><p>Nova shards are kept when you Ascend. Hold on to them: future upgrades will use them.</p><button class="btn primary" data-close>Keep it</button>`),400)}
 function climbFurnace(){
   const r=frung(S.ft||0);S.ft=(S.ft||0)+1;
   burst(CX,CY,'#ff9a5a',40);sfx('fanfare');showBanner('Furnace tier '+S.ft+' · '+r.n,r.d+' Next: '+fmtW(frung(S.ft).kw)+' sustained from burners.');save();
@@ -1320,8 +1328,8 @@ function drawItem(g,t,r){
 const SPR={},ICON={},ICON_B={};
 function drawDense(g,t,r){const bt=ITEMS[t].dense;
   g.save();g.translate(-r*.18,r*.16);g.scale(.74,.74);drawItem(g,bt,r);g.restore();g.save();g.translate(r*.14,-r*.14);g.scale(.74,.74);drawItem(g,bt,r);g.restore();
-  g.beginPath();g.arc(r*.58,r*.58,r*.36,0,7);g.fillStyle='#8a6bff';g.fill();g.lineWidth=r*.08;g.strokeStyle='rgba(8,6,16,.9)';g.stroke();
-  g.fillStyle='#fff';g.font=`800 ${r*.48}px sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText('2',r*.58,r*.6);g.textAlign='left';g.textBaseline='alphabetic'}
+  const pk=ITEMS[t].tier===2;g.beginPath();g.arc(r*.58,r*.58,r*.36,0,7);g.fillStyle=pk?'#f3c25a':'#8a6bff';g.fill();g.lineWidth=r*.08;g.strokeStyle='rgba(8,6,16,.9)';g.stroke();
+  g.fillStyle=pk?'#1a1420':'#fff';g.font=`800 ${r*.48}px sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(pk?'4':'2',r*.58,r*.6);g.textAlign='left';g.textBaseline='alphabetic'}
 function makeSprites(){
   for(const t of ITEM_ORDER){
     const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.translate(32,32);drawItem(g,t,26);SPR[t]=c;ICON[t]=c.toDataURL();
@@ -1673,7 +1681,7 @@ function render(rdt){
   const is=z*.44;
   for(const [b] of belts)for(const it of b.items){const [px,py]=itemPos(b,it);g.drawImage(SPR[it.t],w2sx(px)-is/2,w2sy(py)-is/2,is,is);if(it.t==='petal')glow(px,py,.6,'#f3c25a',.4)}
   for(const [b,x,y] of mach){
-    if(!b.bp){if(b.active)AUvis++;drawMachine(g,b,x,y,z);if(b.dn){const bw=(b.w||1)*z;g.beginPath();g.arc(x+bw-z*.18,y+z*.18,Math.max(3,z*.13),0,7);g.fillStyle='#8a6bff';g.fill();g.strokeStyle='rgba(8,6,16,.85)';g.lineWidth=Math.max(1,z*.04);g.stroke()}
+    if(!b.bp){if(b.active)AUvis++;drawMachine(g,b,x,y,z);if(b.dn){const bw=(b.w||1)*z;g.beginPath();g.arc(x+bw-z*.18,y+z*.18,Math.max(3,z*.13),0,7);g.fillStyle=b.dn===2?'#f3c25a':'#8a6bff';g.fill();g.strokeStyle='rgba(8,6,16,.85)';g.lineWidth=Math.max(1,z*.04);g.stroke()}
       if(bneck){const st=badOf(b);if(st&&st===b.bk)b.bkT=(b.bkT||0)+rdt;else{b.bk=st;b.bkT=0}if(st&&b.bkT>1.5){const col=st==='block'?'255,115,120':'242,165,74',a=.55+.25*Math.sin(S.time*3);g.strokeStyle=`rgba(${col},${a})`;g.lineWidth=Math.max(1.5,z*.06);rr(g,x+z*.05,y+z*.05,b.w*z-z*.1,b.w*z-z*.1,z*.18);g.stroke();g.fillStyle=`rgb(${col})`;g.beginPath();g.arc(x+b.w*z-z*.16,y+z*.16,Math.max(2.5,z*.08),0,7);g.fill()}}
       continue}
     const sv=GL;GL=[];g.globalAlpha=.36;drawMachine(g,b,x,y,z);g.globalAlpha=1;
@@ -1832,11 +1840,11 @@ let banT=0;
 function showBanner(h,p){if(elBanner.dataset.reload)return;elBanner.innerHTML=`<h3></h3><p></p>`;elBanner.querySelector('h3').textContent=h;elBanner.querySelector('p').textContent=p;elBanner.hidden=false;clearTimeout(banT);banT=setTimeout(()=>elBanner.hidden=true,5200)}
 elBanner.addEventListener('click',()=>{if(elBanner.dataset.reload){save();location.reload();return}elBanner.hidden=true});
 
-function fabRate(b,k){return (b&&b.dn?1/1.5:1)*gridMul()*(B[b.t].mult||1)*rp('fab')*recSpd(k)/RECIPES[k].t}
+function fabRate(b,k){return (b?1/TT[b.dn|0]:1)*gridMul()*(B[b.t].mult||1)*rp('fab')*recSpd(k)/RECIPES[k].t}
 function recSpd(k){return k==='voidlens'&&orbDone('temper')?1.5:1}
 // Kit lines: kits come out 2 at a time
 function recOut(k){return RECIPES[k].out*((k==='kitf'&&orbDone('kitf2'))||(k==='kitv'&&orbDone('kitv2'))||(k==='kits'&&orbDone('kits2'))?2:1)}
-function smeltRate(b,ore){return (b&&b.dn?1/1.5:1)*gridMul()*(B[b.t].mult||1)*rp('smelt')*(b.t==='foundry'?1+.1*nupLv('crucible'):1)/((SMELT_T[ore]||1)*(ore==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1))}
+function smeltRate(b,ore){return (b?1/TT[b.dn|0]:1)*gridMul()*(B[b.t].mult||1)*rp('smelt')*(b.t==='foundry'?1+.1*nupLv('crucible'):1)/((SMELT_T[ore]||1)*(ore==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1))}
 function fmtRate(v){return v>=100?Math.round(v).toString():v>=10?v.toFixed(1):v.toFixed(2)}
 function rateLine(ins,outs,note){return `<div class="flow"><span class="lbl">Per second</span>${ins.map(([k,v])=>chip(k,fmtRate(v))).join('')}<span class="arrow">→</span>${outs.map(([k,v])=>chip(k,fmtRate(v))).join('')}${note?`<span class="lbl">${note}</span>`:''}</div>`}
 function rateNote(){const p=PW.sat<.999?` · ${Math.round(PW.sat*100)}% power now`:'';return 'at full power'+p}
@@ -1897,7 +1905,7 @@ function status(b){
     case 'junction':{const n=b.lanes.reduce((a,l)=>a+l.length,0);return['ok',n?`Carrying ${n}`:'Empty']}
     case 'smelter':case 'foundry':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];
-    case 'reactor':return (b.husk||0)>=4?['bad','Husks piling up · connect its output']:b.load>.01?['ok',`Running · ${fmtW(b.load*10000)}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs Aether'];
+    case 'reactor':return (b.husk||0)>=4?['bad','Husks piling up · connect its output']:b.load>.01?['ok',`Running · ${fmtW(b.load*B.reactor.gen*reactorMul(b))}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs Aether'];
     case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return['bad','Pick a recipe'];const r=RECIPES[b.rec];return b.run?(lp?['warn','Low power · '+pct]:['ok','Assembling']):b.outN+r.out>Math.max(4,r.out*2)?['warn','Output blocked']:['warn','Waiting for inputs']}
     case 'batcher':{const ks=Object.keys(b.ratio);if(!ks.length)return['warn','No ratio set · passing items through'];if(b.q&&(b.q[0].length||b.q[1].length))return['ok',b.q[0].length&&b.q[1].length?'Sending on both outputs':'Sending a batch'];const need=ks.filter(k=>(b.st[k]||0)<b.ratio[k]).map(k=>ITEMS[k].s);return['warn','Waiting for '+need.join(', ')]}
     case 'splitter':case 'sorter':return b.hold?['warn','Waiting for room']:['ok','Ready'];
@@ -1913,7 +1921,7 @@ function status(b){
     case 'core':return['ok','Online · '+fmtW(coreKW())];
     case 'separator':{const t=sepTot(b);return b.run?(lp?['warn','Low power · '+pct]:['ok','Separating']):t>0&&b.nx?['warn','Output blocked: '+ITEMS[b.nx].n]:b.n<1000?['warn',`Collecting Starsand · ${b.n} / 1,000`]:['ok','Sending out the last batch']}
     case 'incinerator':return b.heat>.05?['ok','Burning']:['ok','Idle'];
-    case 'compressor':return b.run?(lp?['warn','Low power · '+pct]:['ok',b.mode?'Unpacking':'Packing']):b.outN?['warn','Output blocked']:b.inN?['ok',`Collecting · ${b.inN} / ${b.mode?1:5}`]:['warn',b.mode?'Waiting for dense items':'Waiting for items'];
+    case 'compressor':return b.run?(lp?['warn','Low power · '+pct]:['ok',b.mode===2?'Unpacking':'Packing']):b.outN?['warn','Output blocked']:b.inN?['ok',`Collecting · ${b.inN} / ${b.mode===2?1:TIN[b.mode+1]}`]:['warn',b.mode===2?'Waiting for dense or packed items':'Waiting for items'];
     case 'spaceport':return !b.m?['warn','Pick a mission']:b.st?(lp?['warn','Low power · '+pct]:['ok',`Assembling rocket · ${Math.floor(b.p*100)}%`]):!padOpen(b.m)?['warn','Mission not available']:['warn','Loading'];
     case 'railterm':{const L=TLAB[b.lab]||'?';if(b.role)return b.q.length?['ok',`${L} · Unloading`]:['ok',`${L} · Receiving`];
       if(!b.routes||!b.routes.length)return['bad',`${L} · No rail to a receiving terminal`];
@@ -1929,11 +1937,11 @@ function bufRow(b){
   const cnt=a=>{const o={};a.forEach(t=>o[t]=(o[t]||0)+1);return Object.keys(o).map(k=>chip(k,o[k])).join('')};
   switch(b.t){
     case 'junction':{const a=b.lanes.flat().map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
-    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}/s${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
-    case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore);return rateLine([[ore,c]],[[SMELT[ore],c]],rateNote())})();
+    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}${b.dn?` ${ITEMS[dOut(b,b.ore)].s}/s from ${(ORE_P[b.ore].rate*drillMult(b)*TIN[b.dn]).toFixed(2)} ore`:'/s'}${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
+    case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore),m=TIN[b.dn|0];return rateLine([[ore,c*m]],[[dOut(b,SMELT[ore]),c]],rateNote())})();
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
-    case 'reactor':return `<div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/4')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
-    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+r.in[k])).join('')}<span class="arrow">→</span>${chip(b.rec,b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${r.t}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*r.in[k]]),[[b.rec,c*r.out*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
+    case 'reactor':return `<div class="flow"><span class="lbl">${fmtW(B.reactor.gen*reactorMul(b))} at full output${b.nb?` (+${25*b.nb}% from ${b.nb} touching reactor${b.nb===1?'':'s'})`:''}</span></div><div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/10')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
+    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+r.in[k]*TIN[b.dn|0])).join('')}<span class="arrow">→</span>${chip(dOut(b,b.rec),b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${+(r.t*TT[b.dn|0]).toFixed(2)}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*r.in[k]*TIN[b.dn|0]]),[[dOut(b,b.rec),c*recOut(b.rec)*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
     case 'batcher':{const ks=Object.keys(b.st).filter(k=>b.st[k]>0);return ks.length?`<div class="flow"><span class="lbl">Stored</span>${ks.map(k=>chip(k,b.st[k]+'/'+batCap())).join('')}</div>`:'<div class="flow"><span class="lbl">Empty</span></div>'}
     case 'splitter':case 'sorter':return b.hold?`<div class="flow"><span class="lbl">Holding</span>${chip(b.hold,1)}</div>`:'';
     case 'turbine':return `<div class="flow"><span class="lbl">Fuel</span>${chip('carbon',b.fuel+'/20')}</div>`;
@@ -1941,7 +1949,7 @@ function bufRow(b){
     case 'uplink':return `<div class="flow"><span class="lbl">${uplinkRate(b).toFixed(2)} items/s · ${uplinkPw(b)} kW · ${Math.round(coreDist(b))} tiles from Core</span></div>`+(b.q.length?`<div class="flow"><span class="lbl">Queue</span>${cnt(b.q)}</div>`:'');
     case 'ring':return `<div class="flow"><span class="lbl">Loaded</span>${chip('petal',b.n)}${chip('lattice',b.l||0)}<span class="lbl">of 4 · ${S.petals} petals and ${S.lat||0} Lattice cores in orbit</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'belt':return b.items.length?`<div class="flow">${cnt(b.items.map(i=>i.t))}</div>`:'';
-    case 'compressor':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
+    case 'compressor':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN+(b.mode===2?'':'/'+TIN[b.mode+1])):'<span class="lbl">empty</span>'}<span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
     case 'separator':{const ks=Object.keys(b.oq).filter(k=>b.oq[k]>0);return `<div class="flow"><span class="lbl">In</span>${chip('starsand',b.n.toLocaleString()+'/1,000')}<span class="lbl">· ${Math.round(rareShare()*100)}% Rare earth per batch</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(ks.length?`<div class="flow"><span class="lbl">Out</span>${ks.map(k=>chip(k,b.oq[k])).join('')}</div>`:'')+`<div class="flow"><span class="lbl">One batch every ${fmtRate(20/gridMul())}s at full power</span></div>`}
     case 'spaceport':{if(!b.m)return '<div class="flow"><span class="lbl">Choose a mission below.</span></div>';const M=MISSIONS[b.m],n=padNeed(b.m);
       let h=`<div class="flow"><span class="lbl">${M.n}${b.m==='ring'?` ${ringN()+1} of 12`:b.m==='lab'?` ${(S.orb.mods||0)+1} of ${labMax()}`:''}</span></div><div class="ms-req">`+Object.keys(n).map(k=>{const v=b.h[k]||0;return `<span class="req${v>=n[k]?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(v)}/${fmtN(n[k])}<i style="width:${Math.min(100,v/n[k]*100)}%"></i></span>`}).join('');
@@ -1980,8 +1988,9 @@ function renderSheet(){
     <div class="sec-label">This terminal</div><div class="seg"><button data-role="0" class="${b.role?'':'on'}">Send</button><button data-role="1" class="${b.role?'on':''}">Receive</button></div>`+
     (b.role?`<div class="sec-label">Accepts</div><p class="desc">Shuttles only bring this terminal the items picked here, dense or not. Pick nothing to take anything.</p><div class="grid items"><button class="opt${!b.flt.length?' on':''}" data-tflt="" aria-label="Anything">All</button>${ITEM_ORDER.filter(k=>!BASE_OF[k]&&(S.seen[k]||b.flt.includes(k))).map(k=>`<button class="opt${b.flt.includes(k)?' on':''}" data-tflt="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`
     :`<div class="sec-label">Send to</div><div class="seg" style="flex-wrap:wrap"><button data-tdest="" class="${b.dest==null?'on':''}">Auto</button>${recv.map(q=>`<button data-tdest="${q.lab}" class="${b.dest===q.lab?'on':''}">${TLAB[q.lab]}</button>`).join('')}</div><p class="desc">Auto sends each load to the nearest receiver that accepts it. Pick a letter to always go there.</p>`);}
-  if(DM.includes(b.t)&&ssLv('dense'))ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-dn="0" class="${b.dn?'':'on'}">Normal</button><button data-dn="1" class="${b.dn?'on':''}">Dense ×2</button></div><p class="desc">${b.dn?(b.t==='drill'||b.t==='deepdrill'?'Each dig uses 5 ore and makes 1 dense ore (worth 2), 1.5× slower.':'Uses 5× the inputs per batch, plain or dense, and makes dense output (each worth 2), 1.5× slower.'):'Takes plain or dense items: a dense item counts as 2. Dense mode makes dense output from 5× the inputs.'}</p>`+ctrl;
-  if(b.t==='compressor')ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-cmode="0" class="${b.mode?'':'on'}">Pack 5 → 1 dense</button><button data-cmode="1" class="${b.mode?'on':''}">Unpack 1 → 2</button></div>`+ctrl;
+  if(DM.includes(b.t)&&ssLv('dense')){const dr=b.t==='drill'||b.t==='deepdrill',m=b.dn|0;
+    ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Normal</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">${m?(dr?`Each dig uses ${TIN[m]} ore and makes 1 ${m===2?'packed':'dense'} ore worth ${m===2?4:2}, at full speed.`:`Uses ${TIN[m]}× the inputs per batch (plain, dense or packed all count by worth) and makes ${m===2?'packed':'dense'} output worth ${m===2?4:2}, ${TT[m]}× slower.`):'Takes plain, dense and packed items alike: dense counts as 2, packed as 4.'}</p>`+ctrl}
+  if(b.t==='compressor')ctrl=`<div class="sec-label">Mode</div><div class="seg" style="flex-wrap:wrap"><button data-cmode="0" class="${b.mode===0?'on':''}">Dense: 5 → 1</button>${ssLv('dense')>=2?`<button data-cmode="1" class="${b.mode===1?'on':''}">Packed: 20 → 1</button>`:''}<button data-cmode="2" class="${b.mode===2?'on':''}">Unpack</button></div><p class="desc">${['Packs 5 worth of an item into 1 dense item (worth 2).','Packs 20 worth of an item, plain or dense, into 1 packed item (worth 4).','Unpacks a dense item into 2, or a packed item into 4.'][b.mode]}</p>`+ctrl;
   const acts=b.t==='core'?'':`<div class="actions">${d.dir?`<button class="btn" data-act="rot">${SVG.rot}Rotate</button>`:''}<button class="btn danger" data-act="del">${SVG.trash}Remove</button></div>`;
   elSheet.innerHTML=`<div class="sh-head"><img src="${ICON_B[b.t]}" alt=""><div class="sh-title"><h2>${d.n}</h2><span class="pill" id="shStatus"></span></div><button class="x" data-act="close" aria-label="Close">${SVG.x}</button></div>
   <div class="sh-body"><p class="desc">${d.d}${d.pw&&d.pw<1e5?` Uses ${fmtW(d.pw)}.`:''}</p><div id="shBuf" class="sh-body" style="margin:0;gap:8px"></div>${ctrl}${acts}</div>`;
@@ -2010,7 +2019,7 @@ elSheet.addEventListener('click',e=>{
   else if(el.dataset.mission){const m=el.dataset.mission;if(b.st){showToast('A rocket is being assembled');return}if(!padOpen(m))return;if(b.m!==m){padUnload(b);b.m=m}renderSheet();sfx('tick')}
   else if(el.dataset.act==='padload'){const n=padLoad(b);showToast(n?`Loaded ${n.toLocaleString()} items from storage`:'Nothing in storage this mission still needs');refreshSheet()}
   else if(el.dataset.act==='padgo'){if(!kitN(b.h)){showToast('Load some kits first');return}b.go=true;showToast('It launches as soon as the rocket and fuel are loaded')}
-  else if(el.dataset.dn!==undefined){const v=+el.dataset.dn;if(!!b.dn===!!v)return;setDense(b,v);renderSheet();sfx('tick')}
+  else if(el.dataset.dn!==undefined){const v=+el.dataset.dn;if((b.dn|0)===v)return;setDense(b,v);renderSheet();sfx('tick')}
   else if(el.dataset.cmode!==undefined){const v=+el.dataset.cmode;if(b.mode===v)return;for(const t of contents(b))addInv(t);Object.assign(b,init('compressor'),{mode:v});renderSheet();sfx('tick')}
   else if(el.dataset.role!==undefined){const r=+el.dataset.role;if(b.role===r)return;b.role=r;if(r){b.q.push(...b.sh.load);b.sh={ph:0,d:0,load:[],route:null}}dirty=true;renderSheet();sfx('tick')}
   else if(el.dataset.tlab!==undefined){const L=+el.dataset.tlab,o=[...S.bs.values()].find(q=>q.t==='railterm'&&q!==b&&q.lab===L);if(o)o.lab=b.lab;b.lab=L;renderSheet();sfx('tick')}
@@ -2956,7 +2965,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:1]),bs,res:resDiff()};
+  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
@@ -2982,7 +2991,7 @@ function start(data,forceNew){
     for(const a of BL){if(a[0]==='rail'){const x=a[1]+OFF,y=a[2]+OFF;S.rail.add(y*W+x);place('pylon',x,y,0,true);continue}if(!B[a[0]])continue;let b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(a[0]==='deepdrill'&&!d.dd2)for(const [ox,oy] of [[-1,0],[0,-1],[-1,-1]]){if(typeof b==='object')break;b=place(a[0],a[1]+OFF+ox,a[2]+OFF+oy,a[3],true,a[4])}if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='sorter'&&a[6])b.sd=a[6];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){const X=a[4];if(X.r)b.ratio=X.r;else b.ratio=X;
       if(X.st&&typeof X.st==='object')for(const k in X.st)if(ITEMS[k]&&X.st[k]>0)b.st[k]=Math.min(batCap(),X.st[k]|0);
       if(Array.isArray(X.q))b.q=[0,1].map(i=>Array.isArray(X.q[i])?X.q[i].filter(k=>ITEMS[k]):[])}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0));if(a[0]==='reactor')b.husk=Math.max(0,Math.min(4,F.h|0))}if(a[5]!==1&&a[4]&&typeof a[4]==='object'){const X=a[4];if(a[0]==='separator'){b.n=Math.max(0,Math.min(1200,X.n|0));if(X.oq&&typeof X.oq==='object')for(const k in X.oq)if(ITEMS[k]&&X.oq[k]>0)b.oq[k]=X.oq[k]|0;b.nx=ITEMS[X.nx]&&b.oq[X.nx]?X.nx:null}else if(a[0]==='spaceport'){b.m=MISSIONS[X.m]?X.m:null;if(X.h&&typeof X.h==='object')for(const k in X.h)if(ITEMS[k]&&X.h[k]>0)b.h[k]=X.h[k]|0;b.st=X.st?1:0;b.p=Math.max(0,Math.min(1,+X.p||0));b.go=!!X.go}else if(a[0]==='railterm'){b.role=X.r?1:0;if(Array.isArray(X.q))b.q=X.q.filter(k=>ITEMS[k]).slice(0,2000);if(typeof X.l==='number')b.lab=X.l;if(typeof X.dt==='number')b.dest=X.dt;if(Array.isArray(X.f))b.flt=X.f.filter(k=>ITEMS[k])}}if(a[5]===1)b.bp=true}}
-    if(Array.isArray(d.dn))for(const [x,y,v] of d.dn){const q=at(x+OFF,y+OFF);if(!q)continue;if(q.t==='compressor')q.mode=v?1:0;else if(DM.includes(q.t))q.dn=1}
+    if(Array.isArray(d.dn))for(const [x,y,v] of d.dn){const q=at(x+OFF,y+OFF);if(!q)continue;if(q.t==='compressor')q.mode=Math.max(0,Math.min(2,v|0));else if(DM.includes(q.t))q.dn=Math.max(1,Math.min(2,v|0))}
     if(ssLv('dense')&&!S.unl.includes('compressor'))S.unl.push('compressor');
     if(Array.isArray(d.rail))for(const k of d.rail)if(k>=0&&k<W*H)S.rail.add(k|0);
     if(d.cam){cam.x=d.cam.x+OFF;cam.y=d.cam.y+OFF;cam.z=d.cam.z}
