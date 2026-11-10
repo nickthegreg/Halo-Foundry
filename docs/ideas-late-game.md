@@ -346,8 +346,9 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 - Achievements (`S.ach`): pay Starseeds once, checked every second in the main game.
 
 ### Next megaprojects (proposals, 2026-11-10)
-- **Space Elevator**: a ground megastructure in 8 stages beside the Spaceport. Each stage cuts rocket kit and fuel
-  costs by 10%; when finished, payloads ride up continuously and missions no longer need rockets.
+- **Space Elevator**: a ground megastructure in 8 stages beside the Spaceport. Each stage cuts the Aether fuel
+  for launches (e.g. 8% per stage, about half by the last). Rockets and payloads still cost the same; it never
+  makes launches free (owner, 2026-11-10).
 - **Seed Ark**: modules launched before you Ascend. Each module carries a slice of one chosen item stack (e.g. 5% of
   your circuits, capped) to the next moon, for a real head start that you have to plan for.
 - **Deep Core Bore**: a 7×7 bore sunk in depth stages. Each stage unlocks a mantle resource (Magma glass, Heavy
