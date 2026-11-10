@@ -2284,7 +2284,7 @@ function bufRow(b){
   const cnt=a=>{const o={};a.forEach(t=>o[t]=(o[t]||0)+1);return Object.keys(o).map(k=>chip(k,o[k])).join('')};
   switch(b.t){
     case 'junction':{const a=b.lanes.flat().map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
-    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}${b.dn?` ${ITEMS[dOut(b,b.ore)].s}/s from ${(ORE_P[b.ore].rate*drillMult(b)*TIN[b.dn]).toFixed(2)} ore`:'/s'}${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
+    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}${b.dn?` ${ITEMS[dOut(b,b.ore)].s}/s from ${(ORE_P[b.ore].rate*drillMult(b)*TIN[b.dn]).toFixed(2)} ore`:'/s'}${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()*TIN[b.dn|0]))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore),m=TIN[b.dn|0];return rateLine([[ore,c*m]],[[dOut(b,SMELT[ore]),c]],rateNote())})();
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">${fmtW(B.reactor.gen*reactorMul(b))} at full output${b.nb?` (+${25*b.nb}% from ${b.nb} touching reactor${b.nb===1?'':'s'})`:''}</span></div><div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/10')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
@@ -2310,7 +2310,8 @@ function bufRow(b){
   }
   return '';
 }
-function openSheet(b){sel=b;renderSheet();elSheet.hidden=false}
+let sheetAt=0;const sheetFresh=()=>performance.now()-sheetAt<400;
+function openSheet(b){if(elSheet.hidden||sel!==b)sheetAt=performance.now();sel=b;renderSheet();elSheet.hidden=false}
 function closeSheet(){sel=null;SELB=null;elSheet.hidden=true}
 function renderSheet(){
   const b=sel,d=B[b.t];
@@ -2354,7 +2355,7 @@ function refreshSheet(){
   const bf=$('#shBuf'),h=bufRow(sel);if(bf._h!==h){bf._h=h;bf.innerHTML=h}
 }
 elSheet.addEventListener('click',e=>{
-  const el=e.target.closest('button');if(!el||!sel)return;const b=sel;
+  const el=e.target.closest('button');if(!el||!sel)return;if(sheetFresh()&&el.dataset.act!=='close')return;const b=sel;
   if(el.dataset.act==='close')closeSheet();
   else if(el.dataset.act==='rot'){b.d=(b.d+1)&3;dirty=true}
   else if(el.dataset.act==='del'){removeB(b);sfx('remove');showToast(B[b.t].n+' removed, cost refunded')}
@@ -3197,24 +3198,31 @@ function selectRect(a,b){
   if(!ids.length){SELB=null;closeSheet();showToast('Nothing inside that box');return}
   SELB=ids;openSelSheet();sfx('tick');
 }
-function openSelSheet(){
-  sel=null;const bs=SELB.map(id=>S.bs.get(id)).filter(Boolean),cnt={};bs.forEach(q=>cnt[q.t]=(cnt[q.t]||0)+1);
+function openSelSheet(keep){
+  if(!keep)sheetAt=performance.now();sel=null;const bs=SELB.map(id=>S.bs.get(id)).filter(Boolean),cnt={};bs.forEach(q=>cnt[q.t]=(cnt[q.t]||0)+1);
+  const dm=bs.filter(q=>DM.includes(q.t)&&!q.bp),so=bs.filter(q=>q.t==='sorter'),tn=bs.filter(q=>B[q.t].dir&&q.t!=='belt');
   const n=t=>bs.filter(q=>q.t===t).length,fr=S.rec.filter(k=>!RECIPES[k].at),ar=S.rec.filter(k=>RECIPES[k].at==='asm');
   const recBtns=(list,kind)=>`<div class="grid">${list.map(k=>`<button class="opt sm" data-srec="${k}" data-kind="${kind}"><img src="${ICON[k]}" alt=""><span class="t"><b>${ITEMS[k].n}</b><small>${Object.keys(RECIPES[k].in).map(i=>RECIPES[k].in[i]+' '+ITEMS[i].s).join(' + ')}</small></span></button>`).join('')}</div>`;
   const grp=(t,list,label)=>n(t)&&list.length?`<div class="sec-label">${label} for ${n(t)} ${B[t].n}${n(t)>1?'s':''}</div>${recBtns(list,t)}`:'';
   elSheet.innerHTML=`<div class="sh-head"><div class="sh-title"><h2>Selection</h2><span class="pill ok">${bs.length} building${bs.length===1?'':'s'}</span></div><button class="x" data-sx="close" aria-label="Close">${SVG.x}</button></div>
   <div class="sh-body"><div class="flow">${Object.keys(cnt).map(t=>`<span class="chip"><img src="${ICON_B[t]}" alt="${B[t].n}">${cnt[t]}</span>`).join('')}</div>
   <div class="actions"><button class="btn primary" data-sx="copy">Copy</button><button class="btn" data-sx="save">Save blueprint</button></div>
+  ${dm.length&&ssLv('dense')?`<div class="sec-label">Mode for ${dm.length} drill${dm.length>1?'s':''} and machine${dm.length>1?'s':''}</div><div class="seg">${[['0','Normal'],['1','Dense ×2'],...(ssLv('dense')>=2?[['2','Packed ×4']]:[])].map(([v,l])=>`<button data-sdn="${v}" class="${dm.every(q=>(q.dn|0)===+v)?'on':''}">${l}</button>`).join('')}</div>`:''}
   ${grp('fab',fr,'Recipe')}${grp('fab2',fr,'Recipe')}${grp('assembler',ar,'Recipe')}${grp('batcher',S.rec,'Ratio')}
+  ${so.length?`<div class="sec-label">Chosen item for ${so.length} Sorter${so.length>1?'s':''}</div><div class="grid items"><button class="opt${so.every(q=>!q.filter)?' on':''}" data-sflt="" aria-label="Everything">All</button>${ITEM_ORDER.filter(k=>!BASE_OF[k]&&S.seen[k]).map(k=>`<button class="opt${so.every(q=>q.filter===k)?' on':''}" data-sflt="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`:''}
+  ${tn.length?`<div class="actions"><button class="btn" data-sx="rot">Turn all a quarter turn</button></div>`:''}
   <div class="actions"><button class="btn danger" data-sx="del">${SVG.trash}Remove all</button></div></div>`;
   elSheet.hidden=false;
 }
 elSheet.addEventListener('click',e=>{
-  const el=e.target.closest('button');if(!el||!SELB)return;const bs=SELB.map(id=>S.bs.get(id)).filter(Boolean);
+  const el=e.target.closest('button');if(!el||!SELB)return;if(sheetFresh()&&el.dataset.sx!=='close')return;const bs=SELB.map(id=>S.bs.get(id)).filter(Boolean);
   if(el.dataset.sx==='close')closeSheet();
   else if(el.dataset.sx==='copy'){CLIP=captureLayout(bs);startPaste(CLIP)}
   else if(el.dataset.sx==='save')saveBlueprint(captureLayout(bs));
   else if(el.dataset.sx==='del'){if(Date.now()-(el._arm||0)<3000){bs.forEach(q=>removeB(q));sfx('remove');showToast(`Removed ${bs.length}, cost refunded`);closeSheet()}else{el._arm=Date.now();el.innerHTML=SVG.trash+'Tap again to remove'}}
+  else if(el.dataset.sdn!==undefined){const v=+el.dataset.sdn;let c=0;bs.forEach(q=>{if(DM.includes(q.t)&&!q.bp&&(q.dn|0)!==v){setDense(q,v);c++}});sfx('tick');showToast(`${['Normal','Dense','Packed'][v]} mode set on ${c} building${c===1?'':'s'}`);openSelSheet(true)}
+  else if(el.dataset.sflt!==undefined){const k=el.dataset.sflt||null;bs.forEach(q=>{if(q.t==='sorter')q.filter=k});sfx('tick');openSelSheet(true)}
+  else if(el.dataset.sx==='rot'){bs.forEach(q=>{if(B[q.t].dir&&q.t!=='belt')q.d=(q.d+1)&3});dirty=true;sfx('tick')}
   else if(el.dataset.srec){const k=el.dataset.srec,kind=el.dataset.kind;let c=0;bs.forEach(q=>{if(q.t!==kind)return;if(kind==='batcher')setRatio(q,k);else setRecipe(q,k);c++});sfx('tick');showToast(`${ITEMS[k].n} set on ${c} ${B[kind].n}${c>1?'s':''}`)}
 });
 function captureLayout(bs){
@@ -3405,7 +3413,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 let booted=false;
 function boot(data){

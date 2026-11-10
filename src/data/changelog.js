@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:53,date:'2026-11-10',title:'Select more, mis-tap less',items:[
+    'Select now sets more things on everything in the box at once: Normal, Dense or Packed mode on drills and machines, the chosen item on Sorters, and a quarter turn for all machines.',
+    'Opening a building’s panel no longer presses whatever recipe or option appears under your finger. The panel ignores taps for a moment as it opens.',
+    'A drill’s “Runs dry in about…” now accounts for Dense and Packed mode, which use ore 5 and 20 times as fast.'
+  ]},
   {n:52,date:'2026-11-10',title:'Tidier menus, a proper guide and an FAQ',items:[
     'The Menu is now four tabs: Factory (this moon’s upgrades, Production, bottleneck markers), Powers (Ascension, Commander, Crown, Nova workshop), Guide and Settings.',
     'New Guide: a rewritten How to play that explains where the game is heading, a Questions tab with answers to the things people get stuck on, and a “What now?” hint that tells you your next step from wherever you are.',
