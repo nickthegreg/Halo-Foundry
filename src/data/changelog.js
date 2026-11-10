@@ -1,6 +1,14 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:50,date:'2026-11-10',title:'Market Uplink, Moon objectives, banes and achievements',items:[
+    'New building after the last milestone: the Market Uplink (5×5, one per moon). Clients post 2 to 5 open contracts for goods you belt in from any side. Fill one and they pay Starseeds plus a bonus: a speed, conveyor, power or drill boost for this moon, extra Starseeds when you Ascend, Ember shards, a load of goods, Nova shards, and now and then a Relic. Clients remember you across moons and come back with bigger orders, and two odd ones want strange things.',
+    'Timed contracts: one is offered every hour, from Small to Huge. Accept it and you have an hour to fill it. Bigger ones pay much more, Large ones add a Nova shard and Huge ones a Relic.',
+    'Anything the contracts don’t need goes on to the Core, so a finished contract never jams the belt.',
+    'Moon objectives: every moon in the main game rolls three goals (Progress panel). Each one done adds 15% to the Starseeds you get when you Ascend, and finishing all three adds another 15%.',
+    'Banes: from now on each ascension also asks you to pick one of three permanent drawbacks, such as thinner veins, slower belts or gears that need more iron. They stack, so choose the one that hurts least. Yours are listed in the Ascension panel.',
+    '30 achievements, each worth a few Starseeds, at the bottom of the Progress panel. Ones you’ve already earned pay out straight away.'
+  ]},
   {n:49,date:'2026-11-10',title:'Compressor retired',items:[
     'The Compressor is gone, so machines and drills do the packing themselves in Dense and Packed mode. Any Compressors you built are removed and their cost refunded.'
   ]},

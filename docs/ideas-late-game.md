@@ -328,3 +328,39 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 - Open question: Refinery ratio and speed (see chat 2026-11-10): ratio by ascension, higher floor, flat speed.
 - 2026-11-10: the Compressor building was retired (owner: machines should do the packing). `B.compressor` stays so old
   saves load; any built ones are removed with their cost refunded on load.
+
+### Market, objectives, banes, achievements (built 2026-11-10)
+- Data in `src/data/goals.js`: `CLIENTS` (6 regulars + 2 odd: Old Wren asks for any seen item, The Collector wants
+  husks, slag, rare earth, voidglass, starsand and dense goods), `TIMED_SIZES`, `OBJECTIVES`, `BANES`, `ACH`.
+- Market Uplink (`B.market`, 5×5, one per moon, unlocks after the last milestone, main game only). State `S.mk`
+  (open, timed, id, done); client levels `S.mkRep` carry across ascensions. Open slots = min(5, 2 + total levels / 4).
+  Contract value V = 300 · 1.5^level · (1 + 0.6 · ascensions) · size, spread over 1–3 seen items by `VAL`.
+- Rewards (`rollReward`): Starseeds √V/5 (× timed size factor) plus one of: boost for this moon (`S.mkB`: machine
+  speed, conveyors, power, drills), +% Starseeds at Ascend (`S.mkSeed`), Ember, goods, plus a Nova shard at level 3+
+  (20%) or on Large timed, a Relic on Huge timed and every 5th contract per client.
+- Timed: first offer after 5 minutes, then hourly; an offer lasts an hour, and once accepted you have an hour.
+- Surplus items delivered to the Market go to Core storage (no jams).
+- Objectives: 3 rolled per moon (`S.obj`), +15% Starseeds each and +15% for all three (`objMul` in `ascSeeds`).
+- Banes: pick 1 of 3 after each ascension (`S.banePick`, shown before the Relic pick), stored in `S.banes`, applied via
+  `bm(key, factor)` and `recIn` (recipe inputs). Some stack up to a max.
+- Achievements (`S.ach`): pay Starseeds once, checked every second in the main game.
+
+### Next megaprojects (proposals, 2026-11-10)
+- **Space Elevator**: a ground megastructure in 8 stages beside the Spaceport. Each stage cuts rocket kit and fuel
+  costs by 10%; when finished, payloads ride up continuously and missions no longer need rockets.
+- **Seed Ark**: modules launched before you Ascend. Each module carries a slice of one chosen item stack (e.g. 5% of
+  your circuits, capped) to the next moon, for a real head start that you have to plan for.
+- **Deep Core Bore**: a 7×7 bore sunk in depth stages. Each stage unlocks a mantle resource (Magma glass, Heavy
+  metal) as a slow endless stream; the last stage reaches the moon's heart for a unique Relic.
+- **Dyson swarm**: after the Halo Ring, nodes built from Quantum chips and Fusion cells. Each node adds power and
+  Starseeds; completing a shell grants a new prestige currency.
+- **Deep Array (observatory)**: an orbital telescope whose stages widen how far you can see on the galaxy map.
+
+### Galaxy map (proposal, 2026-11-10)
+- Replaces the "pick a moon modifier" step at Ascend. Moons sit in rings of sectors around the home star; you can
+  travel to any moon next to one you've visited. Farther out = harder traits and more Starseeds.
+- Each moon shows its traits before you go: modifiers (today's `MODS`), ore mix, size, and specials only found there
+  (Ice for Coolant, Helium-3 for Fusion, rich Voidstone…).
+- Special nodes: Derelict (ruins to salvage for parts), Bazaar (Market clients pay double), Anomaly (a guaranteed
+  rare Relic), Storm moon (a timed challenge with a big reward).
+- Visiting every moon in a sector gives a permanent sector perk. The Deep Array widens sight range.

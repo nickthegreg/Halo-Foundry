@@ -1,5 +1,6 @@
 import {DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
+import {CLIENTS,TIMED_SIZES,OBJECTIVES,OBJ_BONUS,OBJ_ALL,BANES,ACH} from './data/goals.js';
 import {EV,CANDY_UP} from './data/event.js';
 import {makeDefense} from './defense.js';
 import {CHANGELOG,LATEST} from './data/changelog.js';
@@ -13,7 +14,7 @@ let STOPPED=false;window.__haloStop=()=>{STOPPED=true;try{window.__haloCtx&&wind
 let BV=1.75;
 function mapLim(){let m=modOn('frontier')?96:64;for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].map)m=Math.max(m,RUNGS[i].map);return m}
 function inLim(x,y){const L=mapLim();return x>=192-L&&y>=192-L&&x<192+L&&y<192+L}
-function refRatio(){return Math.max(50,Math.round((1000-Math.floor((S.refined||0)/1000))*(1-Math.min(.5,relStat('refine')/100+.05*crownLv('distill')))*(1-.05*nupLv('still'))*(orbDone('stelref')?.75:1)))}
+function refRatio(){return Math.max(50,Math.round((1000-Math.floor((S.refined||0)/1000))*(1-Math.min(.5,relStat('refine')/100+.05*crownLv('distill')))*(1-.05*nupLv('still'))*(orbDone('stelref')?.75:1)*bm('refine',1.08)))}
 
 // ================= rng =================
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -39,7 +40,8 @@ function pay(c,sg){for(const k in c)S.inv[k]=(S.inv[k]||0)+sg*c[k]}
 function missing(c){const m=[];for(const k in c){const h=S.inv[k]||0;if(h<c[k])m.push((c[k]-h)+' '+ITEMS[k].s)}return m.join(', ')}
 function countOf(t){let n=0;for(const b of S.bs.values())if(b.t===t)n++;return n}
 // Anything priced in Ember shards climbs Fibonacci-style with each one you own: 1, 1, 2, 3, 5, 8…
-function costOf(t,n){if(ssLv('lfit')&&(t==='splitter'||t==='sorter'||t==='junction'))return {};const c=Object.assign({},B[t].cost||{});if((t==='rail'||t==='railterm'||t==='pylon')&&ssLv('rails'))for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-.25*ssLv('rails'))));if(c.ember){let a=c.ember,b=c.ember;const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a;if(t==='deepdrill'&&k<nupLv('grant'))delete c.ember}const off=Math.min(.5,.05*cmdLv('architect')+relStat('cost')/100);if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
+function costOf(t,n){const c0=costOf0(t,n),bc=bm('cost',1.06);if(bc!==1)for(const k in c0)if(k!=='ember')c0[k]=Math.ceil(c0[k]*bc);return c0}
+function costOf0(t,n){if(ssLv('lfit')&&(t==='splitter'||t==='sorter'||t==='junction'))return {};const c=Object.assign({},B[t].cost||{});if((t==='rail'||t==='railterm'||t==='pylon')&&ssLv('rails'))for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-.25*ssLv('rails'))));if(c.ember){let a=c.ember,b=c.ember;const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a;if(t==='deepdrill'&&k<nupLv('grant'))delete c.ember}const off=Math.min(.5,.05*cmdLv('architect')+relStat('cost')/100);if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
 // Upgrade costs: hand-set early levels, then each further level costs the last one times `grow`
 function tierCost(T,grow,L){if(L<T.length)return T[L];const c={},m=Math.pow(grow,L-T.length+1),last=T[T.length-1];for(const k in last)c[k]=Math.round(last[k]*m/10)*10;return c}
 const BELT_COST=[{ember:5},{ember:50},{ember:500},{ember:5000},{aether:10},{aether:40,husk:40,ember:20000},{aether:200,husk:200,ember:80000,servo:2000}];
@@ -87,10 +89,10 @@ function dupP(){return seedDupB()+relStat('dup')/100}
 function dupN(){const d=dupP();return Math.floor(d)+(Math.random()<d%1?1:0)}
 function coreKW(){return CORE_GEN*(1+.2*ascN())*rp('core')}
 function drillR(t){return B[t].r+(t==='deepdrill'?nupLv('reach'):0)}
-function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)*(b.ore==='voidstone'&&ssLv('vsight')?1.5:1)*(b.ore==='voidstone'&&b.t==='deepdrill'&&nupLv('lens')?1.5:1)*(1+.1*orbLv('harvest'))}
+function drillMult(b){return (B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)*(b.ore==='voidstone'&&ssLv('vsight')?1.5:1)*(b.ore==='voidstone'&&b.t==='deepdrill'&&nupLv('lens')?1.5:1)*(1+.1*orbLv('harvest'))*bm('drill',.95)*(1+mkB('drill'))}
 function oreUse(b){return (b.t==='deepdrill'?.5*Math.pow(.85,nupLv('thrift')):1)*(modOn('thin')?2:1)}
 // Deep veins doesn't apply to carbon
-function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+seedOreB())*rp('ore')*((o==='voidstone'||o==='starsand')&&orbDone('survey')?1.5:1)*(orbDone('surv2')?1.25:1)}
+function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+seedOreB())*rp('ore')*((o==='voidstone'||o==='starsand')&&orbDone('survey')?1.5:1)*(orbDone('surv2')?1.25:1)*bm('ore',.92)}
 // Every Menu upgrade level compounds the halo: ×1.01 per level
 function upTotal(){let n=0;for(const k in (S.up||{}))n+=S.up[k]||0;return n}
 function haloMul(){return Math.pow(1.01,upTotal())}
@@ -114,7 +116,7 @@ function fPerk(k){let v=0;for(let i=0;i<(S.ft||0);i++)v+=frung(i)[k]||0;return v
 function burnPow(){return (1+fPerk('pow'))*(1+.1*crownLv('forge'))*rp('burn')}
 // Hotter burners: more power and they burn fuel proportionally faster (more Ember shards and husks per minute)
 function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
-function emberChance(){return .02*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
+function emberChance(){return .02*bm('shard',.9)*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
 function toolTip(t){const d=B[t];if(t==='deepdrill'&&S)return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))} · ${fmtW(ddPw(countOf(t)))}</span><br>${d.d}`;return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+fmtW(d.pw):''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
 function costStr(c){return Object.keys(c).map(k=>c[k]+' '+ITEMS[k].s).join(' · ')}
 // Compression tiers: [inputs per batch, worth of one item, time ×]
@@ -148,6 +150,7 @@ function init(t){
     case 'turbine':return{fuel:0,energy:0,load:0,heat:0,ang:0};
     case 'uplink':return{q:[],prog:0,ph:0};
     case 'ring':return{n:0,l:0,prog:0,ang:0};
+    case 'market':return{ang:0};
     case 'compressor':return{inT:null,inN:0,outT:null,outN:0,run:false,prog:0,mode:0,ang:0};
     case 'separator':return{n:0,run:false,prog:0,oq:{},nx:null,ang:0};
     case 'incinerator':return{heat:0,ang:0};
@@ -165,6 +168,7 @@ function place(t,x,y,d,free,oreForce){
   const w=B[t].w||1;
   for(let j=0;j<w;j++)for(let i=0;i<w;i++){const xx=x+i,yy=y+j;if(xx<0||yy<0||xx>=W||yy>=H||S.grid[yy*W+xx])return 'blocked';if(!free&&!inLim(xx,yy))return 'frontier';if(!free&&SEEDT&&SEEDT[yy*W+xx])return 'seed'}
   if(!free&&banned(t))return 'banned';
+  if(t==='market'&&countOf('market')>=1)return 'one';
   if(!free&&chal()&&chal().cap&&t!=='belt'&&t!=='junction'&&bCount()>=chal().cap)return 'cap';
   let ore=null;if(B[t].r){ore=oreForce||drillType(x,y,drillR(t),w);if(!ore)return 'ore';if(!oreForce&&ORE_P[ore].deep&&t!=='deepdrill')return 'deep'}
   let fr=false;if(!free&&B[t].cost){if(S.free&&S.free[t]>0){S.free[t]--;fr=true}else{const c=costOf(t);if(!canAfford(c))return 'cost';pay(c,-1)}}
@@ -264,7 +268,7 @@ function accept(nb,t,side,p0){
       if(!SMELT[t]||(t==='voidstone'&&nb.t!=='foundry')||nb.inN+u>Math.max((nb.t==='foundry'?30:6)*TIN[nb.dn|0],2*TIN[nb.dn|0]+4)||(nb.inN>0&&nb.inT!==t))return false;
       nb.inT=t;nb.inN+=u;return true;}
     case 'fab':case 'fab2':case 'assembler':{
-      if(!nb.rec)return false;const u=worth(t);t=BASE_OF[t]||t;const k=TIN[nb.dn|0],need=RECIPES[nb.rec].in[t]*k;if(!need)return false;
+      if(!nb.rec)return false;const u=worth(t);t=BASE_OF[t]||t;const k=TIN[nb.dn|0],need=(recIn(nb.rec)[t]||0)*k;if(!need)return false;
       const c=nb.buf[t]||0;if(c+u>Math.max(need*2,4*k)+3)return false;nb.buf[t]=c+u;return true;}
     case 'splitter':case 'sorter':if(nb.hold)return false;nb.hold=t;nb.hf=side;return true;
     case 'batcher':{
@@ -285,6 +289,7 @@ function accept(nb,t,side,p0){
     case 'incinerator':stat('c',t);nb.heat=1;return true;
     case 'spaceport':if(BASE_OF[t]){const bt=BASE_OF[t],u=worth(t),n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)+u>n)return false;nb.h[bt]=(nb.h[bt]||0)+u;return true}return padAccept(nb,t);
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
+    case 'market':return isCamp()&&!!S.mk&&mkAccept(t);
     case 'core':deliver(t);return true;
   }
   return false;
@@ -342,7 +347,7 @@ function dayPhase(){return (S.time/DAY_LEN+0.18)%1}
 function daylight(){if(modOn('eternal'))return 1;return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*1.3+(modOn('longnight')?-.15:.5)))}
 
 function sim(dt){
-  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1)*(1+rungSum('belt'))*(1+.05*orbLv('flow'));
+  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1)*(1+rungSum('belt'))*(1+.05*orbLv('flow'))*bm('belt',.95)*(1+mkB('belt'));
   const day=daylight();
   const sday=orbDone('tether')?Math.max(day,.5):day;
   let demand=0,solar=S.petals*petalKW()+(S.lat||0)*latticeKW(),cap=0;const comb=[];
@@ -356,14 +361,16 @@ function sim(dt){
     else if(b.t==='filmarray')solar+=300*(.4+.6*sday);
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)&&!(b.t==='reactor'&&(b.husk||0)>=4)){cap+=B[b.t].gen*(b.t==='reactor'?reactorMul(b):1);comb.push(b)}
   }
-  const gridOn=S.ms>=MS.length,gmul=(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1)*(1+.1*ringN())*(1+.1*orbLv('yield'));solar*=gmul*stellarMul();cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
+  demand*=bm('pow',1.08);solar*=bm('sun',.94);
+  const gridOn=S.ms>=MS.length,gmul=(1+mkB('pow'))*(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1)*(1+.1*ringN())*(1+.1*orbLv('yield'));solar*=gmul*stellarMul();cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
   const sat0=demand>0?Math.min(1,gen/demand):1;
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load};
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
-  for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
-  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt)}
+  for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
+  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt)}
+  goalTick(dt);
   stepPulses(dt);seedTick(dt);trickleTick(dt);
 
   for(const b of S.bs.values()){
@@ -393,8 +400,8 @@ function sim(dt){
       case 'fab':case 'fab2':case 'assembler':{
         const r=b.rec&&RECIPES[b.rec];
         if(r&&!b.run&&b.outN+r.out<=Math.max(4,r.out*2)){
-          const m=TIN[b.dn|0];let ok=true;for(const k in r.in)if((b.buf[k]||0)<r.in[k]*m){ok=false;break}
-          if(ok){for(const k in r.in){b.buf[k]-=r.in[k]*m;stat('c',k,r.in[k]*m)}b.run=true;b.prog=0}
+          const m=TIN[b.dn|0],ri=recIn(b.rec);let ok=true;for(const k in ri)if((b.buf[k]||0)<ri[k]*m){ok=false;break}
+          if(ok){for(const k in ri){b.buf[k]-=ri[k]*m;stat('c',k,ri[k]*m)}b.run=true;b.prog=0}
         }
         b.active=b.run;
         if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')*recSpd(b.rec)/(r.t*TT[b.dn|0]);b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;const ro=recOut(b.rec);b.outN+=ro;stat('p',dOut(b,b.rec),ro);{const x=dupN();if(x){b.outN+=ro*x;stat('p',dOut(b,b.rec),ro*x)}}if(b.rec==='lattice'&&Math.random()<.05*orbLv('reclaim')){addInv('husk');stat('p','husk')}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
@@ -480,7 +487,7 @@ function sepBatch(b){
 }
 function sepPick(b){const tot=sepTot(b);if(tot<=0)return null;let x=Math.random()*tot;for(const k in b.oq){x-=b.oq[k];if(x<=0)return k}return Object.keys(b.oq)[0]||null}
 // ---------- Spaceport ----------
-function padFuel(m){const M=MISSIONS[m];return Math.max(1,Math.round(M.fuel*(m==='ring'?Math.pow(M.grow,ringN()):1)*(1-.2*ssLv('padcrew'))))}
+function padFuel(m){const M=MISSIONS[m];return Math.max(1,Math.round(M.fuel*(m==='ring'?Math.pow(M.grow,ringN()):1)*(1-.2*ssLv('padcrew'))*bm('fuel',1.1)))}
 function padPay(m){const M=MISSIONS[m];if(!M.pay)return{};const k=m==='ring'?Math.pow(M.grow,ringN())*(orbDone('ringeff')?.8:1):1,o={};for(const i in M.pay)o[i]=Math.round(M.pay[i]*k);return o}
 function rocketParts(){return {hull:orbDone('hulls')?20:ROCKET.hull,guidance:ROCKET.guidance}}
 function padNeed(m){const o=Object.assign({},rocketParts(),padPay(m));o.aether=padFuel(m);return o}
@@ -684,15 +691,148 @@ function railTick(b,dt,sat){
   }else{sh.d-=v*dt;if(sh.d<=0){sh.d=0;sh.ph=0;if(sh.load.length){b.q.unshift(...sh.load);sh.load=[]}}}
   b.active=sh.ph>0;b.ang+=dt*(b.active?2:.1);
 }
+// ================= goals: banes, Market contracts, Moon objectives, achievements =================
+function baneN(k){let n=0;for(const b of (S&&S.banes)||[])if(b===k)n++;return n}
+function bm(k,p){return Math.pow(p,baneN(k))}
+// Recipe inputs and outputs after banes
+function recIn(k){const r=RECIPES[k].in,g=k==='gear'?baneN('gear'):k==='circuit'?baneN('circuit'):k==='steel'?baneN('steel'):0;if(!g)return r;const o=Object.assign({},r);if(k==='gear')o.iron+=g;else if(k==='circuit')o.wire+=g;else o.carbon+=g;return o}
+// ---------- banes ----------
+function baneOffer(){const ks=Object.keys(BANES).filter(k=>!BANES[k].max||baneN(k)<BANES[k].max),o=[];while(o.length<3&&o.length<ks.length){const k=ks[Math.floor(Math.random()*ks.length)];if(!o.includes(k))o.push(k)}return o}
+function showBanePick(){
+  const P=S.banePick;if(!P||!P.length)return;
+  const card=k=>`<div class="ms cur"><div class="ms-top"><h4>${BANES[k].n}${baneN(k)?` · you have ${baneN(k)}`:''}</h4></div><div class="ms-unl">${BANES[k].d}</div><button class="btn" data-bane="${k}">Accept this bane</button></div>`;
+  openModal(`<span class="eyebrow">Ascension ${ascN()} · Bane</span><h1>Choose a bane</h1><p>Every new moon asks for something. Banes are permanent and they stack, so pick the one that hurts you least.</p><div class="ms-list">${P.map(card).join('')}</div>`);
+}
+// ---------- Market Uplink ----------
+function mkFresh(){return{open:[],timed:null,tNext:null,wait:0,id:1,done:0}}
+function mkOn(){return isCamp()&&[...S.bs.values()].some(b=>b.t==='market'&&!b.bp)}
+function itemVal(k){return VAL[k]||(BASE_OF[k]?VAL[BASE_OF[k]]*(ITEMS[k].tier===2?4:2):1)}
+const MK_SKIP=['aether','ember','nova','kitf','kitv','kits'];
+function clientPool(c){const C=CLIENTS[c];
+  if(C.pool==='any')return ITEM_ORDER.filter(k=>S.seen[k]&&!BASE_OF[k]&&!MK_SKIP.includes(k)).map(k=>[k,1]);
+  return C.pool.filter(([k])=>S.seen[k]||(BASE_OF[k]&&S.seen[BASE_OF[k]]&&ssLv('dense')))}
+function pickW(list){let t=0;for(const [,w] of list)t+=w;let x=Math.random()*t;for(const [k,w] of list){x-=w;if(x<=0)return k}return list[0]&&list[0][0]}
+function niceN(n,odd){if(odd)return Math.max(1,Math.round(n*(.8+Math.random()*.4)));const m=n<50?5:n<500?10:n<5000?50:500;return Math.max(m,Math.round(n/m)*m)}
+function newContract(sizeMul,timedSize){
+  const cs=Object.keys(CLIENTS).filter(c=>clientPool(c).length);if(!cs.length)return null;
+  const c=cs[Math.floor(Math.random()*cs.length)],C=CLIENTS[c],L=(S.mkRep&&S.mkRep[c])||0,pool=clientPool(c);
+  const V=300*Math.pow(1.5,L)*(1+.6*ascN())*bm('market',1.1)*(sizeMul||1);
+  const kinds=Math.min(pool.length,C.odd?2+(Math.random()<.5?1:0):1+(Math.random()<.5?1:0)+(L>=4&&Math.random()<.4?1:0)),need={};
+  while(Object.keys(need).length<kinds){const k=pickW(pool.filter(([q])=>!need[q]));if(!k)break;need[k]=0}
+  const ks=Object.keys(need);for(const k of ks)need[k]=niceN(V/ks.length/itemVal(k),C.odd);
+  return {id:S.mk.id++,c,need,have:{},V,rw:rollReward(V,L,timedSize),line:C.lines[Math.floor(Math.random()*C.lines.length)]};
+}
+const BOOSTS={spd:'machine speed',belt:'conveyor speed',pow:'power',drill:'drill speed'};
+function bestGood(){const ks=Object.keys(RECIPES).filter(k=>S.seen[k]&&!MK_SKIP.includes(k));ks.sort((a,b)=>itemVal(b)-itemVal(a));return ks[Math.min(ks.length-1,Math.floor(Math.random()*3))]||'iron'}
+function rollReward(V,L,ts){
+  const m=ts?ts[2]:1,seeds=Math.max(1,Math.round(Math.sqrt(V)/5*m)),rw=[{k:'seeds',n:seeds}];
+  const r=Math.random();
+  if(r<.25){const b=Object.keys(BOOSTS)[Math.floor(Math.random()*4)];rw.push({k:'boost',b,n:Math.round(2*m)})}
+  else if(r<.45)rw.push({k:'seedpct',n:Math.round(2*m)});
+  else if(r<.65)rw.push({k:'ember',n:Math.round((3+V/120)*m)});
+  else{const g=bestGood();rw.push({k:'goods',t:g,n:Math.max(1,Math.round(V*1.5*m/itemVal(g)))})}
+  if((L>=3&&Math.random()<.2)||(ts&&ts[0]==='Large'))rw.push({k:'nova',n:1});
+  if((ts&&ts[0]==='Huge')||(!ts&&L%5===4))rw.push({k:'relic'});
+  return rw;
+}
+function rwText(rw){return rw.map(q=>q.k==='seeds'?`+${q.n} Starseeds`:q.k==='boost'?`+${q.n}% ${BOOSTS[q.b]} on this moon`:q.k==='seedpct'?`+${q.n}% Starseeds when you Ascend from this moon`:q.k==='ember'?`${q.n} Ember shards`:q.k==='goods'?`${q.n.toLocaleString()} ${ITEMS[q.t].n}`:q.k==='nova'?`${q.n} Nova shard`:'a Relic choice').join(' · ')}
+function grantReward(rw){
+  for(const q of rw){
+    if(q.k==='seeds'){S.asc.seeds=(S.asc.seeds||0)+q.n;S.asc.total=(S.asc.total||0)+q.n}
+    else if(q.k==='boost'){S.mkB=S.mkB||{};S.mkB[q.b]=(S.mkB[q.b]||0)+q.n/100}
+    else if(q.k==='seedpct')S.mkSeed=(S.mkSeed||0)+q.n;
+    else if(q.k==='ember')addInv('ember',q.n);
+    else if(q.k==='nova'){addInv('nova',q.n);S.flags.nova=1}
+    else if(q.k==='goods')addInv(q.t,q.n);
+    else if(q.k==='relic'){if(S.relicPick)S.relicExtra=(S.relicExtra||0)+1;else{newPick();whenIdle(()=>{if(S.relicPick)showRelicPick()})}}
+  }
+}
+function mkB(k){return (S&&S.mkB&&S.mkB[k])||0}
+function cDone(c){for(const k in c.need)if((c.have[k]||0)<c.need[k])return false;return true}
+function mkAccept(t){
+  const M=S.mk,list=[...(M.timed&&M.timed.on?[M.timed]:[]),...M.open],bt=BASE_OF[t]||t,u=worth(t);
+  for(const c of list){
+    if(c.need[t]!=null&&(c.have[t]||0)<c.need[t]){c.have[t]=(c.have[t]||0)+1;if(cDone(c))mkComplete(c);return true}
+    if(c.need[bt]!=null&&(c.have[bt]||0)<c.need[bt]){c.have[bt]=Math.min(c.need[bt],(c.have[bt]||0)+u);if(cDone(c))mkComplete(c);return true}
+  }
+  // surplus goes on to the Core so a finished contract never jams the belt
+  addInv(t);return true;
+}
+function mkComplete(c){
+  const M=S.mk,timed=M.timed===c;grantReward(c.rw);
+  S.mkRep=S.mkRep||{};S.mkRep[c.c]=(S.mkRep[c.c]||0)+1;S.mkTot=(S.mkTot||0)+1;M.done=(M.done||0)+1;
+  if(timed){M.timed=null;S.mkTimed=(S.mkTimed||0)+1;if(c.size==='Huge')S.mkHuge=(S.mkHuge||0)+1}else{M.open=M.open.filter(q=>q!==c);M.wait=45}
+  burst(CX,CY,'#f3c25a',40);sfx('fanfare');showBanner(`${CLIENTS[c.c].n} · contract complete`,rwText(c.rw));save();
+}
+function mkTick(dt){
+  if(!S.mk)S.mk=mkFresh();const M=S.mk;
+  if(!mkOn())return;
+  const tot=Object.values(S.mkRep||{}).reduce((a,b)=>a+b,0),slots=Math.min(5,2+Math.floor(tot/4));
+  M.wait=Math.max(0,(M.wait||0)-dt);
+  if(M.open.length<slots&&M.wait<=0){const c=newContract();if(c){M.open.push(c);M.wait=20}}
+  if(M.tNext==null)M.tNext=S.time+300;
+  if(M.timed&&!M.timed.on&&S.time>M.timed.exp)M.timed=null;
+  if(M.timed&&M.timed.on&&S.time>M.timed.due){showBanner(`${CLIENTS[M.timed.c].n} · timed contract missed`,'The hour ran out. Another timed contract will turn up within the hour.');M.timed=null}
+  if(S.time>=M.tNext){M.tNext=S.time+3600;if(!M.timed){const ts=TIMED_SIZES[Math.floor(Math.random()*TIMED_SIZES.length)],c=newContract(ts[1],ts);if(c){c.size=ts[0];c.exp=S.time+3600;M.timed=c;showToast(`A ${ts[0].toLowerCase()} timed contract is on offer at the Market Uplink`)}}}
+}
+function mkCard(c,timed){
+  const chips=Object.keys(c.need).map(k=>{const h=c.have[k]||0,n=c.need[k];return `<span class="req${h>=n?' done':''}"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${fmtN(h)}/${fmtN(n)}<i style="width:${Math.min(100,h/n*100)}%"></i></span>`}).join('');
+  const lv=(S.mkRep&&S.mkRep[c.c])||0,mins=t=>Math.max(0,Math.ceil(t/60));
+  const head=timed?(c.on?`${c.size} · ${mins(c.due-S.time)} min left`:`${c.size} timed offer · ${mins(c.exp-S.time)} min to accept`):`Level ${lv+1} client`;
+  const btn=timed?(c.on?'':`<button class="btn primary" data-mkacc>Accept · 1 hour to fill</button>`):`<button class="btn" data-mkdrop="${c.id}">Decline</button>`;
+  return `<div class="ms ${timed?'cur':''}"><div class="ms-top"><h4>${CLIENTS[c.c].n}</h4><span class="st">${head}</span></div><div class="ms-unl"><i>“${c.line}”</i></div><div class="ms-req">${chips}</div><div class="ms-unl"><b>Reward:</b> ${rwText(c.rw)}</div>${btn}</div>`;
+}
+function mkPanel(){
+  const M=S.mk||mkFresh();let h='';
+  h+=`<div class="sec-label">Timed contract</div>`+(M.timed?mkCard(M.timed,true):`<p class="desc">A new timed contract turns up every hour${M.tNext!=null?`, the next in about ${Math.max(1,Math.ceil((M.tNext-S.time)/60))} min`:''}.</p>`);
+  h+=`<div class="sec-label">Open contracts · ${M.open.length}</div>`+(M.open.length?M.open.map(c=>mkCard(c,false)).join(''):'<p class="desc">Clients are on their way.</p>');
+  const bs=['spd','belt','pow','drill'].filter(k=>mkB(k));
+  if(bs.length||S.mkSeed)h+=`<div class="sec-label">Earned on this moon</div><p class="desc">${bs.map(k=>`+${Math.round(mkB(k)*100)}% ${BOOSTS[k]}`).join(' · ')}${S.mkSeed?`${bs.length?' · ':''}+${S.mkSeed}% Starseeds when you Ascend`:''}</p>`;
+  return h;
+}
+// ---------- Moon objectives ----------
+function objRoll(){const ks=Object.keys(OBJECTIVES).sort(()=>Math.random()-.5).slice(0,3),a=ascN();
+  return {list:ks.map(k=>({k,t:OBJECTIVES[k].t(a),a})),done:[],base:{ref:S.refined||0,res:Object.keys(S.res.done).length,rel:(S.relics||[]).length}}}
+function objVal(o){const B0=S.obj.base;switch(o.k){
+  case 'grid':return S.gt;case 'furnace':return S.ft||0;case 'petals':return S.petals;case 'lattice':return S.lat||0;
+  case 'contracts':return (S.mk&&S.mk.done)||0;case 'refine':return (S.refined||0)-B0.ref;case 'power':return PW.gen||0;
+  case 'research':return Object.keys(S.res.done).length-B0.res;case 'relics':return (S.relics||[]).length-B0.rel}return 0}
+function objMul(){if(!S.obj||!isCamp())return 1;const n=S.obj.done.length;return 1+OBJ_BONUS*n+(n>=3?OBJ_ALL:0)}
+function objTick(){
+  if(!S.obj||!isCamp())return;
+  S.obj.list.forEach((o,i)=>{if(S.obj.done.includes(i))return;if(objVal(o)>=o.t){S.obj.done.push(i);sfx('fanfare');burst(CX,CY,'#72e3b2',30);
+    showBanner('Moon objective complete',`${OBJECTIVES[o.k].n(o.a)}. +${Math.round(OBJ_BONUS*100)}% Starseeds when you Ascend${S.obj.done.length>=3?`, and +${Math.round(OBJ_ALL*100)}% more for finishing all three`:''}.`);if(S.obj.done.length>=3)S.objAll=(S.objAll||0)+1;save()}});
+}
+function objSection(){if(!S.obj||!isCamp())return '';const a=S.obj;
+  return `<div class="sec-label">Moon objectives · +${Math.round((objMul()-1)*100)}% Starseeds so far</div>`+a.list.map((o,i)=>{const d=a.done.includes(i),v=Math.min(o.t,objVal(o));return `<div class="ms ${d?'done':'cur'}"><div class="ms-top"><h4>${OBJECTIVES[o.k].n(o.a)}</h4><span class="st">${d?'Done':o.k==='power'?fmtW(v)+' / '+fmtW(o.t):fmtN(Math.floor(v))+' / '+fmtN(o.t)}</span></div><div class="ms-unl">+${Math.round(OBJ_BONUS*100)}% Starseeds when you Ascend.</div></div>`}).join('')+`<p style="font-size:13px">Finish all three for another +${Math.round(OBJ_ALL*100)}%.</p>`}
+// ---------- achievements ----------
+function achHas(k){return !!(S.ach&&S.ach[k])}
+function achCheck(k){const L=(S.relics||[]).length,a=ascN();switch(k){
+  case 'first_petal':return S.petals>=1;case 'petals1k':return S.petals>=1000;case 'petals10k':return S.petals>=10000;case 'lattice':return (S.lat||0)>=1;
+  case 'grid5':return S.gt>=5;case 'grid10':return S.gt>=10;case 'grid15':return S.gt>=15;case 'gw':return PW.gen>=1e6;case 'gw10':return PW.gen>=1e7;
+  case 'asc1':return a>=1;case 'asc3':return a>=3;case 'asc5':return a>=5;case 'asc10':return a>=10;case 'relics5':return L>=5;case 'relics15':return L>=15;
+  case 'deep10':return countOf('deepdrill')>=10;case 'aether':return (S.refined||0)>=1000;case 'aether100k':return (S.refined||0)>=100000;case 'nova':return !!S.flags.nova;
+  case 'contract1':return (S.mkTot||0)>=1;case 'contract10':return (S.mkTot||0)>=10;case 'contract50':return (S.mkTot||0)>=50;case 'timed':return (S.mkTimed||0)>=1;case 'huge':return (S.mkHuge||0)>=1;
+  case 'objectives':return (S.objAll||0)>=1;case 'dense':return Object.keys(S.seen).some(q=>BASE_OF[q]);case 'rocket':return !!(S.orb&&S.orb.mods);case 'ring':return (S.ringWins||0)>=1;
+  case 'daily':return Object.keys(META.dclaim||{}).length>0;case 'challenge':return Object.keys(META.ch||{}).length>0}return false}
+function achTick(){
+  if(!isCamp())return;S.ach=S.ach||{};
+  for(const k in ACH){if(S.ach[k]||!achCheck(k))continue;S.ach[k]=1;const s=ACH[k].s;S.asc.seeds=(S.asc.seeds||0)+s;S.asc.total=(S.asc.total||0)+s;showToast(`Achievement · ${ACH[k].n} · +${s} Starseeds`);sfx('fanfare')}
+}
+function achSection(){const ks=Object.keys(ACH),n=ks.filter(achHas).length;
+  return `<div class="sec-label">Achievements · ${n} of ${ks.length}</div>`+ks.map(k=>`<div class="ms ${achHas(k)?'done':''}"><div class="ms-top"><h4>${ACH[k].n}</h4><span class="st">${achHas(k)?'Earned':'+'+ACH[k].s+' ✦'}</span></div><div class="ms-unl">${ACH[k].d}</div></div>`).join('')}
+let goalAcc=0;
+function goalTick(dt){goalAcc+=dt;if(goalAcc<1)return;goalAcc=0;objTick();achTick()}
+
 // ================= construction pulses & grid ladder =================
-function pulseSpd(){let v=11*rp('pulse')*(modOn('lowg')?2:1)*(orbDone('prefab')?1.5:1)*(orbDone('orelays')?2:1);for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].spd)v*=RUNGS[i].spd;return v}
+function pulseSpd(){let v=11*bm('pulse',.92)*rp('pulse')*(modOn('lowg')?2:1)*(orbDone('prefab')?1.5:1)*(orbDone('orelays')?2:1);for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].spd)v*=RUNGS[i].spd;return v}
 // Uplinks: 4 items/s beside the Core, slowing with distance, while power draw climbs 3 kW per tile
 function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
 function uplinkRate(b){return 4*rp('up')*(orbDone('bulk')?1.5:1)/(1+Math.max(0,coreDist(b)-3)/8)}
 function uplinkPw(b){return Math.round(60+3*coreDist(b))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)+ssLv('xpulse')}
 function rungSum(k){let n=0;for(let i=0;i<S.gt;i++)n+=rung(i)[k]||0;return n}
-function gridMul(){return (1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
+function gridMul(){return bm('fab',.96)*(1+mkB('spd'))*(1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -774,7 +914,7 @@ function ascMin(){const n=(S.asc&&S.asc.n)||0;return 20*n*n}
 function canAscend(){return hasAether()&&ascSeeds()>=ascMin()}
 function modSeedMul(){return S.mod&&MODS[S.mod]?MODS[S.mod].seeds:1}
 function seedTierMul(){return 1+.05*((S.gt||0)+(S.ft||0))}
-function ascSeeds(){return Math.floor(Math.sqrt((S.inv.aether||0)+3*(S.inv.husk||0))*seedTierMul()*rp('seeds')*modSeedMul()*ringSeedMul()*(1+.05*orbLv('bloom')))}
+function ascSeeds(){return Math.floor(Math.sqrt((S.inv.aether||0)+3*(S.inv.husk||0))*seedTierMul()*rp('seeds')*modSeedMul()*ringSeedMul()*(1+.05*orbLv('bloom'))*bm('seeds',.95)*objMul()*(1+(S.mkSeed||0)/100))}
 function ascMenu(){
   const A=S.asc||{n:0,seeds:0};if(!canAscend()&&!A.n&&!lifeSeeds())return '';
   return `<div class="sec-label">Ascension${A.n?' · '+A.n+' so far':''}</div>
@@ -803,7 +943,7 @@ function showAscension(){
   if(S.relicPick)h+=`<div class="actions"><button class="btn primary" data-relicshow>Choose your Relic</button></div>`;
   const rc={};for(const r of S.relics||[])rc[r]=(rc[r]||0)+1;
   if(META.crelics.length)for(const r of META.crelics)rc[r]=(rc[r]||0)+1;
-  if(Object.keys(rc).length)h+=`<div class="sec-label">Relics · ${Object.values(rc).reduce((a,b)=>a+b,0)}</div><div class="ms-list">${Object.keys(rc).sort((a,b)=>'lerc'.indexOf(RELICS[a].r)-'lerc'.indexOf(RELICS[b].r)).map(k=>card(relicTitle(k),(rc[k]>1?'×'+rc[k]+' · ':'')+RARITY[RELICS[k].r].n,relicText(k)+(RELICS[k].sig?' From the '+CHALLENGES[RELICS[k].sig].n+' challenge; works in every main game.':RELICS[k].ring?' For closing the Halo Ring.':''))).join('')}</div>`+forgeRow();
+  if(Object.keys(rc).length)h+=`<div class="sec-label">Relics · ${Object.values(rc).reduce((a,b)=>a+b,0)}</div><div class="ms-list">${Object.keys(rc).sort((a,b)=>'lerc'.indexOf(RELICS[a].r)-'lerc'.indexOf(RELICS[b].r)).map(k=>card(relicTitle(k),(rc[k]>1?'×'+rc[k]+' · ':'')+RARITY[RELICS[k].r].n,relicText(k)+(RELICS[k].sig?' From the '+CHALLENGES[RELICS[k].sig].n+' challenge; works in every main game.':RELICS[k].ring?' For closing the Halo Ring.':''))).join('')}</div>`+forgeRow()+baneRow();
   const brs=[...new Set(Object.keys(SS).map(k=>SS[k].br||''))];
   for(const br of brs){
   h+=`<div class="sec-label">${br?'Starseeds · '+br:'Starseed shop'}</div>${br==='Deep space'&&ascN()<2?'<p style="font-size:14px">For the late game, which opens from your second ascension.</p>':''}<div class="ms-list">${Object.keys(SS).filter(k=>(SS[k].br||'')===br&&!(SS[k].minAsc&&ascN()<SS[k].minAsc&&!ssLv(k))).map(k=>{const u=SS[k],L=ssLv(k),mx=L>=u.max,lock=u.req&&!ssLv(u.req),c=mx?0:u.cost(L),ok=!mx&&!lock&&A.seeds>=c;
@@ -826,6 +966,7 @@ function relicOffer(rar,n,rare){const ks=Object.keys(RELICS).filter(k=>!RELICS[k
 function relicCard(k,btn){return `<div class="ms cur"><div class="ms-top"><h4>${relicTitle(k)}</h4><span class="st" style="color:${RARITY[RELICS[k].r].col}">${RARITY[RELICS[k].r].n}${relN(k)?' · owned ×'+relN(k):''}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${relicText(k)}</div>${btn}</div></div>`}
 // Relic forge: 3 of one rarity (from this game's Relics) for a random one a rarity higher
 const NEXT_R={c:'r',r:'e',e:'l'};
+function baneRow(){const b=S.banes||[];if(!b.length)return '';const c={};b.forEach(k=>c[k]=(c[k]||0)+1);return `<div class="sec-label">Banes · ${b.length}</div><div class="ms-list">${Object.keys(c).map(k=>`<div class="ms"><div class="ms-top"><h4>${BANES[k].n}${c[k]>1?' ×'+c[k]:''}</h4></div><div class="ms-unl">${BANES[k].d}</div></div>`).join('')}</div>`}
 function forgeRow(){if(!ssLv('forge'))return '';const n={};for(const k of S.relics||[]){const r=RELICS[k];if(r&&!r.ring)n[r.r]=(n[r.r]||0)+1}
   const bt=Object.keys(NEXT_R).filter(r=>(n[r]||0)>=3).map(r=>`<button class="btn" data-forge="${r}">3 ${RARITY[r].n} → 1 ${RARITY[NEXT_R[r]].n}</button>`);
   return `<div class="sec-label">Relic forge</div>`+(bt.length?`<div class="actions" style="flex-wrap:wrap">${bt.join('')}</div><p style="font-size:13px">Duplicates go first.</p>`:'<p style="font-size:14px">Hold 3 Relics of one rarity to forge them into one a rarity higher.</p>')}
@@ -834,6 +975,7 @@ function forgeRelic(r){const own=(S.relics||[]).filter(k=>RELICS[k]&&RELICS[k].r
   for(let i=0;i<3;i++){const k=order[i],j=S.relics.indexOf(k);S.relics.splice(j,1);cnt[k]--;order.sort((a,b)=>cnt[b]-cnt[a])}
   const got=relicOffer(NEXT_R[r],1)[0];if(got)S.relics.push(got);save();showAscension();burst(CX,CY,RARITY[NEXT_R[r]].col,40);sfx('fanfare');if(got)showToast('Forged '+RELICS[got].n+': '+relicText(got))}
 function showRelicPick(){
+  if(S.banePick&&S.banePick.length){showBanePick();return}
   const P=S.relicPick;if(!P)return;
   openModal(`<span class="eyebrow">Ascension ${ascN()} · Relic</span><h1>Choose a Relic</h1><p>Relics are permanent and stack with each other.${(S.relicExtra||0)+(S.relicExtraR||0)?` <strong>${(S.relicExtra||0)+(S.relicExtraR||0)} more</strong> to choose after this one.`:''}</p><div class="ms-list">${P.map(k=>relicCard(k,`<button class="btn primary" style="flex:none;padding:0 16px" data-relic="${k}">Take</button>`)).join('')}</div>${S.relicRR>0?`<div class="actions"><button class="btn" data-reroll>Reroll · ${S.relicRR} left</button></div>`:''}`);
 }
@@ -852,7 +994,7 @@ function doAscend(mod){
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv,ms:TUT,prog:{},petals:0,gt:warm,gavg:0,ft:warm,favg:0,rsh:{done,cur:null,p:{},lv:{}},free:ssLv('crate')?{drill:4,smelter:4,fab:2}:{},ringWins:S.ringWins||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,relicRR:ssLv('reroll'),
     cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,crown:S.crown||{},crownBank:(S.crownBank||0)+crownN(),crownSpent:S.crownSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
     up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,nova:S.flags.nova,ascHint:1},refined:S.refined||0,seen:S.seen,bs:[],fromCode:1,
-    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod};if(S.relicPick)d.relicExtra++;
+    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod,banes:S.banes||[],banePick:baneOffer(),ach:S.ach||{},mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,objAll:S.objAll||0};if(S.relicPick)d.relicExtra++;
   start(d);cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,'#d8b4ff',60);sfx('fanfare');
   setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards${ddRefund?` (${ddRefund.toLocaleString()} refunded from your Deep Drills)`:''}`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p>${mod?`<p>This moon: <strong>${MODS[mod].n}</strong>. ${MODS[mod].d}</p>`:''}<p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
 }
@@ -1533,6 +1675,19 @@ function drawMachine(g,b,x,y,s){
       const nx=b.nx||Object.keys(b.oq)[0];if(nx){const q=s*.5;g.drawImage(SPR[nx],c3x-q/2,c3y-q/2,q,q)}
       if(b.run)glow(b.x+1.5,b.y+1.5,2.2,'#e0b866',.4);
       port(g,b,x,y,s,'#e0b866',0);port(g,b,x,y,s,'#e0b866',1);port(g,b,x,y,s,'#e0b866',2);break;}
+    case 'market':{
+      const S5=s*5,c5x=x+S5/2,c5y=y+S5/2,T=S?S.time:0;
+      rr(g,x+s*.1,y+s*.1,S5-s*.2,S5-s*.2,s*.45);g.fillStyle='#2e2a42';g.fill();g.lineWidth=s*.06;g.strokeStyle='#f3c25a';g.stroke();
+      // trading floor tiles
+      g.fillStyle='#38334f';for(let j=0;j<4;j++)for(let i=0;i<4;i++)if((i+j)%2)g.fillRect(x+s*(.5+i),y+s*(.5+j),s,s);
+      // dish on a mast
+      g.save();g.translate(c5x,c5y);g.fillStyle='#55506e';g.fillRect(-s*.18,-s*.2,s*.36,s*1.4);g.rotate(Math.sin(T*.4)*.5);
+      g.beginPath();g.ellipse(0,-s*.6,s*1.3,s*.55,0,0,Math.PI);g.fillStyle='#d8dcea';g.fill();g.strokeStyle='#8a83b8';g.lineWidth=s*.05;g.stroke();
+      g.strokeStyle='#f3c25a';g.beginPath();g.moveTo(0,-s*.6);g.lineTo(0,-s*1.35);g.stroke();g.beginPath();g.arc(0,-s*1.4,s*.12,0,7);g.fillStyle='#f3c25a';g.fill();g.restore();
+      // crates waiting to ship
+      for(const [dx,dy,c] of [[.9,3.6,'#c97a3a'],[1.6,3.9,'#7a9ad8'],[3.4,3.7,'#72e3b2']]){g.fillStyle=c;g.fillRect(x+s*dx,y+s*dy,s*.6,s*.5);g.strokeStyle='rgba(8,6,16,.6)';g.lineWidth=s*.04;g.strokeRect(x+s*dx,y+s*dy,s*.6,s*.5)}
+      if(S&&S.mk&&S.mk.timed){const on=S.mk.timed.on,p=.5+.5*Math.sin(T*4);g.beginPath();g.arc(x+S5-s*.6,y+s*.6,s*.25,0,7);g.fillStyle=on?`rgba(255,115,120,${.5+.5*p})`:`rgba(243,194,90,${.5+.5*p})`;g.fill()}
+      break;}
     case 'compressor':{
       base(g,x,y,s,'#3c3666');const [dx,dy]=DIRS[b.d],sq=b.run?Math.abs(Math.sin(b.prog*Math.PI)):0,px=-dy,py=dx;
       for(const sd of [-1,1]){const o=s*(.3-.14*sq)*sd;g.fillStyle='#8a83b8';g.fillRect(cx+px*o-s*.18+(px?0:0),cy+py*o-s*.18,s*.36,s*.36)}
@@ -1778,7 +1933,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='market'&&isCamp()&&S.ms>=MS.length)||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -1843,7 +1998,7 @@ elBanner.addEventListener('click',()=>{if(elBanner.dataset.reload){save();locati
 function fabRate(b,k){return (b?1/TT[b.dn|0]:1)*gridMul()*(B[b.t].mult||1)*rp('fab')*recSpd(k)/RECIPES[k].t}
 function recSpd(k){return k==='voidlens'&&orbDone('temper')?1.5:1}
 // Kit lines: kits come out 2 at a time
-function recOut(k){return RECIPES[k].out*((k==='kitf'&&orbDone('kitf2'))||(k==='kitv'&&orbDone('kitv2'))||(k==='kits'&&orbDone('kits2'))?2:1)}
+function recOut(k){return Math.max(1,(RECIPES[k].out-(k==='wire'?baneN('wire'):0)))*((k==='kitf'&&orbDone('kitf2'))||(k==='kitv'&&orbDone('kitv2'))||(k==='kits'&&orbDone('kits2'))?2:1)}
 function smeltRate(b,ore){return (b?1/TT[b.dn|0]:1)*gridMul()*(B[b.t].mult||1)*rp('smelt')*(b.t==='foundry'?1+.1*nupLv('crucible'):1)/((SMELT_T[ore]||1)*(ore==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1))}
 function fmtRate(v){return v>=100?Math.round(v).toString():v>=10?v.toFixed(1):v.toFixed(2)}
 function rateLine(ins,outs,note){return `<div class="flow"><span class="lbl">Per second</span>${ins.map(([k,v])=>chip(k,fmtRate(v))).join('')}<span class="arrow">→</span>${outs.map(([k,v])=>chip(k,fmtRate(v))).join('')}${note?`<span class="lbl">${note}</span>`:''}</div>`}
@@ -1921,6 +2076,7 @@ function status(b){
     case 'core':return['ok','Online · '+fmtW(coreKW())];
     case 'separator':{const t=sepTot(b);return b.run?(lp?['warn','Low power · '+pct]:['ok','Separating']):t>0&&b.nx?['warn','Output blocked: '+ITEMS[b.nx].n]:b.n<1000?['warn',`Collecting Starsand · ${b.n} / 1,000`]:['ok','Sending out the last batch']}
     case 'incinerator':return b.heat>.05?['ok','Burning']:['ok','Idle'];
+    case 'market':return mkOn()?['ok',`${(S.mk&&S.mk.open.length)||0} open contract${S.mk&&S.mk.open.length===1?'':'s'}${S.mk&&S.mk.timed?(S.mk.timed.on?' · timed contract running':' · timed offer waiting'):''}`]:['warn','Opening'];
     case 'compressor':return b.run?(lp?['warn','Low power · '+pct]:['ok',b.mode===2?'Unpacking':'Packing']):b.outN?['warn','Output blocked']:b.inN?['ok',`Collecting · ${b.inN} / ${b.mode===2?1:TIN[b.mode+1]}`]:['warn',b.mode===2?'Waiting for dense or packed items':'Waiting for items'];
     case 'spaceport':return !b.m?['warn','Pick a mission']:b.st?(lp?['warn','Low power · '+pct]:['ok',`Assembling rocket · ${Math.floor(b.p*100)}%`]):!padOpen(b.m)?['warn','Mission not available']:['warn','Loading'];
     case 'railterm':{const L=TLAB[b.lab]||'?';if(b.role)return b.q.length?['ok',`${L} · Unloading`]:['ok',`${L} · Receiving`];
@@ -1941,7 +2097,7 @@ function bufRow(b){
     case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore),m=TIN[b.dn|0];return rateLine([[ore,c*m]],[[dOut(b,SMELT[ore]),c]],rateNote())})();
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">${fmtW(B.reactor.gen*reactorMul(b))} at full output${b.nb?` (+${25*b.nb}% from ${b.nb} touching reactor${b.nb===1?'':'s'})`:''}</span></div><div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/10')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
-    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+r.in[k]*TIN[b.dn|0])).join('')}<span class="arrow">→</span>${chip(dOut(b,b.rec),b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${+(r.t*TT[b.dn|0]).toFixed(2)}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*r.in[k]*TIN[b.dn|0]]),[[dOut(b,b.rec),c*recOut(b.rec)*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
+    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+recIn(b.rec)[k]*TIN[b.dn|0])).join('')}<span class="arrow">→</span>${chip(dOut(b,b.rec),b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${+(r.t*TT[b.dn|0]).toFixed(2)}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*recIn(b.rec)[k]*TIN[b.dn|0]]),[[dOut(b,b.rec),c*recOut(b.rec)*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
     case 'batcher':{const ks=Object.keys(b.st).filter(k=>b.st[k]>0);return ks.length?`<div class="flow"><span class="lbl">Stored</span>${ks.map(k=>chip(k,b.st[k]+'/'+batCap())).join('')}</div>`:'<div class="flow"><span class="lbl">Empty</span></div>'}
     case 'splitter':case 'sorter':return b.hold?`<div class="flow"><span class="lbl">Holding</span>${chip(b.hold,1)}</div>`:'';
     case 'turbine':return `<div class="flow"><span class="lbl">Fuel</span>${chip('carbon',b.fuel+'/20')}</div>`;
@@ -1949,6 +2105,7 @@ function bufRow(b){
     case 'uplink':return `<div class="flow"><span class="lbl">${uplinkRate(b).toFixed(2)} items/s · ${uplinkPw(b)} kW · ${Math.round(coreDist(b))} tiles from Core</span></div>`+(b.q.length?`<div class="flow"><span class="lbl">Queue</span>${cnt(b.q)}</div>`:'');
     case 'ring':return `<div class="flow"><span class="lbl">Loaded</span>${chip('petal',b.n)}${chip('lattice',b.l||0)}<span class="lbl">of 4 · ${S.petals} petals and ${S.lat||0} Lattice cores in orbit</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'belt':return b.items.length?`<div class="flow">${cnt(b.items.map(i=>i.t))}</div>`:'';
+    case 'market':return mkPanel();
     case 'compressor':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN+(b.mode===2?'':'/'+TIN[b.mode+1])):'<span class="lbl">empty</span>'}<span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
     case 'separator':{const ks=Object.keys(b.oq).filter(k=>b.oq[k]>0);return `<div class="flow"><span class="lbl">In</span>${chip('starsand',b.n.toLocaleString()+'/1,000')}<span class="lbl">· ${Math.round(rareShare()*100)}% Rare earth per batch</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(ks.length?`<div class="flow"><span class="lbl">Out</span>${ks.map(k=>chip(k,b.oq[k])).join('')}</div>`:'')+`<div class="flow"><span class="lbl">One batch every ${fmtRate(20/gridMul())}s at full power</span></div>`}
     case 'spaceport':{if(!b.m)return '<div class="flow"><span class="lbl">Choose a mission below.</span></div>';const M=MISSIONS[b.m],n=padNeed(b.m);
@@ -2000,7 +2157,7 @@ function refreshSheet(){
   if(!sel||elSheet.hidden)return;
   if(!S.bs.has(sel.id)){closeSheet();return}
   const [c,t]=status(sel),st=$('#shStatus');st.className='pill '+c;st.textContent=t;
-  const bf=$('#shBuf'),h=bufRow(sel);if(bf.innerHTML!==h)bf.innerHTML=h;
+  const bf=$('#shBuf'),h=bufRow(sel);if(bf._h!==h){bf._h=h;bf.innerHTML=h}
 }
 elSheet.addEventListener('click',e=>{
   const el=e.target.closest('button');if(!el||!sel)return;const b=sel;
@@ -2021,6 +2178,8 @@ elSheet.addEventListener('click',e=>{
   else if(el.dataset.act==='padgo'){if(!kitN(b.h)){showToast('Load some kits first');return}b.go=true;showToast('It launches as soon as the rocket and fuel are loaded')}
   else if(el.dataset.dn!==undefined){const v=+el.dataset.dn;if((b.dn|0)===v)return;setDense(b,v);renderSheet();sfx('tick')}
   else if(el.dataset.cmode!==undefined){const v=+el.dataset.cmode;if(b.mode===v)return;for(const t of contents(b))addInv(t);Object.assign(b,init('compressor'),{mode:v});renderSheet();sfx('tick')}
+  else if(el.hasAttribute('data-mkacc')){const T=S.mk&&S.mk.timed;if(!T||T.on)return;T.on=true;T.due=S.time+3600;sfx('place');showToast('Accepted: you have an hour');refreshSheet()}
+  else if(el.dataset.mkdrop){const id=+el.dataset.mkdrop;if(Date.now()-(el._arm||0)>3000){el._arm=Date.now();el.textContent='Tap again to decline';return}S.mk.open=S.mk.open.filter(c=>c.id!==id);S.mk.wait=45;sfx('remove');refreshSheet()}
   else if(el.dataset.role!==undefined){const r=+el.dataset.role;if(b.role===r)return;b.role=r;if(r){b.q.push(...b.sh.load);b.sh={ph:0,d:0,load:[],route:null}}dirty=true;renderSheet();sfx('tick')}
   else if(el.dataset.tlab!==undefined){const L=+el.dataset.tlab,o=[...S.bs.values()].find(q=>q.t==='railterm'&&q!==b&&q.lab===L);if(o)o.lab=b.lab;b.lab=L;renderSheet();sfx('tick')}
   else if(el.dataset.tdest!==undefined){b.dest=el.dataset.tdest===''?null:+el.dataset.tdest;b.idle=0;renderSheet();sfx('tick')}
@@ -2054,6 +2213,7 @@ function msCard(m,i){
 function showMilestones(){
   const sec=t=>`<div class="sec-label">${t}</div>`;
   let h=`<div class="card-head"><h3>Progress</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><div class="ms-list">`;
+  h+=objSection();
   MS.forEach((m,i)=>{if(i===0)h+=sec('Tutorial');if(i===TUT)h+=sec('Main game');h+=msCard(m,i)});
   h+=sec('Grid ladder · solar power');
   const top=Math.max(S.gt+3,RUNGS.length+1);
@@ -2079,6 +2239,7 @@ function showMilestones(){
     const q=constReq(i),done=i<cn,cur=i===cn,prev=i?constReq(i-1):0,f=done?1:cur?Math.max(0,Math.min(1,(S.petals-prev)/(q-prev))):0;
     h+=`<div class="ms ${done?'done':cur?'cur':'future'}"><div class="ms-top"><h4>Constellation ${roman(i+1)}</h4><span class="st">${done?'Complete':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}"><img src="${ICON.petal}" alt="Sail petal">${cur?S.petals+' / ':''}${q} petals<i style="width:${f*100}%"></i></span></div><div class="ms-unl">+1 Commander point.</div></div>`;
   }
+  if(isCamp())h+=achSection();
   openModal(h+'</div>');
 }
 // ---------- what's new ----------
@@ -2176,6 +2337,7 @@ elCard.addEventListener('click',e=>{
     META.candy-=u.cost;META.cup[k]=L+1;saveMeta();if(k==='seeds'){S.asc.seeds+=10;S.asc.total+=10}if(k==='treat'){newPick();save();showRelicPick();return}save();showCandyShop();showToast(u.n+' bought')}
   else if(b.hasAttribute('data-ascopen'))showAscension();
   else if(b.hasAttribute('data-relicshow'))showRelicPick();
+  else if(b.dataset.bane){const k=b.dataset.bane;if(!S.banePick||!S.banePick.includes(k))return;S.banes=S.banes||[];S.banes.push(k);S.banePick=null;save();closeModal();sfx('tick');showToast(BANES[k].n+': '+BANES[k].d);if(S.relicPick)whenIdle(()=>{if(S.relicPick)showRelicPick()})}
   else if(b.dataset.relic){const k=b.dataset.relic;if(!S.relicPick||!S.relicPick.includes(k)||!RELICS[k])return;S.relics=S.relics||[];S.relics.push(k);S.relicPick=null;nextPick();save();closeModal();burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showToast(RELICS[k].n+': '+relicText(k));if(S.relicPick)whenIdle(()=>{if(S.relicPick)showRelicPick()})}
   else if(b.dataset.ss){const k=b.dataset.ss,u=SS[k];if(!u)return;const L=ssLv(k);if(L>=u.max)return;if(u.req&&!ssLv(u.req)){showToast('Needs '+SS[u.req].n+' first');return}const c=u.cost(L);if(S.asc.seeds<c){showToast(`Needs ${c} Starseeds`);return}
     S.asc.seeds-=c;S.ss=S.ss||{};S.ss[k]=L+1;if(k==='seedv')refreshSeeds();if(k==='dense')showToast(S.ss.dense>=2?'Packed mode is now in machine and drill panels':'Dense mode is now in machine and drill panels');if(k==='core'&&!growCore())showToast('Clear the tiles around the Core and it will grow');save();showAscension();sfx('tick')}
@@ -2953,6 +3115,7 @@ function tap(sx,sy){
   const r=place(tool,px,py,rot);sfx(typeof r==='object'?'place':'err');
   if(r==='blocked')showToast('No room here');
   else if(r==='ore')showToast('Drills need ore within reach');
+  else if(r==='one')showToast('You can only have one Market Uplink');
   else if(r==='deep')showToast('Voidstone is too deep for a basic Drill. Use a Deep Drill.');
   else if(r==='banned')showToast(`${B[tool].n} can’t be used ${chal()?'in this challenge':'on this moon'}`);
   else if(r==='cap')showToast(`Building limit reached: ${chal().cap} buildings, not counting conveyors`);
@@ -2965,7 +3128,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
+  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
@@ -2978,7 +3141,7 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;S.banes=Array.isArray(d.banes)?d.banes.filter(k=>BANES[k]):[];S.banePick=Array.isArray(d.banePick)?d.banePick.filter(k=>BANES[k]):null;S.ach=ob(d.ach,{});S.mk=d.mk&&Array.isArray(d.mk.open)?d.mk:null;S.mkRep=ob(d.mkRep,{});S.mkTot=+d.mkTot||0;S.mkTimed=+d.mkTimed||0;S.mkHuge=+d.mkHuge||0;S.mkB=ob(d.mkB,{});S.mkSeed=+d.mkSeed||0;S.obj=d.obj&&Array.isArray(d.obj.list)?d.obj:null;S.objAll=+d.objAll||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
     {const O=ob(d.orb,{}),F=orbFresh();S.orb={mods:Math.max(0,Math.min(4,+O.mods||0)),kits:ob(O.kits,{}),cur:typeof O.cur==='string'?O.cur:null,p:ob(O.p,{}),done:ob(O.done,{}),lv:ob(O.lv,{}),ring:Math.max(0,Math.min(12,+O.ring||0))}||F}
     for(const id in S.res.done){const N=TECH[id];if(!N)continue;(N.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(N.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(const id in S.orb.done)(ORB[id]&&ORB[id].unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;S.chd=d.chd&&typeof d.chd==='object'?d.chd:{};refreshSeeds();
@@ -3001,6 +3164,7 @@ function start(data,forceNew){
   // Saves from before conveyor runs were regrouped: finish their waiting conveyors and Crossings outright (one time)
   if(d&&!d.bpq)for(const b of S.bs.values())if(b.bp&&(b.t==='belt'||b.t==='junction')){b.bp=false;delete b.mat}
   queueOrphans(new Set());
+  if(isCamp()&&!S.obj)S.obj=objRoll();
   growCore();tool='inspect';sel=null;elSheet.hidden=true;recalc();dirty=false;buildDock();updateRot();hudTick(true);
   if(d&&d.savedAt&&!d.fromCode){const away=(Date.now()-d.savedAt)/1000;whenIdle(()=>grantOffline(away))}
   return !d;

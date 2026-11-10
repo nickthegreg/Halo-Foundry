@@ -79,6 +79,7 @@ const B={
   railterm:{n:'Rail Terminal',cost:{magnet:200,gyro:50,voidglass:100},pw:300,dir:1,w:3,d:'Joined to other terminals by Mag-rail. Each has a letter. A sending terminal takes items from any side; its shuttle carries a load to the nearest receiving terminal that accepts it, or always to the letter you pick. A receiving terminal can accept only chosen items, and pushes them out of three slots on its bright edge.'},
   rail:{n:'Mag-rail',cost:{magnet:4,slagcrete:2},d:'Raised track for Rail Terminal shuttles. It passes over buildings and conveyors, but needs a Pylon on open ground at least every 5 tiles; they’re placed for you. Lay it like conveyors: Line, Free or Route.'},
   pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed automatically as you lay track. Remove the rail above it first.'},
+  market:{n:'Market Uplink',cost:{frame:40,circuit:200,motor:30},pw:500,w:5,d:'Your link to buyers across the system. Clients post contracts: belt in what they ask for, from any side, and they pay in Starseeds, boosts, shards, goods and sometimes Relics. Clients come back with bigger orders. A timed contract turns up every hour. Anything the contracts don’t need goes on to the Core. You can have one.'},
   compressor:{n:'Compressor',cost:{steel:20,circuit:20,motor:4},pw:60,dir:1,d:'Packs 5 worth of an item into 1 dense item (worth 2), or 20 worth into 1 packed item (worth 4), or unpacks dense and packed items back to plain ones. Takes items from the back and sides, sends them out of the bright edge.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'Accepts any item from any side. Items count toward the current milestone first, then go to storage. Supplies 120 kW.'}
 };
@@ -369,7 +370,7 @@ function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486
   return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','separator','incinerator','railterm','rail','spaceport','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','separator','incinerator','railterm','rail','spaceport','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
 const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits','petal','lattice'];
 // Packed (second level): 20 → 1 packed item worth 4
