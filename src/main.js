@@ -1063,12 +1063,13 @@ function doAscend(mod){
   const A=S.asc||{n:0,seeds:0,total:0},got=ascSeeds(),inv={iron:400,copper:200};mod=mod&&MODS[mod]?mod:null;
   for(const k of ['ember','nova'])if(S.inv[k]>0)inv[k]=S.inv[k];
   const ark=S.ark||{};let arkN=0;for(const k in ark)if(ITEMS[k]&&ark[k]>0){const bk=BASE_OF[k]||k;inv[bk]=(inv[bk]||0)+ark[k]*(BASE_OF[k]?worth(k):1);arkN+=ark[k]}
+  const past=pastMoons().concat([{n:S.moon?S.moon.n:ascN()?'Moon '+(ascN()+1):'Home',id:S.moon?S.moon.id:S.gal?S.gal.at:0,petals:S.petals,lat:S.lat||0,ring:ringN(),swarm:swarmN(),asc:ascN(),seed:S.seed,mods:modList(),bias:S.moon?S.moon.bias:0,seeds:got}]);
   let ddRefund=0;{const n=countOf('deepdrill');for(let k=0;k<n;k++)ddRefund+=costOf('deepdrill',k).ember||0;if(ddRefund>0)inv.ember=(inv.ember||0)+ddRefund}
   const nl=ssLv('notes'),done={};if(nl)for(const id in TECH)if(TECH[id].t<=nl&&!TECH[id].late)done[id]=1;const warm=ssLv('warm')?1:0;
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv,ms:TUT,prog:{},petals:0,gt:warm,gavg:0,ft:warm,favg:0,rsh:{done,cur:null,p:{},lv:{}},free:ssLv('crate')?{drill:4,smelter:4,fab:2}:{},ringWins:S.ringWins||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,relicRR:ssLv('reroll'),
     cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,crown:S.crown||{},crownBank:(S.crownBank||0)+crownN(),crownSpent:S.crownSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
     up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,nova:S.flags.nova,ascHint:1},refined:S.refined||0,seen:S.seen,bs:[],fromCode:1,
-    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod,mods,moon,gal,arrLv:S.arrLv||0,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,banes:S.banes||[],banePick:baneOffer(),ach:S.ach||{},mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,objAll:S.objAll||0};if(S.relicPick)d.relicExtra++;if(moon&&moon.sp==='anomaly')d.relicExtraR++;
+    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod,mods,moon,gal,past,arrLv:S.arrLv||0,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,banes:S.banes||[],banePick:baneOffer(),ach:S.ach||{},mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,objAll:S.objAll||0};if(S.relicPick)d.relicExtra++;if(moon&&moon.sp==='anomaly')d.relicExtraR++;
   start(d);GALP=null;if(moon&&moon.sp==='derelict')placeWrecks();cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,'#d8b4ff',60);sfx('fanfare');
   setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${arkN?`, ${arkN.toLocaleString()} items from your Seed Ark`:''}${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards${ddRefund?` (${ddRefund.toLocaleString()} refunded from your Deep Drills)`:''}`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p>${moon?`<p>You land on <strong>${moon.n}</strong>. ${moonTraits({mods,bias:moon.bias,sp:moon.sp}).join(' ')}</p>`:mod?`<p>This moon: <strong>${MODS[mod].n}</strong>. ${MODS[mod].d}</p>`:''}<p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
 }
@@ -2109,6 +2110,71 @@ function drawOrrery(){
   g.beginPath();g.arc(px,py,s*.045,pa+Math.PI/2,pa+Math.PI*1.5);g.fillStyle='#cfc7ff';g.fill();
 }
 
+
+// ================= the halo: everything in orbit around the star =================
+// Every moon you've worked circles the same star. Each one's petals and Lattice cores stay in orbit, aimed at it.
+function pastMoons(){return Array.isArray(S.past)?S.past:[]}
+const MOON_COL=['#7fd7ff','#72e3b2','#ff9a5a','#c79bff','#ff7ad9','#e0b866','#9fe8ff','#b8f27a'];
+function haloMoons(){const N=S.gal?galNodes():null,out=[],known=pastMoons(),blank=Math.max(0,ascN()-known.length);
+  const pos=(id,i,tot)=>{const n=N&&id!=null?N[id]:null;if(n&&n.r)return{a:n.a,r:n.r};return{a:-1.5708+i*2.4,r:.6}};
+  for(let i=0;i<blank;i++)out.push(Object.assign({n:'Moon '+(i+1),unknown:1,asc:i},pos(null,i)));
+  known.forEach((m,i)=>out.push(Object.assign({},m,pos(m.id,blank+i))));
+  const here=S.moon?S.moon.id:S.gal?S.gal.at:0;
+  out.push(Object.assign({n:S.moon?S.moon.n:out.length?'Moon '+(ascN()+1):'Home',here:1,petals:S.petals,lat:S.lat||0,ring:ringN(),swarm:swarmN(),asc:ascN()},pos(here,out.length)));
+  out.forEach((m,i)=>m.col=m.here?'#ffd77a':MOON_COL[i%MOON_COL.length]);
+  // two moons in the same place (e.g. several before the galaxy map): fan them out
+  out.forEach((m,i)=>{for(let j=0;j<i;j++)if(Math.abs(out[j].a-m.a)<.05&&out[j].r===m.r)m.a+=.45});
+  return out}
+let HALO=null;
+function showHalo(sel){
+  const ms=haloMoons();if(sel==null)sel=ms.length-1;const m=ms[sel];
+  const tot=ms.reduce((t,x)=>t+(x.petals||0),0),totL=ms.reduce((t,x)=>t+(x.lat||0),0);
+  const info=m.unknown?`<div class="ms"><div class="ms-top"><h4>${m.n}</h4><span class="st">Ascension ${m.asc+1}</span></div><div class="ms-unl">You left this moon before the halo kept records, so its petals aren’t shown. Their power still counted while you were there.</div></div>`
+   :`<div class="ms cur"><div class="ms-top"><h4>${m.n}${m.here?' · you are here':''}</h4><span class="st">${m.here?'Now':'Left at ascension '+(m.asc+1)}</span></div><div class="ms-unl">${(m.petals||0).toLocaleString()} sail petals · ${(m.lat||0).toLocaleString()} Lattice cores${m.ring?` · ${m.ring} of 12 Halo Ring segments`:''}${m.swarm?` · ${m.swarm} swarm nodes`:''}${!m.here&&m.seeds?` · earned ${m.seeds.toLocaleString()} Starseeds`:''}</div>${m.here?'<div class="ms-unl" style="font-size:12.5px;opacity:.8">These power your factory now. The swarms you left behind still turn toward their own moons.</div>':''}</div>`;
+  openModal(`<div class="card-head"><h3>The halo</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
+  <p class="guide">Every moon you’ve built on circles the same star, and everything you launched is still up there, turned toward the moon that sent it. Tap a moon.</p>
+  <canvas id="haloCv" width="680" height="680" style="width:100%;max-width:400px;aspect-ratio:1/1;display:block;margin:0 auto;touch-action:manipulation"></canvas>
+  <p style="font-size:12.5px;text-align:center;opacity:.8;margin:2px 0 8px">${tot.toLocaleString()} petals and ${totL.toLocaleString()} Lattice cores across ${ms.length} moon${ms.length===1?'':'s'}</p>
+  ${info}
+  <div class="actions"><button class="btn" data-prog>Progress</button>${isCamp()&&ascN()?'<button class="btn" data-galaxy>Galaxy map</button>':''}</div>`);
+  HALO={ms,sel,t0:performance.now()};const cv=$('#haloCv');
+  cv.onclick=e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*680,y=(e.clientY-r.top)/r.height*680;let best=-1,bd=40*40;
+    HALO.ms.forEach((q,i)=>{const d=(q.px-x)**2+(q.py-y)**2;if(d<bd){bd=d;best=i}});if(best>=0){sfx('tick');showHalo(best)}};
+  requestAnimationFrame(haloFrame);
+}
+function haloFrame(){const cv=$('#haloCv');if(!cv||elModal.hidden||!HALO){HALO=null;return}
+  const g=cv.getContext('2d'),W0=cv.width,c=W0/2,t=(performance.now()-HALO.t0)/1000,ms=HALO.ms,R0=W0*.13,RO=W0*.47;
+  g.clearRect(0,0,W0,W0);
+  // faint background stars
+  for(let i=0;i<70;i++){const x=(Math.sin(i*91.7)*.5+.5)*W0,y=(Math.cos(i*47.3)*.5+.5)*W0;g.fillStyle=`rgba(255,255,255,${.12+.1*Math.sin(t*.8+i)})`;g.fillRect(x,y,2,2)}
+  // moon orbits
+  const orbR=r=>R0*1.9+(RO-R0*1.9)*Math.min(1,Math.sqrt(r/5));
+  const rs=[...new Set(ms.map(m=>m.r))];for(const r of rs){g.beginPath();g.arc(c,c,orbR(r),0,7);g.strokeStyle='rgba(255,255,255,.07)';g.lineWidth=2;g.stroke()}
+  // Halo Ring of the current moon
+  const here=ms[ms.length-1];if(here.ring){for(let i=0;i<12;i++){const a0=i/12*6.283+t*.02;g.beginPath();g.arc(c,c,R0*1.32,a0+.05,a0+6.283/12-.05);g.strokeStyle=i<here.ring?'rgba(255,244,196,.9)':'rgba(255,244,196,.08)';g.lineWidth=7;g.stroke()}}
+  // each moon's petals: an arc of sails turned toward it, at its own height
+  ms.forEach((m,i)=>{if(m.unknown)return;const sel=i===HALO.sel,al=m.here||sel?1:.55,n=Math.min(m.petals||0,260),spread=Math.min(2.6,.35+Math.sqrt(m.petals||0)/30),rr=R0*(1.05+.07*(i%4));
+    for(let k=0;k<n;k++){const f=n>1?k/(n-1)-.5:0,jit=Math.sin(k*12.9898)*.5,a=m.a+f*spread+Math.sin(t*.3+k)*.01,r=rr+jit*R0*.18,x=c+Math.cos(a)*r,y=c+Math.sin(a)*r;
+      g.save();g.translate(x,y);g.rotate(m.a);g.globalAlpha=al*(.55+.45*Math.sin(t*1.5+k*.7)**2);g.fillStyle=m.col;g.beginPath();g.ellipse(0,0,5,2.2,0,0,7);g.fill();g.restore()}
+    const nl=Math.min(m.lat||0,60);for(let k=0;k<nl;k++){const f=nl>1?k/(nl-1)-.5:0,a=m.a+f*spread*.7,r=R0*.78+(k%3)*5,x=c+Math.cos(a)*r,y=c+Math.sin(a)*r;
+      g.save();g.translate(x,y);g.rotate(t*.6+k);g.globalAlpha=al;g.fillStyle='#c99bff';g.fillRect(-3.5,-3.5,7,7);g.restore()}
+    if(m.swarm){for(let k=0;k<m.swarm;k++){const a=m.a+(k/m.swarm-.5)*1.6+t*.05,r=R0*1.55,x=c+Math.cos(a)*r,y=c+Math.sin(a)*r;g.globalAlpha=al;g.fillStyle='#fff4c4';g.beginPath();g.arc(x,y,3.2,0,7);g.fill()}}
+    g.globalAlpha=1;
+    // a faint beam from the halo to the moon
+    const mr=orbR(m.r),mx=c+Math.cos(m.a)*mr,my=c+Math.sin(m.a)*mr;m.px=mx;m.py=my;
+    if(m.petals){const gr=g.createLinearGradient(c+Math.cos(m.a)*rr,c+Math.sin(m.a)*rr,mx,my);gr.addColorStop(0,m.col);gr.addColorStop(1,'rgba(0,0,0,0)');g.globalAlpha=sel?.35:.12;g.strokeStyle=gr;g.lineWidth=sel?10:6;g.beginPath();g.moveTo(c+Math.cos(m.a)*rr,c+Math.sin(m.a)*rr);g.lineTo(mx,my);g.stroke();g.globalAlpha=1}});
+  // the star
+  const gr=g.createRadialGradient(c,c,0,c,c,R0*.95);gr.addColorStop(0,'#fff8e2');gr.addColorStop(.3,'#f3c25a');gr.addColorStop(1,'rgba(243,150,60,0)');g.fillStyle=gr;g.beginPath();g.arc(c,c,R0*.95,0,7);g.fill();
+  // moons
+  ms.forEach((m,i)=>{const x=m.px??c+Math.cos(m.a)*orbR(m.r),y=m.py??c+Math.sin(m.a)*orbR(m.r);m.px=x;m.py=y;const sel=i===HALO.sel;
+    g.beginPath();g.arc(x,y,m.here?13:10,0,7);g.fillStyle=m.unknown?'#3d3858':'#2a2638';g.fill();g.lineWidth=3;g.strokeStyle=m.unknown?'rgba(255,255,255,.25)':m.col;g.stroke();
+    g.beginPath();g.arc(x,y,m.here?13:10,m.a+1.5708,m.a+4.712);g.fillStyle=m.unknown?'rgba(255,255,255,.15)':m.col;g.globalAlpha=.6;g.fill();g.globalAlpha=1;
+    if(sel){g.beginPath();g.arc(x,y,20,0,7);g.strokeStyle='#fff';g.lineWidth=2.5;g.stroke()}
+    g.font='600 20px Inter,system-ui,sans-serif';g.textAlign='center';g.fillStyle=sel||m.here?'#fff':'rgba(255,255,255,.65)';let ty=y+34;const near=ms.filter(o=>o!==m&&o.px!=null&&Math.abs(o.px-x)<110&&Math.abs(o.py-y)<70);
+    if(near.length){const below=near.some(o=>o.py>y)&&!near.some(o=>o.py<y);ty=below?y-26:y+34;if(near.some(o=>o.py<y)&&near.some(o=>o.py>y))ty=y+(i%2?-26:34)}
+    g.fillText(m.n,Math.max(60,Math.min(W0-60,x)),ty)});
+  requestAnimationFrame(haloFrame)}
+
 // ================= UI =================
 const elTools=$('#tools'),elTip=$('#tip'),elRot=$('#rotBtn'),elSheet=$('#sheet'),elModal=$('#modal'),elCard=$('#card'),elToast=$('#toast'),elBanner=$('#banner');
 const SVG={
@@ -2583,7 +2649,7 @@ elCard.addEventListener('click',e=>{
     else{resetArm=Date.now();b.textContent='Tap again to wipe';setTimeout(()=>{if(b.isConnected)b.innerHTML='Start over'},3000)}
   }
 });
-$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=showMilestones;
+$('#menuBtn').onclick=showMenu;$('#goalBtn').onclick=()=>S.ms>=MS.length?showResearch():showMilestones();$('#orreryBtn').onclick=()=>showHalo();
 $('#powerBox').onclick=showStats;$('#ladBox').onclick=showMilestones;$('#mapBtn').onclick=showMap;
 
 // ================= audio: generative music + positional effects =================
@@ -3355,7 +3421,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
+  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
@@ -3368,7 +3434,7 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;S.mega=ob(d.mega,{});S.ark=ob(d.ark,{});S.starlight=+d.starlight||0;S.sl=ob(d.sl,{});S.boreWins=+d.boreWins||0;S.arkN=+d.arkN||0;S.gal=d.gal&&typeof d.gal.seed==='number'&&Array.isArray(d.gal.vis)?d.gal:null;S.stormWon=+d.stormWon||0;S.stormLost=+d.stormLost||0;S.arrLv=+d.arrLv||0;GALP=null;S.banes=Array.isArray(d.banes)?d.banes.filter(k=>BANES[k]):[];S.banePick=Array.isArray(d.banePick)?d.banePick.filter(k=>BANES[k]):null;S.ach=ob(d.ach,{});S.mk=d.mk&&Array.isArray(d.mk.open)?d.mk:null;S.mkRep=ob(d.mkRep,{});S.mkTot=+d.mkTot||0;S.mkTimed=+d.mkTimed||0;S.mkHuge=+d.mkHuge||0;S.mkB=ob(d.mkB,{});S.mkSeed=+d.mkSeed||0;S.obj=d.obj&&Array.isArray(d.obj.list)?d.obj:null;S.objAll=+d.objAll||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;S.mega=ob(d.mega,{});S.past=Array.isArray(d.past)?d.past.filter(m=>m&&typeof m==='object'):[];S.ark=ob(d.ark,{});S.starlight=+d.starlight||0;S.sl=ob(d.sl,{});S.boreWins=+d.boreWins||0;S.arkN=+d.arkN||0;S.gal=d.gal&&typeof d.gal.seed==='number'&&Array.isArray(d.gal.vis)?d.gal:null;S.stormWon=+d.stormWon||0;S.stormLost=+d.stormLost||0;S.arrLv=+d.arrLv||0;GALP=null;S.banes=Array.isArray(d.banes)?d.banes.filter(k=>BANES[k]):[];S.banePick=Array.isArray(d.banePick)?d.banePick.filter(k=>BANES[k]):null;S.ach=ob(d.ach,{});S.mk=d.mk&&Array.isArray(d.mk.open)?d.mk:null;S.mkRep=ob(d.mkRep,{});S.mkTot=+d.mkTot||0;S.mkTimed=+d.mkTimed||0;S.mkHuge=+d.mkHuge||0;S.mkB=ob(d.mkB,{});S.mkSeed=+d.mkSeed||0;S.obj=d.obj&&Array.isArray(d.obj.list)?d.obj:null;S.objAll=+d.objAll||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
     {const O=ob(d.orb,{}),F=orbFresh();S.orb={mods:Math.max(0,Math.min(4,+O.mods||0)),kits:ob(O.kits,{}),cur:typeof O.cur==='string'?O.cur:null,p:ob(O.p,{}),done:ob(O.done,{}),lv:ob(O.lv,{}),ring:Math.max(0,Math.min(12,+O.ring||0)),swarm:Math.max(0,Math.min(24,+O.swarm||0))}||F}
     for(const id in S.res.done){const N=TECH[id];if(!N)continue;(N.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(N.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(const id in S.orb.done)(ORB[id]&&ORB[id].unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;S.chd=d.chd&&typeof d.chd==='object'?d.chd:{};refreshSeeds();
@@ -3413,7 +3479,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 let booted=false;
 function boot(data){

@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:54,date:'2026-11-11',title:'The halo, up close',items:[
+    'Tap the little star at the top left to see your halo: every sail petal and Lattice core in orbit around the star, your Halo Ring and Dyson swarm, drawn live.',
+    'Every moon you build on circles that same star. From now on, when you Ascend, the moon you leave stays on the halo view, with its petals and cores still turned toward it. Tap any moon to see what it left in orbit.',
+    'Moons you left before this update show up too, but without their petals, because those weren’t recorded at the time.',
+    'Progress is still a tap away, from the goal at the top or the button on the halo view.'
+  ]},
   {n:53,date:'2026-11-10',title:'Select more, mis-tap less',items:[
     'Select now sets more things on everything in the box at once: Normal, Dense or Packed mode on drills and machines, the chosen item on Sorters, and a quarter turn for all machines.',
     'Opening a building’s panel no longer presses whatever recipe or option appears under your finger. The panel ignores taps for a moment as it opens.',

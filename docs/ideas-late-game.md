@@ -382,3 +382,14 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
   moon's inventory; aether/husk/ember/nova refused), `swarm` (after `ringWins`; `S.orb.swarm`, +5% power and +4%
   Starseeds each; every 8 → `S.starlight`). Starlight perks `STARLIGHT` (`S.sl`).
 - Not built yet: Ice/Coolant moons, Fusion Reactor building, Geodes/Relic shards.
+
+### The halo view and past moons (built 2026-11-11)
+- Tapping the orrery opens `showHalo()`: an animated canvas of the star, each moon's petals (arc aimed at the moon),
+  Lattice cores, Halo Ring and swarm. Moons sit at their galaxy-map angle; ring distance maps to orbit radius.
+- `S.past` (kept across ascensions) records each moon left: name, galaxy id, petals, lat, ring, swarm, asc, seeds
+  earned, plus world `seed`, `mods` and `bias`, which is enough to regenerate its terrain for revisits later.
+  Moons left before this existed show as "Moon n" with no petals.
+- Revisiting past moons (idea): return to a recorded moon from the galaxy map as an outpost or a second slot. The
+  terrain can be rebuilt from the seed; the factory layout isn't stored yet (size: blueprints of thousands of
+  buildings would bloat saves and save codes; store a compressed layout at ascension, or let it start empty and
+  pay off by depleted/regrown ore).
