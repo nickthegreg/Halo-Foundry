@@ -213,7 +213,7 @@ const STARLIGHT={
 const RING_MS=[[3,'Pulses travel at full speed everywhere on the moon.'],[6,'Separators give 50% more Rare earth.'],[9,'Starseeds ×2 when you Ascend from this moon.'],[12,'Ring closed: a unique Relic the first time, a Relic choice every time after.']];
 // Ongoing research: repeats forever. Each level costs more Charge, and the item set rotates so many parts stay useful.
 const REPEAT={
-  overcharge:{n:'Overcharge',mj:150,grow:1.6,igrow:1.45,sets:[{circuit:200,steel:100},{motor:60,lens:120},{processor:40,film:150},{photonic:30,composite:60}],d:'Every machine works 5% faster per level.'},
+  overcharge:{n:'Overcharge',mj:150,grow:1.6,igrow:1.45,sets:[{circuit:200,steel:100},{motor:60,lens:120},{processor:40,film:150},{photonic:30,composite:60}],d:'Every machine works 5% faster per level, but draws 10% more power (Deep Drills and Incinerators excepted).'},
   harmonics:{n:'Grid harmonics',mj:250,grow:1.7,igrow:1.45,sets:[{coil:150,glass:300},{wafer:200,frame:60},{servo:30,composite:80},{lattice:5,photonic:60}],d:'Every generator, the Core and the halo produce 10% more power per level.'}
 };
 // Furnace ladder: sustained power from Combustors, Turbine Halls and Aether Reactors (kW), climbed alongside the grid ladder.
@@ -375,6 +375,8 @@ const NUP={
   resonance:{n:'Nova resonance',max:5,cost:L=>4+3*L,d:'The Deep Drill power climb starts one step later per level: more of your drills draw the base 40 kW.',eff:L=>`${L+1} at base power`},
   grant:{n:'Nova grant',max:5,cost:L=>3+3*L,d:'Your first Deep Drills on each moon cost no Ember shards: one more per level.',eff:L=>`${L} free`},
   echo:{n:'Nova echo',max:5,cost:L=>3+2*L,d:'Each Deep Drill dig has a 10% chance per level to bring up a second ore.',eff:L=>`${10*L}% chance`},
+  press:{n:'Nova press',max:3,cost:L=>4+3*L,req:'dense',d:'Deep Drills in Dense or Packed mode squeeze more out of the rock: each dig needs 15% less ore per level.',eff:L=>`${Math.ceil(5*(1-.15*L))} ore per dense dig, ${Math.ceil(20*(1-.15*L))} per packed`},
+  overpack:{n:'Nova overpack',max:5,cost:L=>5+2*L,req:'dense',d:'Each Dense dig of a Deep Drill has a 6% chance per level to come up Packed instead, worth 4 rather than 2, for the same ore.',eff:L=>`${6*L}% chance`},
   crucible:{n:'Nova crucible',max:5,cost:L=>3+2*L,d:'Foundries smelt 10% faster per level.',eff:L=>`+${10*L}%`},
   reactor:{n:'Nova reactor',max:5,cost:L=>3+2*L,d:'Aether Reactors make 10% more power per level.',eff:L=>`+${10*L}%`},
   still:{n:'Nova still',max:5,cost:L=>3+2*L,d:'Refineries need 5% less ore per level.',eff:L=>`−${5*L}%`},

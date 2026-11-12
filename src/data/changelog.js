@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:55,date:'2026-11-12',title:'Overcharge has a price, and Nova packs it in',items:[
+    'Overcharge research now makes machines draw 10% more power per level, as well as working 5% faster. Deep Drills and Incinerators are left out: they already have their own steep power costs.',
+    'Nova press (Nova workshop, needs Compression): Deep Drills in Dense or Packed mode need 15% less ore per dig per level, up to 3 levels. At the top, a dense dig takes 3 ore instead of 5 and a packed one 11 instead of 20.',
+    'Nova overpack (needs Compression): each Dense dig of a Deep Drill has a 6% chance per level to come up Packed instead, worth 4 rather than 2, up to 30%.'
+  ]},
   {n:54,date:'2026-11-11',title:'The halo, up close',items:[
     'Tap the little star at the top left to see your halo: every sail petal and Lattice core in orbit around the star, your Halo Ring and Dyson swarm, drawn live.',
     'Every moon you build on circles that same star. From now on, when you Ascend, the moon you leave stays on the halo view, with its petals and cores still turned toward it. Tap any moon to see what it left in orbit.',

@@ -121,7 +121,7 @@ function burnPow(){return (1+fPerk('pow'))*(1+.1*crownLv('forge'))*rp('burn')}
 // Hotter burners: more power and they burn fuel proportionally faster (more Ember shards and husks per minute)
 function fuelMul(){return (1+fPerk('fuel'))*(1+.1*cmdLv('ember'))*rp('fuel')}
 function emberChance(){return .02*bm('shard',.9)*(1+fPerk('ember'))*rp('ember')*(modOn('embermoon')?3:1)}
-function toolTip(t){const d=B[t];if(t==='deepdrill'&&S)return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))} · ${fmtW(ddPw(countOf(t)))}</span><br>${d.d}`;return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+fmtW(d.pw):''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
+function toolTip(t){const d=B[t];if(t==='deepdrill'&&S)return `<b>${d.n}</b> <span class="cost">${costStr(costOf(t))} · ${fmtW(ddPw(countOf(t)))}</span><br>${d.d}`;return `<b>${d.n}</b> <span class="cost">${S&&S.free&&S.free[t]>0?S.free[t]+' free from your Starter crate · ':''}${costStr(costOf(t))}${d.pw?' · '+fmtW(d.pw*(t==='incinerator'?1:ocPw())):''}${d.gen?' · +'+fmtW(d.gen):''}</span><br>${d.d}`}
 function costStr(c){return Object.keys(c).map(k=>c[k]+' '+ITEMS[k].s).join(' · ')}
 // Compression tiers: [inputs per batch, worth of one item, time ×]
 const TIN=[1,5,20],TT=[1,1.5,2.25];
@@ -130,6 +130,8 @@ function addInv(t,n){if(BASE_OF[t]){addInv(BASE_OF[t],worth(t)*(n||1));return}S.
 const DM=['drill','deepdrill','smelter','foundry','fab','fab2','assembler'];
 // What a machine in Dense mode takes (base name) from an incoming item, or null
 function dIn(b,t){return b.dn?(BASE_OF[t]||null):(BASE_OF[t]?null:t)}
+// ore used by one dig: 1, or the dense/packed amount (less for Deep Drills with Nova press)
+function digOre(b){const m=b.dn|0;return m&&b.t==='deepdrill'?Math.ceil(TIN[m]*(1-.15*nupLv('press'))):TIN[m]}
 function dOut(b,t){return b.dn===2&&PACK_OF[t]?PACK_OF[t]:b.dn&&DENSE_OF[t]?DENSE_OF[t]:t}
 // Switching mode sends whatever the machine holds to storage, then it starts clean
 function setDense(b,v){v=v|0;for(const t of contents(b))addInv(t);
@@ -189,7 +191,7 @@ function contents(b){
   const o=[];const add=(t,n)=>{for(let i=0;i<n;i++)o.push(t)};
   switch(b.t){
     case 'belt':b.items.forEach(it=>o.push(it.t));break;
-    case 'drill':case 'deepdrill':add(dOut(b,b.ore),b.out);break;
+    case 'drill':case 'deepdrill':add(dOut(b,b.ore),b.out);if(b.op&&PACK_OF[b.ore])add(PACK_OF[b.ore],b.op);break;
     case 'compressor':if(b.inT)add(b.inT,b.inN);if(b.outT)add(b.outT,b.outN);break;
     case 'junction':b.lanes.forEach(l=>l.forEach(i=>o.push(i.t)));break;
     case 'smelter':case 'foundry':if(b.inT)add(b.inT,b.inN);if(b.outT)add(dOut(b,b.outT),b.outN);if(b.run&&b.cur)add(Object.keys(SMELT).find(k=>SMELT[k]===b.cur),TIN[b.dn|0]);break;
@@ -363,7 +365,7 @@ function sim(dt){
     if(b.bp)continue;
     if(b.t==='relay'||b.t==='market'||b.t==='elevator'||b.t==='bore')b.active=true;
     if(b.t==='spaceport')demand+=b.st?1e7:1e6;
-    else if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b):b.t==='deepdrill'?ddPw(b.ord||0):B[b.t].pw;
+    else if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b)*ocPw():b.t==='deepdrill'?ddPw(b.ord||0):b.t==='incinerator'?B[b.t].pw:B[b.t].pw*ocPw();
     if(b.t==='solar')solar+=45*sday;
     else if(b.t==='collector')solar+=400*(.25+.75*sday);
     else if(b.t==='filmarray')solar+=300*(.4+.6*sday);
@@ -387,7 +389,8 @@ function sim(dt){
       case 'drill':case 'deepdrill':{
         const P=ORE_P[b.ore];
         b.active=b.out<drillCap(b)&&!b.dep&&!b.wait&&drillHasOut(b);
-        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){const mo=mineOne(b);if(mo<0){b.prog=1;b.wait=true;b.active=false}else if(mo){if(b.dn)for(let k=1;k<TIN[b.dn];k++)if(mineOne(b)<=0)break;b.prog-=1;b.out++;stat('p',dOut(b,b.ore));if(b.t==='deepdrill'&&Math.random()<.1*nupLv('echo')){b.out++;stat('p',b.ore)}sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
+        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){const mo=mineOne(b);if(mo<0){b.prog=1;b.wait=true;b.active=false}else if(mo){if(b.dn){const nd=digOre(b);for(let k=1;k<nd;k++)if(mineOne(b)<=0)break}b.prog-=1;if(b.t==='deepdrill'&&b.dn===1&&Math.random()<.06*nupLv('overpack'))b.op=(b.op||0)+1;else b.out++;stat('p',dOut(b,b.ore));if(b.t==='deepdrill'&&Math.random()<.1*nupLv('echo')){b.out++;stat('p',b.ore)}sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
+        if(b.op>0&&PACK_OF[b.ore]&&pushPorts(b,PACK_OF[b.ore],outPorts(b)))b.op--;
         if(b.out>0&&(b.t==='deepdrill'?pushPorts(b,dOut(b,b.ore),outPorts(b)):pushDir(b,dOut(b,b.ore),b.d)))b.out--;
         break;}
       case 'junction':
@@ -990,7 +993,7 @@ function crownMenu(){
 }
 function novaMenu(){
   const have=S.inv.nova||0;if(!have&&!S.flags.nova&&!Object.keys(S.nup||{}).length)return '';
-  return `<div class="sec-label">Nova workshop · ${have} Nova shard${have===1?'':'s'}</div><p style="font-size:14px">Permanent Deep Drill upgrades. They carry over when you Ascend.</p><div class="ms-list">${Object.keys(NUP).map(k=>{const u=NUP[k],L=nupLv(k),mx=L>=u.max,c=mx?0:u.cost(L),ok=!mx&&have>=c;
+  return `<div class="sec-label">Nova workshop · ${have} Nova shard${have===1?'':'s'}</div><p style="font-size:14px">Permanent Deep Drill upgrades. They carry over when you Ascend.</p><div class="ms-list">${Object.keys(NUP).filter(k=>!NUP[k].req||ssLv(NUP[k].req)).map(k=>{const u=NUP[k],L=nupLv(k),mx=L>=u.max,c=mx?0:u.cost(L),ok=!mx&&have>=c;
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${u.eff(L)}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-nup="${k}"><img src="${ICON.nova}" alt="Nova shards" style="width:18px;height:18px;vertical-align:-4px"> ${c}</button>`}</div></div>`}).join('')}</div>`;
 }
 function showAscension(){
@@ -2350,7 +2353,7 @@ function bufRow(b){
   const cnt=a=>{const o={};a.forEach(t=>o[t]=(o[t]||0)+1);return Object.keys(o).map(k=>chip(k,o[k])).join('')};
   switch(b.t){
     case 'junction':{const a=b.lanes.flat().map(i=>i.t);return a.length?`<div class="flow">${cnt(a)}</div>`:''}
-    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}${b.dn?` ${ITEMS[dOut(b,b.ore)].s}/s from ${(ORE_P[b.ore].rate*drillMult(b)*TIN[b.dn]).toFixed(2)} ore`:'/s'}${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()*TIN[b.dn|0]))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
+    case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}${b.dn?` ${ITEMS[dOut(b,b.ore)].s}/s from ${(ORE_P[b.ore].rate*drillMult(b)*digOre(b)).toFixed(2)} ore`:'/s'}${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()*digOre(b)))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore),m=TIN[b.dn|0];return rateLine([[ore,c*m]],[[dOut(b,SMELT[ore]),c]],rateNote())})();
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">${fmtW(B.reactor.gen*reactorMul(b))} at full output${b.nb?` (+${25*b.nb}% from ${b.nb} touching reactor${b.nb===1?'':'s'})`:''}</span></div><div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/10')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
@@ -2407,11 +2410,11 @@ function renderSheet(){
     (b.role?`<div class="sec-label">Accepts</div><p class="desc">Shuttles only bring this terminal the items picked here, dense or not. Pick nothing to take anything.</p><div class="grid items"><button class="opt${!b.flt.length?' on':''}" data-tflt="" aria-label="Anything">All</button>${ITEM_ORDER.filter(k=>!BASE_OF[k]&&(S.seen[k]||b.flt.includes(k))).map(k=>`<button class="opt${b.flt.includes(k)?' on':''}" data-tflt="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`
     :`<div class="sec-label">Send to</div><div class="seg" style="flex-wrap:wrap"><button data-tdest="" class="${b.dest==null?'on':''}">Auto</button>${recv.map(q=>`<button data-tdest="${q.lab}" class="${b.dest===q.lab?'on':''}">${TLAB[q.lab]}</button>`).join('')}</div><p class="desc">Auto sends each load to the nearest receiver that accepts it. Pick a letter to always go there.</p>`);}
   if(DM.includes(b.t)&&ssLv('dense')){const dr=b.t==='drill'||b.t==='deepdrill',m=b.dn|0;
-    ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Normal</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">${m?(dr?`Each dig uses ${TIN[m]} ore and makes 1 ${m===2?'packed':'dense'} ore worth ${m===2?4:2}, at full speed.`:`Uses ${TIN[m]}× the inputs per batch (plain, dense or packed all count by worth) and makes ${m===2?'packed':'dense'} output worth ${m===2?4:2}, ${TT[m]}× slower.`):'Takes plain, dense and packed items alike: dense counts as 2, packed as 4.'}</p>`+ctrl}
+    ctrl=`<div class="sec-label">Mode</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Normal</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">${m?(dr?`Each dig uses ${digOre(b)} ore and makes 1 ${m===2?'packed':'dense'} ore worth ${m===2?4:2}, at full speed.`:`Uses ${TIN[m]}× the inputs per batch (plain, dense or packed all count by worth) and makes ${m===2?'packed':'dense'} output worth ${m===2?4:2}, ${TT[m]}× slower.`):'Takes plain, dense and packed items alike: dense counts as 2, packed as 4.'}</p>`+ctrl}
   if(b.t==='compressor')ctrl=`<div class="sec-label">Mode</div><div class="seg" style="flex-wrap:wrap"><button data-cmode="0" class="${b.mode===0?'on':''}">Dense: 5 → 1</button>${ssLv('dense')>=2?`<button data-cmode="1" class="${b.mode===1?'on':''}">Packed: 20 → 1</button>`:''}<button data-cmode="2" class="${b.mode===2?'on':''}">Unpack</button></div><p class="desc">${['Packs 5 worth of an item into 1 dense item (worth 2).','Packs 20 worth of an item, plain or dense, into 1 packed item (worth 4).','Unpacks a dense item into 2, or a packed item into 4.'][b.mode]}</p>`+ctrl;
   const acts=b.t==='core'?'':`<div class="actions">${d.dir?`<button class="btn" data-act="rot">${SVG.rot}Rotate</button>`:''}<button class="btn danger" data-act="del">${SVG.trash}Remove</button></div>`;
   elSheet.innerHTML=`<div class="sh-head"><img src="${ICON_B[b.t]}" alt=""><div class="sh-title"><h2>${d.n}</h2><span class="pill" id="shStatus"></span></div><button class="x" data-act="close" aria-label="Close">${SVG.x}</button></div>
-  <div class="sh-body"><p class="desc">${d.d}${d.pw&&d.pw<1e5?` Uses ${fmtW(d.pw)}.`:''}</p><div id="shBuf" class="sh-body" style="margin:0;gap:8px"></div>${ctrl}${acts}</div>`;
+  <div class="sh-body"><p class="desc">${d.d}${d.pw&&d.pw<1e5?` Uses ${fmtW(d.pw*(sel&&!['deepdrill','incinerator','spaceport'].includes(sel.t)?ocPw():1))}${repLv('overcharge')&&!['deepdrill','incinerator','spaceport'].includes(sel.t)?' with Overcharge':''}.`:''}</p><div id="shBuf" class="sh-body" style="margin:0;gap:8px"></div>${ctrl}${acts}</div>`;
   refreshSheet();
 }
 function refreshSheet(){
@@ -2998,6 +3001,8 @@ function eraseTo(sx,sy){
 // Ongoing research ("rep:<id>") can be done again and again; each level costs more and it keeps going on its own.
 let RES_OPEN=false,resN=0;
 function chargeCap(){let c=200;for(const b of S.bs.values())if(b.t==='capacitor'&&!b.bp)c+=B.capacitor.cap;return Math.round(c*rp('cap'))}
+// Overcharge pushes machines harder: +10% power draw per level (not Deep Drills, Incinerators or the Spaceport)
+function ocPw(){return 1+.1*repLv('overcharge')}
 function repLv(k){return (S.res&&S.res.lv&&S.res.lv[k])||0}
 function isRep(id){return id.startsWith('rep:')}
 function techName(id){if(isRep(id)){const k=id.slice(4);return `${REPEAT[k].n} ${repLv(k)+1}`}return TECH[id].n}
@@ -3479,7 +3484,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 let booted=false;
 function boot(data){
