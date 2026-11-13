@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:60,date:'2026-11-13',title:'A safety net',items:[
+    'If something in the game breaks, you now see what went wrong instead of a frozen screen. Saving pauses so your last good save is kept, the map stays movable, and a button copies your save code to send in.'
+  ]},
   {n:59,date:'2026-11-12',title:'Somewhere to keep things',items:[
     'The Deep Core Bore now keeps what it brings up: up to 5,000 each of Heavy metal, Magma glass and Helium-3, waiting until a conveyor takes them. You don’t have to belt them anywhere until you need them, and nothing is lost when you reload. Its panel also says what each one is for.',
     'New building: the Stockpile (2×2, unlocks with the Batcher). It holds up to 2,000 of one kind of item and feeds them back out of its bright edge whenever something there will take them. Put one after a machine whose output you can’t use yet, or in front of one to keep it supplied.'

@@ -3232,8 +3232,8 @@ function badOf(b){
   }
   return null;
 }
-async function encodeSave(){
-  const json=JSON.stringify(serialize());
+async function encodeSave(raw){
+  const json=raw||JSON.stringify(serialize());
   const b64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)};
   if(window.CompressionStream){try{const st=new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));return 'HF2:'+b64(new Uint8Array(await new Response(st).arrayBuffer()))}catch(_){}}
   return 'HF1:'+b64(new TextEncoder().encode(json));
@@ -3487,7 +3487,7 @@ function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='stock')a.push({it:b.it,n:b.n});else if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
   return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dsrc:S.dsrc||{},dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
-function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
+function save(){if(CRASHED)return;try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
 function start(data,forceNew){
   let d=forceNew?null:(data&&data.v?data:load());
@@ -3534,22 +3534,36 @@ function frame(now){
   const rdt=Math.min(.1,(now-lastT)/1000);lastT=now;
   if(DEF.isOpen){DEF.frame(rdt);requestAnimationFrame(frame);return}
   acc+=rdt*speed;const STEP=STEP_DT;let n=0;
-  while(acc>=STEP&&n<15){sim(STEP);acc-=STEP;n++}if(n>=15)acc=0;
+  try{while(acc>=STEP&&n<15){sim(STEP);acc-=STEP;n++}if(n>=15)acc=0}catch(e){acc=0;crashed(e)}
+  try{
   if(dirty){recalc();dirty=false}
   render(rdt);
   hudAcc+=rdt;if(hudAcc>.25){hudAcc=0;hudTick()}
   orAcc+=rdt;if(orAcc>.08){orAcc=0;drawOrrery()}
   saveAcc+=rdt;if(saveAcc>8){saveAcc=0;save()}
+  }catch(e){crashed(e)}
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
 if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
+// If something throws, stop autosaving (so a half-loaded game never overwrites a good save), keep the game
+// drawing, and show what went wrong with a way to copy the save as it was on this device.
+var CRASHED=null;
+function crashed(e){if(CRASHED)return;CRASHED=e;try{console.error(e)}catch(_){}
+  const at=((e&&e.stack)||'').split('\n').slice(1,3).map(l=>l.trim().replace(/^at /,'').replace(/https?:\/\/[^ )]*\//g,'')).join(' ← ');
+  const d=document.createElement('div');d.id='crash';d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:9999;background:#3a1626;color:#fff;border:2px solid #ff7a8a;border-radius:14px;padding:12px 14px;font:14px/1.4 system-ui,sans-serif;max-height:70vh;overflow:auto';
+  d.innerHTML=`<b>Something went wrong.</b> Saving is paused, so your last good save on this device is untouched.<br><span style="font-family:monospace;font-size:12px;opacity:.85;word-break:break-word">${String(e&&e.message||e).replace(/</g,'&lt;')}<br>${at.replace(/</g,'&lt;')}</span><br>Please copy your save code and send it with this message. <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button id="crashCopy" style="flex:1;min-height:40px;border-radius:10px;border:0;background:#ffd77a;font-weight:700">Copy save code</button><button id="crashReload" style="flex:1;min-height:40px;border-radius:10px;border:0;background:#fff">Reload</button></div><textarea id="crashCode" readonly style="width:100%;margin-top:8px;height:60px;display:none;font-size:11px"></textarea>`;
+  document.body.appendChild(d);
+  d.querySelector('#crashReload').onclick=()=>location.reload();
+  d.querySelector('#crashCopy').onclick=async()=>{let raw=null;try{raw=localStorage.getItem(CUR)}catch(_){}const c=await encodeSave(raw||undefined);const ta=d.querySelector('#crashCode');ta.style.display='block';ta.value=c+'\n\n'+String(e&&e.message)+' | '+at;ta.select();try{await navigator.clipboard.writeText(ta.value);d.querySelector('#crashCopy').textContent='Copied'}catch(_){d.querySelector('#crashCopy').textContent='Select the text below and copy it'}};
+}
+window.addEventListener('error',ev=>{if(/\/src\//.test(ev.filename||''))crashed(ev.error||ev.message)});
 let booted=false;
 function boot(data){
   if(booted)return;booted=true;
   resize();makeStars();makeSprites();makeBuildingIcons();
-  const isNew=start(data);
+  let isNew=false;try{isNew=start(data)}catch(e){crashed(e)}
   let seenIntro=false;try{seenIntro=!!localStorage.getItem(SAVE_KEY+'-intro')}catch(_){}
   if(isNew&&!seenIntro){showWelcome();try{localStorage.setItem(SAVE_KEY+'-intro','1')}catch(_){}}
   else showTitle();
