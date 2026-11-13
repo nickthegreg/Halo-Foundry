@@ -65,6 +65,8 @@ function orbFresh(){return{mods:0,kits:{},cur:null,p:{},done:{},lv:{},ring:0}}
 function orbDone(k){return !!(S&&S.orb&&S.orb.done&&S.orb.done[k])}
 function orbLv(k){return (S&&S.orb&&S.orb.lv&&S.orb.lv[k])||0}
 function ringN(){return (S&&S.orb&&S.orb.ring)||0}
+function batForms(k){return [k,DENSE_OF[k],PACK_OF[k]].filter(Boolean)}
+function batUnits(b,k){let u=0;for(const f of batForms(k))u+=(b.st[f]||0)*worth(f);return u}
 function batCap(){return 50*Math.pow(2,ssLv('bins'))*(orbDone('bulk')?2:1)}
 // ---------- account-wide profile (challenge results, challenge relics, daily bests) ----------
 const META_KEY='halo-foundry-meta';
@@ -290,7 +292,7 @@ function accept(nb,t,side,p0){
     case 'splitter':case 'sorter':if(nb.hold)return false;nb.hold=t;nb.hf=side;return true;
     case 'batcher':{
       if(side===nb.d)return false;const has=Object.keys(nb.ratio).length;
-      if(has&&!nb.ratio[t])return false;
+      if(has&&!nb.ratio[BASE_OF[t]||t])return false;
       if(!has&&!nb.st[t]&&Object.keys(nb.st).filter(k=>nb.st[k]>0).length>=6)return false;
       if((nb.st[t]||0)>=batCap())return false;nb.st[t]=(nb.st[t]||0)+1;return true;}
     case 'combustor':case 'turbine':{const u=worth(t);if((BASE_OF[t]||t)!=='carbon'||nb.fuel+u>(nb.t==='combustor'?8:20))return false;nb.fuel+=u;return true;}
@@ -434,9 +436,13 @@ function sim(dt){
         if(!b.q)b.q=[[],[]];const Rt=b.ratio,ks=Object.keys(Rt);b.alt^=1;
         for(let j=0;j<2;j++){const i=(b.alt+j)%2;
           if(ks.length){
-            if(!b.q[i].length&&ks.every(k=>(b.st[k]||0)>=Rt[k])){
-              const order=[];ks.forEach(k=>{for(let n=0;n<Rt[k];n++)order.push([(n+.5)/Rt[k],k])});order.sort((a,c)=>a[0]-c[0]);
-              ks.forEach(k=>b.st[k]-=Rt[k]);b.q[i]=order.map(o=>o[1]);
+            b.cr=b.cr||{};
+            if(!b.q[i].length&&ks.every(k=>batUnits(b,k)+(b.cr[k]||0)>=Rt[k])){
+              // dense and packed items count as 2 and 4; any overshoot is credited to the next set
+              const order=[];ks.forEach(k=>{const its=[];let need=Rt[k]-(b.cr[k]||0);const fs=batForms(k);
+                while(need>0){let f=fs.filter(x=>(b.st[x]||0)>0&&worth(x)<=need).sort((a,c)=>worth(c)-worth(a))[0]||fs.filter(x=>(b.st[x]||0)>0).sort((a,c)=>worth(a)-worth(c))[0];if(!f)break;b.st[f]--;need-=worth(f);its.push(f)}
+                b.cr[k]=Math.max(0,-need);its.forEach((f,n)=>order.push([(n+.5)/its.length,f]))});
+              order.sort((a,c)=>a[0]-c[0]);b.q[i]=order.map(o=>o[1]);
             }
             if(b.q[i].length&&batPush(b,b.q[i][0],i))b.q[i].shift();
           }else{
@@ -2381,7 +2387,7 @@ function status(b){
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];
     case 'reactor':return (b.husk||0)>=4?['bad','Husks piling up · connect its output']:b.load>.01?['ok',`Running · ${fmtW(b.load*B.reactor.gen*reactorMul(b))}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs Aether'];
     case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return['bad','Pick a recipe'];const r=RECIPES[b.rec];return b.run?(lp?['warn','Low power · '+pct]:['ok','Assembling']):b.outN+r.out>Math.max(4,r.out*2)?['warn','Output blocked']:['warn','Waiting for inputs']}
-    case 'batcher':{const ks=Object.keys(b.ratio);if(!ks.length)return['warn','No ratio set · passing items through'];if(b.q&&(b.q[0].length||b.q[1].length))return['ok',b.q[0].length&&b.q[1].length?'Sending on both outputs':'Sending a batch'];const need=ks.filter(k=>(b.st[k]||0)<b.ratio[k]).map(k=>ITEMS[k].s);return['warn','Waiting for '+need.join(', ')]}
+    case 'batcher':{const ks=Object.keys(b.ratio);if(!ks.length)return['warn','No ratio set · passing items through'];if(b.q&&(b.q[0].length||b.q[1].length))return['ok',b.q[0].length&&b.q[1].length?'Sending on both outputs':'Sending a batch'];const need=ks.filter(k=>batUnits(b,k)+((b.cr&&b.cr[k])||0)<b.ratio[k]).map(k=>ITEMS[k].s);return['warn','Waiting for '+need.join(', ')]}
     case 'splitter':case 'sorter':return b.hold?['warn','Waiting for room']:['ok','Ready'];
     case 'combustor':return b.load>.01?['ok',`Burning · ${Math.round(b.load*150)} kW`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs carbon'];
     case 'turbine':return b.load>.01?['ok',`Burning · ${fmtW(b.load*1200)}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs carbon'];
@@ -3551,7 +3557,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},batIn:(b,t)=>accept(b,t,3),sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 // If something throws, stop autosaving (so a half-loaded game never overwrites a good save), keep the game
 // drawing, and show what went wrong with a way to copy the save as it was on this device.

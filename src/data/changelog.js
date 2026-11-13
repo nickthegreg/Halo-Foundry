@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:63,date:'2026-11-13',title:'Batchers take dense and packed items',items:[
+    'Fixed: a Batcher with a ratio set refused dense and packed items. It now takes them and counts them as 2 and 4, so you can mix plain, dense and packed forms of an item and the sets still come out at the right ratio. Items leave in the form they arrived.'
+  ]},
   {n:62,date:'2026-11-13',title:'Every Spaceport mission in view',items:[
     'The Spaceport now lists every mission, including ones you can’t pick yet. Locked ones are dimmed; tap one to see what it needs. For example, Ring segment needs the orbital research Ring design, which has to be done again on each new moon.'
   ]},
