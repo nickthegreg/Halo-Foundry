@@ -306,7 +306,7 @@ function accept(nb,t,side,p0){
       if(!(nb.mode?PACK_OF[bt]:DENSE_OF[bt])||(ITEMS[t].tier||0)>=tg||(nb.inN>0&&nb.inT!==bt)||nb.inN+u>need*2)return false;nb.inT=bt;nb.inN+=u;return true}
     case 'separator':{const u=worth(t);if((BASE_OF[t]||t)!=='starsand'||nb.n+u>1200)return false;nb.n+=u;return true;}
     case 'incinerator':stat('c',t);nb.heat=1;return true;
-    case 'spaceport':if(BASE_OF[t]){const bt=BASE_OF[t],u=worth(t),n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)+u>n)return nb.m==='ark'&&padAccept(nb,t);nb.h[bt]=(nb.h[bt]||0)+u;return true}return padAccept(nb,t);
+    case 'spaceport':if(BASE_OF[t]){const bt=BASE_OF[t],u=worth(t),n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)>=n)return nb.m==='ark'&&padAccept(nb,t);nb.h[bt]=Math.min(n,(nb.h[bt]||0)+u);return true}return padAccept(nb,t);
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
     case 'market':return isCamp()&&!!S.mk&&mkAccept(t);
     case 'elevator':return late()&&megaAccept('elevator',t);

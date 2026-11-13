@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:64,date:'2026-11-13',title:'Spaceport takes the last dense item',items:[
+    'Fixed: a Spaceport could get stuck one or two short (say 624 of 625) when fed dense or packed parts, because the next item would have overfilled it. It now takes that last item and fills the line; the spare is lost, the same as with Market contracts and megaprojects.'
+  ]},
   {n:63,date:'2026-11-13',title:'Batchers take dense and packed items',items:[
     'Fixed: a Batcher with a ratio set refused dense and packed items. It now takes them and counts them as 2 and 4, so you can mix plain, dense and packed forms of an item and the sets still come out at the right ratio. Items leave in the form they arrived.'
   ]},
