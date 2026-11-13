@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:58,date:'2026-11-12',title:'Deep Core Bore gets its own output',items:[
+    'The Deep Core Bore now has a bright edge, like a Foundry. Heavy metal, Magma glass and Helium-3 each come out of their own colour-marked slot in the middle of it, so each can go straight onto its own conveyor with no sorting.',
+    'Stage materials go in on the other three sides; the bright edge no longer takes anything in. A Bore you’ve already built keeps the way it was facing: tap it and use Rotate to point its bright edge where you want it.'
+  ]},
   {n:57,date:'2026-11-12',title:'Machines keep up with fast conveyors',items:[
     'Fixed: machines couldn’t load a fast conveyor at its full speed. Anything a machine put onto a belt was capped at 15 items a second per line, however fast your conveyors were, so a full Separator, Foundry or Deep Drill fell well short. Machines now fill a line right up to the conveyor’s speed.'
   ]},

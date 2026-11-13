@@ -306,7 +306,7 @@ function accept(nb,t,side,p0){
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
     case 'market':return isCamp()&&!!S.mk&&mkAccept(t);
     case 'elevator':return late()&&megaAccept('elevator',t);
-    case 'bore':return late()&&megaAccept('bore',t);
+    case 'bore':return late()&&side!==nb.d&&megaAccept('bore',t);
     case 'core':deliver(t);return true;
   }
   return false;
@@ -867,11 +867,12 @@ function megaAccept(k,t){S.mega=S.mega||{};const G=S.mega[k]=S.mega[k]||{st:0,ha
   const bt=BASE_OF[t]||t,u=worth(t),n=megaNeed(k,G.st)[bt];if(!n||(G.have[bt]||0)>=n)return false;
   G.have[bt]=Math.min(n,(G.have[bt]||0)+u);const need=megaNeed(k,G.st);
   if(Object.keys(need).every(i=>(G.have[i]||0)>=need[i])){G.st++;G.have={};megaDone(k,G.st)}return true}
-const BORE_PORTS=[0,1,2,3].flatMap(d=>[0,1,2,3,4].map(j=>[d,j]));
+// Each output has its own slot on the bright edge: Heavy metal, Magma glass, Helium-3 from left to right
+const BORE_SLOT={heavy:1,magma:2,he3:3};
 function boreRates(){const L=megaLv('bore');return BORE_OUT.filter(o=>L>=o[1]).map(([k,st,r])=>[k,r*(L-st+1)*gridMul()])}
 function boreTick(b,dt,sat){if(!megaSt('bore'))return;
   for(const [k,r] of boreRates()){b.oa[k]=(b.oa[k]||0)+r*dt*sat;while(b.oa[k]>=1&&(b.ob[k]||0)<50){b.oa[k]--;b.ob[k]=(b.ob[k]||0)+1}if(b.oa[k]>1)b.oa[k]=1;
-    if(b.ob[k]>0&&pushPorts(b,k,BORE_PORTS)){b.ob[k]--;stat('p',k)}}
+    if(b.ob[k]>0&&pushPorts(b,k,[[b.d,BORE_SLOT[k]]])){b.ob[k]--;stat('p',k)}}
   b.ang+=dt*sat*megaSt('bore')}
 function boreRow(b){const rs=boreRates();if(!rs.length)return '';return `<div class="flow"><span class="lbl">Bringing up ${rs.map(([k,r])=>`${fmtRate(r)} ${ITEMS[k].s}/s`).join(' · ')}</span>${Object.keys(b.ob).filter(k=>b.ob[k]>0).map(k=>chip(k,b.ob[k])).join('')}</div>`}
 function megaDone(k,st){const M=MEGA[k];
@@ -1883,6 +1884,7 @@ function drawMachine(g,b,x,y,s){
       for(let k=0;k<3;k++){g.rotate(2.094);g.beginPath();g.moveTo(0,0);g.lineTo(0,-s*1.9);g.stroke()}g.restore();
       // corner pylons
       g.fillStyle='#c97a3a';for(const [dx,dy] of [[.5,.5],[4.5,.5],[.5,4.5],[4.5,4.5]]){g.beginPath();g.arc(x+s*dx,y+s*dy,s*.2,0,7);g.fill()}
+      port(g,b,x,y,s,ITEM_TINT.heavy,1);port(g,b,x,y,s,ITEM_TINT.magma,2);port(g,b,x,y,s,ITEM_TINT.he3,3);
       break;}
     case 'elevator':{
       const S5=s*5,c5x=x+S5/2,c5y=y+S5/2,T=S?S.time:0,L=S?megaSt('elevator'):0;
