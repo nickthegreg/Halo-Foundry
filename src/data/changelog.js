@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:57,date:'2026-11-12',title:'Machines keep up with fast conveyors',items:[
+    'Fixed: machines couldn’t load a fast conveyor at its full speed. Anything a machine put onto a belt was capped at 15 items a second per line, however fast your conveyors were, so a full Separator, Foundry or Deep Drill fell well short. Machines now fill a line right up to the conveyor’s speed.'
+  ]},
   {n:56,date:'2026-11-12',title:'Commissions, Nova shards to the Core, and a fairer daily score',items:[
     'Market contracts no longer pay Relics. Instead, after every 12 contracts the Patron offers a commission: about a million ore’s worth of your best parts, often dense or packed, for a Relic, 3 Nova shards and a pile of Starseeds. Each commission asks for more than the last.',
     'New contracts arrive a little less often. In exchange, clients have a few unannounced extras: fill an order quickly, keep a regular happy, or please an odd one, and see what happens. Huge timed contracts now pay 2 Nova shards.',

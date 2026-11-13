@@ -13,7 +13,7 @@ import {AEO,DOR,HMIN,ION,LANE_V,PCN,PHR,QUAL,TUNES,bassRoot,chordOf,genMelBar,ne
 if(window.__haloStop)try{window.__haloStop()}catch(_){}
 let STOPPED=false;window.__haloStop=()=>{STOPPED=true;try{window.__haloCtx&&window.__haloCtx.close()}catch(_){}};
 // ================= constants & data =================
-let BV=1.75;
+let BV=1.75;const STEP_DT=1/30;
 function mapLim(){let m=modOn('frontier')?96:64;for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].map)m=Math.max(m,RUNGS[i].map);return m}
 function inLim(x,y){const L=mapLim();return x>=192-L&&y>=192-L&&x<192+L&&y<192+L}
 function refRatio(){return Math.max(50,Math.round((1000-Math.floor((S.refined||0)/1000))*(1-Math.min(.5,relStat('refine')/100+.05*crownLv('distill')))*(1-.05*nupLv('still'))*(orbDone('stelref')?.75:1)*bm('refine',1.08)))}
@@ -269,9 +269,15 @@ function accept(nb,t,side,p0){
   switch(nb.t){
     case 'belt':{
       if(side===nb.d)return false;
-      const L=nb.items[nb.items.length-1];if(L&&L.p<SP)return false;
-      nb.items.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),f:side});return true;}
-    case 'junction':{const lane=nb.lanes[side],L=lane[lane.length-1];if(L&&L.p<SP)return false;lane.push({t,p:Math.max(0,Math.min(p0||0,L?L.p-SP:1)),d:opp(side)});return true;}
+      const L=nb.items[nb.items.length-1];
+      // A machine handing an item on (no p0) may slot it in up to one tick's travel behind the start, keeping exact
+      // spacing; otherwise outputs round down to every other tick and fast conveyors run at about half speed.
+      if(p0==null){if(L&&L.p<SP-BV*STEP_DT)return false;nb.items.push({t,p:L?Math.min(0,L.p-SP):0,f:side});return true}
+      if(L&&L.p<SP)return false;
+      nb.items.push({t,p:Math.max(0,Math.min(p0,L?L.p-SP:1)),f:side});return true;}
+    case 'junction':{const lane=nb.lanes[side],L=lane[lane.length-1];
+      if(p0==null){if(L&&L.p<SP-BV*STEP_DT)return false;lane.push({t,p:L?Math.min(0,L.p-SP):0,d:opp(side)});return true}
+      if(L&&L.p<SP)return false;lane.push({t,p:Math.max(0,Math.min(p0,L?L.p-SP:1)),d:opp(side)});return true;}
     case 'smelter':case 'foundry':{
       const u=worth(t);t=BASE_OF[t]||t;
       if(!SMELT[t]||(t==='voidstone'&&nb.t!=='foundry')||nb.inN+u>Math.max((nb.t==='foundry'?30:6)*TIN[nb.dn|0],2*TIN[nb.dn|0]+4)||(nb.inN>0&&nb.inT!==t))return false;
@@ -466,7 +472,7 @@ function sim(dt){
         if(!b.run&&b.n>=1000&&sepTot(b)<500){b.n-=1000;stat('c','starsand',1000);b.run=true;b.prog=0}
         b.active=b.run;b.ang+=dt*(b.run?sat*2:.1);
         if(b.run){b.prog+=dt*sat*(orbDone('sieve')?2:1)/20;if(b.prog>=1){b.run=false;sepBatch(b);sfx('smelt',b.x+1.5,b.y+1.5)}}
-        for(let k=0;k<3;k++){if(!b.nx){b.nx=sepPick(b);if(!b.nx)break}if(pushPorts(b,b.nx,outPorts(b))){b.oq[b.nx]--;if(b.oq[b.nx]<=0)delete b.oq[b.nx];b.nx=null}else break}
+        for(let k=0;k<9;k++){if(!b.nx){b.nx=sepPick(b);if(!b.nx)break}if(pushPorts(b,b.nx,outPorts(b))){b.oq[b.nx]--;if(b.oq[b.nx]<=0)delete b.oq[b.nx];b.nx=null}else break}
         break;}
       case 'compressor':{
         if(!b.run&&!b.outN&&b.inN>=(b.mode===2?1:TIN[b.mode+1])){b.run=true;b.prog=0;b.cur=b.inT;b.inN-=b.mode===2?1:TIN[b.mode+1];if(!b.inN)b.inT=null}
@@ -3509,7 +3515,7 @@ function frame(now){
   if(STOPPED)return;
   const rdt=Math.min(.1,(now-lastT)/1000);lastT=now;
   if(DEF.isOpen){DEF.frame(rdt);requestAnimationFrame(frame);return}
-  acc+=rdt*speed;const STEP=1/30;let n=0;
+  acc+=rdt*speed;const STEP=STEP_DT;let n=0;
   while(acc>=STEP&&n<15){sim(STEP);acc-=STEP;n++}if(n>=15)acc=0;
   if(dirty){recalc();dirty=false}
   render(rdt);
@@ -3519,7 +3525,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 let booted=false;
 function boot(data){
