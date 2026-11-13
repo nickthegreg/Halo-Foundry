@@ -523,6 +523,12 @@ function kitCap(){return orbDone('logistics')?1000:500}
 const KITS=['kitf','kitv','kits'];
 function kitN(h){let n=0;for(const k of KITS)n+=h[k]||0;return n}
 function labMax(){return 1+['lab2','lab3','lab4'].filter(orbDone).length}
+// Why a mission can't be picked right now
+function missionWhy(m){const M=MISSIONS[m];
+  if(m==='ring'){if(!orbDone('ringdesign'))return 'Needs the orbital research Ring design (3,000 each of Field, Void and Stellar kits). Orbital research starts over on every moon.';return 'The Halo Ring is closed on this moon.'}
+  if(m==='swarm')return swarmSeen()?'All 24 swarm nodes are up on this moon.':'Close a Halo Ring first, on this moon or any other.';
+  if(m==='lab')return 'All lab modules are in orbit. Orbital research can raise the limit.';
+  return `All ${M.max||''} ${M.n.toLowerCase()}s are done${m==='array'?'':' on this moon'}.`}
 function padOpen(m){if(m==='lab')return (S.orb.mods||0)<labMax();if(m==='array')return arrayLv()<MISSIONS.array.max;if(m==='ark')return (S.arkN||0)<MISSIONS.ark.max;if(m==='swarm')return swarmOpen();if(m==='ring')return orbDone('ringdesign')&&ringN()<MISSIONS.ring.max;return !!MISSIONS[m]}
 function padAccept(b,t){const m=b.m;if(!m||b.st)return false;
   if(m==='kits'&&KITS.includes(t)){if(kitN(b.h)>=kitCap())return false;b.h[t]=(b.h[t]||0)+1;return true}
@@ -2459,8 +2465,8 @@ function renderSheet(){
     const so=[[0,'Forward'],[1,'Left'],[2,'Right']];
     ctrl=`<div class="sec-label">Chosen item leaves</div><div class="seg">${so.map(([v,n])=>`<button data-sd="${v}" class="${(b.sd||0)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">Everything else leaves through the other two sides, taking turns.</p><div class="sec-label">Chosen item</div><div class="grid items"><button class="opt${!b.filter?' on':''}" data-filter="" aria-label="Everything">All</button>${ITEM_ORDER.filter(k=>!BASE_OF[k]).map(k=>`<button class="opt${b.filter===k?' on':''}" data-filter="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`;
   }
-  if(b.t==='spaceport'){const ms=Object.keys(MISSIONS).filter(m=>(m!=='ring'||orbDone('ringdesign'))&&(m!=='swarm'||swarmSeen()));
-    ctrl=`<div class="sec-label">Mission</div><div class="seg">${ms.map(m=>`<button data-mission="${m}" class="${b.m===m?'on':''}"${padOpen(m)?'':' disabled'}>${MISSIONS[m].n}</button>`).join('')}</div>${b.m?`<p class="desc">${MISSIONS[b.m].d} Every launch needs a rocket (${rocketParts().hull} Hull plates, ${ROCKET.guidance} Guidance units) and Aether fuel, all belted in.</p>${b.m==='kits'||b.m==='ark'?`<div class="actions"><button class="btn" data-act="padgo">${b.m==='ark'?'Launch once the module is in':'Launch when loaded'}</button></div>`:''}`:''}`}
+  if(b.t==='spaceport'){const ms=Object.keys(MISSIONS);
+    ctrl=`<div class="sec-label">Mission</div><div class="seg">${ms.map(m=>`<button data-mission="${m}" class="${b.m===m?'on':''}"${padOpen(m)?'':' style="opacity:.4"'}>${MISSIONS[m].n}</button>`).join('')}</div>${b.m?`<p class="desc">${MISSIONS[b.m].d} Every launch needs a rocket (${rocketParts().hull} Hull plates, ${ROCKET.guidance} Guidance units) and Aether fuel, all belted in.</p>${b.m==='kits'||b.m==='ark'?`<div class="actions"><button class="btn" data-act="padgo">${b.m==='ark'?'Launch once the module is in':'Launch when loaded'}</button></div>`:''}`:''}`}
   if(b.t==='railterm'){
     const recv=[...S.bs.values()].filter(q=>q.t==='railterm'&&q.role&&!q.bp).sort((p,q)=>p.lab-q.lab);
     ctrl=`<div class="sec-label">Label</div><div class="seg">${[...TLAB.slice(0,8)].map((c,i)=>`<button data-tlab="${i}" class="${b.lab===i?'on':''}">${c}</button>`).join('')}</div>
@@ -2495,7 +2501,7 @@ elSheet.addEventListener('click',e=>{
   else if(el.dataset.sd!==undefined){b.sd=+el.dataset.sd||0;renderSheet();sfx('tick')}
   else if(el.dataset.pri!==undefined){b.pri=el.dataset.pri===''?null:+el.dataset.pri;renderSheet();sfx('tick')}
   else if(el.dataset.filter!==undefined){b.filter=el.dataset.filter||null;renderSheet()}
-  else if(el.dataset.mission){const m=el.dataset.mission;if(b.st){showToast('A rocket is being assembled');return}if(!padOpen(m))return;if(b.m!==m){padUnload(b);b.m=m}renderSheet();sfx('tick')}
+  else if(el.dataset.mission){const m=el.dataset.mission;if(b.st){showToast('A rocket is being assembled');return}if(!padOpen(m)){showToast(missionWhy(m));return}if(b.m!==m){padUnload(b);b.m=m}renderSheet();sfx('tick')}
   else if(el.dataset.act==='padload'){const n=padLoad(b);showToast(n?`Loaded ${n.toLocaleString()} items from storage`:'Nothing in storage this mission still needs');refreshSheet()}
   else if(el.dataset.act==='padgo'){if(b.m==='kits'&&!kitN(b.h)){showToast('Load some kits first');return}b.go=true;showToast(b.m==='ark'?'It launches as soon as the module, rocket and fuel are in. Cargo loaded by then goes along.':'It launches as soon as the rocket and fuel are loaded')}
   else if(el.dataset.dn!==undefined){const v=+el.dataset.dn;if((b.dn|0)===v)return;setDense(b,v);renderSheet();sfx('tick')}
