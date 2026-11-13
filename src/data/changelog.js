@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:59,date:'2026-11-12',title:'Somewhere to keep things',items:[
+    'The Deep Core Bore now keeps what it brings up: up to 5,000 each of Heavy metal, Magma glass and Helium-3, waiting until a conveyor takes them. You don’t have to belt them anywhere until you need them, and nothing is lost when you reload. Its panel also says what each one is for.',
+    'New building: the Stockpile (2×2, unlocks with the Batcher). It holds up to 2,000 of one kind of item and feeds them back out of its bright edge whenever something there will take them. Put one after a machine whose output you can’t use yet, or in front of one to keep it supplied.'
+  ]},
   {n:58,date:'2026-11-12',title:'Deep Core Bore gets its own output',items:[
     'The Deep Core Bore now has a bright edge, like a Foundry. Heavy metal, Magma glass and Helium-3 each come out of their own colour-marked slot in the middle of it, so each can go straight onto its own conveyor with no sorting.',
     'Stage materials go in on the other three sides; the bright edge no longer takes anything in. A Bore you’ve already built keeps the way it was facing: tap it and use Rotate to point its bright edge where you want it.'

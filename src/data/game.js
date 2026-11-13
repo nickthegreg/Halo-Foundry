@@ -62,6 +62,7 @@ const B={
   foundry:{n:'Foundry',cost:{composite:20,frame:20,steel:100},pw:160,dir:1,w:3,mult:4,d:'A 3×3 furnace for when Smelters can’t keep up: 4× the speed and a far bigger hopper. One ore type at a time, from any side. Output leaves through three slots on its bright edge.'},
   splitter:{n:'Splitter',cost:{iron:4,copper:2},dir:1,d:'Shares one line between up to three. Items leave ahead, left and right in turn, skipping any side that’s blocked.'},
   sorter:{n:'Sorter',cost:{iron:4,circuit:2},dir:1,d:'Picks one item out of a mixed line. The item you choose leaves through the side you pick (ahead, left or right); everything else leaves through the other two.'},
+  stock:{n:'Stockpile',cost:{steel:40,frame:6,gear:20},dir:1,w:2,d:'Somewhere to keep things until you need them. It takes one kind of item from any side but its bright edge, holds up to 2,000, and feeds them back out of its bright edge whenever something there will take them. Put one after a machine whose output you can’t use yet, or before one to smooth out its supply. Once it’s empty it takes whatever comes next.'},
   batcher:{n:'Batcher',cost:{iron:10,gear:6,circuit:2},dir:1,w:2,d:'Keeps a recipe fed in the right proportions. It holds up to 50 of each item and releases them in whole sets at the ratio you set, from two slots on its bright edge. Pick a recipe to copy its ratio.'},
   combustor:{n:'Combustor',cost:{iron:14,copper:6},gen:150,burn:6,dir:1,d:'Your first real power. Burns carbon for up to 150 kW, and only as much as the grid is asking for. About 1 in 50 carbon leaves an Ember shard, pushed out of its bright edge: catch them, they buy Deep Drills and upgrades.'},
   solar:{n:'Sun Leaf',cost:{glass:6,circuit:3},gen:45,d:'A small solar leaf: up to 45 kW in daylight, nothing at night. Free power, as long as the sun is up.'},
@@ -397,7 +398,7 @@ function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486
   return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','elevator','bore','separator','incinerator','railterm','rail','spaceport','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','stock','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','elevator','bore','separator','incinerator','railterm','rail','spaceport','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
 const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits','petal','lattice'];
 // Packed (second level): 20 → 1 packed item worth 4

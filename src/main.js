@@ -159,6 +159,7 @@ function init(t){
     case 'ring':return{n:0,l:0,prog:0,ang:0};
     case 'market':return{ang:0};
     case 'bore':return{ang:0,ob:{},oa:{}};
+    case 'stock':return{it:null,n:0};
     case 'compressor':return{inT:null,inN:0,outT:null,outN:0,run:false,prog:0,mode:0,ang:0};
     case 'separator':return{n:0,run:false,prog:0,oq:{},nx:null,ang:0};
     case 'incinerator':return{heat:0,ang:0};
@@ -207,7 +208,8 @@ function contents(b){
     case 'ring':add('petal',b.n);add('lattice',b.l||0);break;
     case 'separator':add('starsand',b.n);for(const k in b.oq)add(k,b.oq[k]);break;
     case 'spaceport':for(const k in b.h)add(k,b.h[k]);break;
-    case 'bore':for(const k in b.ob)add(k,b.ob[k]);break;
+    case 'bore':break;
+    case 'stock':if(b.it)add(b.it,b.n);break;
     case 'railterm':o.push(...b.q,...(b.sh.load||[]));break;
   }
   return o;
@@ -307,6 +309,7 @@ function accept(nb,t,side,p0){
     case 'market':return isCamp()&&!!S.mk&&mkAccept(t);
     case 'elevator':return late()&&megaAccept('elevator',t);
     case 'bore':return late()&&side!==nb.d&&megaAccept('bore',t);
+    case 'stock':if(side===nb.d||(nb.it&&nb.it!==t)||nb.n>=STOCK_CAP)return false;nb.it=t;nb.n++;return true;
     case 'core':deliver(t);return true;
   }
   return false;
@@ -482,6 +485,7 @@ function sim(dt){
       case 'incinerator':b.heat=Math.max(0,b.heat-dt*1.5);b.active=b.heat>.01;b.ang+=dt*(.3+b.heat*4);break;
       case 'spaceport':padTick(b,dt,sat0);break;
       case 'bore':boreTick(b,dt,sat0);break;
+      case 'stock':for(let k=0;k<2&&b.n>0;k++){if(pushDir(b,b.it,b.d)){b.n--;if(!b.n)b.it=null}else break}break;
       case 'railterm':railTick(b,dt,sat);break;
       case 'belt':{
         const its=b.items;
@@ -870,11 +874,14 @@ function megaAccept(k,t){S.mega=S.mega||{};const G=S.mega[k]=S.mega[k]||{st:0,ha
 // Each output has its own slot on the bright edge: Heavy metal, Magma glass, Helium-3 from left to right
 const BORE_SLOT={heavy:1,magma:2,he3:3};
 function boreRates(){const L=megaLv('bore');return BORE_OUT.filter(o=>L>=o[1]).map(([k,st,r])=>[k,r*(L-st+1)*gridMul()])}
-function boreTick(b,dt,sat){if(!megaSt('bore'))return;
-  for(const [k,r] of boreRates()){b.oa[k]=(b.oa[k]||0)+r*dt*sat;while(b.oa[k]>=1&&(b.ob[k]||0)<50){b.oa[k]--;b.ob[k]=(b.ob[k]||0)+1}if(b.oa[k]>1)b.oa[k]=1;
+const BORE_CAP=5000,STOCK_CAP=2000;
+function boreTick(b,dt,sat){if(!megaSt('bore'))return;const G=S.mega.bore;G.ob=G.ob||{};b.ob=G.ob;
+  for(const [k,r] of boreRates()){b.oa[k]=(b.oa[k]||0)+r*dt*sat;while(b.oa[k]>=1&&(b.ob[k]||0)<BORE_CAP){b.oa[k]--;b.ob[k]=(b.ob[k]||0)+1}if(b.oa[k]>1)b.oa[k]=1;
     if(b.ob[k]>0&&pushPorts(b,k,[[b.d,BORE_SLOT[k]]])){b.ob[k]--;stat('p',k)}}
   b.ang+=dt*sat*megaSt('bore')}
-function boreRow(b){const rs=boreRates();if(!rs.length)return '';return `<div class="flow"><span class="lbl">Bringing up ${rs.map(([k,r])=>`${fmtRate(r)} ${ITEMS[k].s}/s`).join(' · ')}</span>${Object.keys(b.ob).filter(k=>b.ob[k]>0).map(k=>chip(k,b.ob[k])).join('')}</div>`}
+const BORE_USE={heavy:'Fusion cells (from stage 5)',magma:'Quantum chips (from stage 3)',he3:'Fusion cells'};
+function boreRow(b){const rs=boreRates();if(!rs.length)return '';const ob=(S.mega.bore&&S.mega.bore.ob)||{};
+  return `<div class="flow"><span class="lbl">Bringing up ${rs.map(([k,r])=>`${fmtRate(r)} ${ITEMS[k].s}/s`).join(' · ')}</span></div><div class="flow"><span class="lbl">Stored, up to ${BORE_CAP.toLocaleString()} each</span>${rs.map(([k])=>chip(k,(ob[k]||0).toLocaleString())).join('')}</div><p class="desc">What comes up waits here until a conveyor takes it, so you can leave the slots empty until you need them. Uses: ${rs.map(([k])=>`${ITEMS[k].n} → ${BORE_USE[k]}`).join('; ')}. Both parts go into Swarm nodes.</p>`}
 function megaDone(k,st){const M=MEGA[k];
   if(k==='bore'){if(st===3&&!S.rec.includes('quantum'))S.rec.push('quantum');if(st===5&&!S.rec.includes('fusion'))S.rec.push('fusion');if(st>=M.stages)setTimeout(heartReached,1500)}burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showBanner(`${M.n} · stage ${st} of ${M.stages}`,M.eff(st)+(st>=M.stages?'. Complete!':'.'));save()}
 function megaPanel(k){const M=MEGA[k],L=megaSt(k),G=(S.mega&&S.mega[k])||{have:{}};
@@ -1897,6 +1904,13 @@ function drawMachine(g,b,x,y,s){
       g.strokeStyle=`rgba(216,180,255,${.4+.08*L})`;g.lineWidth=s*.09;g.beginPath();g.moveTo(c5x,c5y);g.lineTo(c5x,y+s*.15);g.stroke();
       if(L){const q=(T*.25)%1,cy2=c5y-(c5y-y-s*.4)*q;rr(g,c5x-s*.22,cy2-s*.18,s*.44,s*.36,s*.08);g.fillStyle='#f3c25a';g.fill()}
       break;}
+    case 'stock':{
+      const S2=s*2,f=b.n?Math.min(1,b.n/STOCK_CAP):0;
+      rr(g,x+s*.1,y+s*.1,S2-s*.2,S2-s*.2,s*.25);g.fillStyle='#3a3550';g.fill();g.lineWidth=s*.05;g.strokeStyle='#8a83b8';g.stroke();
+      rr(g,x+s*.3,y+s*.3,S2-s*.6,S2-s*.6,s*.12);g.fillStyle='#24203a';g.fill();
+      if(f>0){const h=(S2-s*.6)*f;g.fillStyle=(b.it&&ITEM_TINT[BASE_OF[b.it]||b.it])||'#c7c2b8';g.globalAlpha=.55;g.fillRect(x+s*.3,y+S2-s*.3-h,S2-s*.6,h);g.globalAlpha=1}
+      if(b.it&&SPR[b.it]){const q=s*.8;g.drawImage(SPR[b.it],x+s-q/2,y+s-q/2,q,q)}
+      port(g,b,x,y,s,'#f3c25a');break;}
     case 'wreck':{
       const S2=s*2,v=b.d|0;
       g.save();g.translate(x+s,y+s);g.rotate((v-1.5)*.12);
@@ -2232,7 +2246,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -2376,6 +2390,7 @@ function status(b){
     case 'separator':{const t=sepTot(b);return b.run?(lp?['warn','Low power · '+pct]:['ok','Separating']):t>0&&b.nx?['warn','Output blocked: '+ITEMS[b.nx].n]:b.n<1000?['warn',`Collecting Starsand · ${b.n} / 1,000`]:['ok','Sending out the last batch']}
     case 'incinerator':return b.heat>.05?['ok','Burning']:['ok','Idle'];
     case 'wreck':return['idle','Remove it to salvage its parts'];
+    case 'stock':return b.it?[b.n>=STOCK_CAP?'warn':'ok',`${b.n.toLocaleString()} / ${STOCK_CAP.toLocaleString()} ${ITEMS[b.it].s}${b.n>=STOCK_CAP?' · full':''}`]:['idle','Empty · takes the first item it’s given'];
     case 'bore':{const L=megaSt('bore'),M=MEGA.bore;return lp?['warn','Low power · '+pct]:L>=M.stages?['ok','At the heart · '+boreRates().map(([k,r])=>fmtRate(r)+' '+ITEMS[k].s+'/s').join(' · ')]:['ok',`Stage ${L+1} of ${M.stages}${L?' · bringing up '+boreRates().map(([k])=>ITEMS[k].s).join(', '):''}`]}
     case 'elevator':{const L=megaSt('elevator'),M=MEGA.elevator;return L>=M.stages?['ok','Complete · '+M.eff(L)]:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of ${M.stages}${L?' · '+M.eff(L):''}`]}
     case 'market':return mkOn()?['ok',`${(S.mk&&S.mk.open.length)||0} open contract${S.mk&&S.mk.open.length===1?'':'s'}${S.mk&&S.mk.timed?(S.mk.timed.on?' · timed contract running':' · timed offer waiting'):''}`]:['warn','Opening'];
@@ -2409,6 +2424,7 @@ function bufRow(b){
     case 'belt':return b.items.length?`<div class="flow">${cnt(b.items.map(i=>i.t))}</div>`:'';
     case 'market':return mkPanel();
     case 'elevator':return megaPanel('elevator');
+    case 'stock':return b.it?`<div class="flow"><span class="lbl">Holding</span>${chip(b.it,b.n.toLocaleString()+' / '+STOCK_CAP.toLocaleString())}</div>`:'';
     case 'bore':return boreRow(b)+megaPanel('bore');
     case 'compressor':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN+(b.mode===2?'':'/'+TIN[b.mode+1])):'<span class="lbl">empty</span>'}<span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
     case 'separator':{const ks=Object.keys(b.oq).filter(k=>b.oq[k]>0);return `<div class="flow"><span class="lbl">In</span>${chip('starsand',b.n.toLocaleString()+'/1,000')}<span class="lbl">· ${Math.round(rareShare()*100)}% Rare earth per batch</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(ks.length?`<div class="flow"><span class="lbl">Out</span>${ks.map(k=>chip(k,b.oq[k])).join('')}</div>`:'')+`<div class="flow"><span class="lbl">One batch every ${fmtRate(20/gridMul())}s at full power</span></div>`}
@@ -3468,7 +3484,7 @@ function tap(sx,sy){
 
 // ================= save / load =================
 function serialize(){
-  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
+  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='stock')a.push({it:b.it,n:b.n});else if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
   return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dsrc:S.dsrc||{},dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
 function save(){try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
@@ -3494,7 +3510,7 @@ function start(data,forceNew){
     const BL=(d.bs||[]).slice();if(!d.dd2)BL.sort((p,q)=>(p[0]==='deepdrill')-(q[0]==='deepdrill'));
     for(const a of BL){if(a[0]==='rail'){const x=a[1]+OFF,y=a[2]+OFF;S.rail.add(y*W+x);place('pylon',x,y,0,true);continue}if(!B[a[0]])continue;let b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(a[0]==='deepdrill'&&!d.dd2)for(const [ox,oy] of [[-1,0],[0,-1],[-1,-1]]){if(typeof b==='object')break;b=place(a[0],a[1]+OFF+ox,a[2]+OFF+oy,a[3],true,a[4])}if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='sorter'&&a[6])b.sd=a[6];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){const X=a[4];if(X.r)b.ratio=X.r;else b.ratio=X;
       if(X.st&&typeof X.st==='object')for(const k in X.st)if(ITEMS[k]&&X.st[k]>0)b.st[k]=Math.min(batCap(),X.st[k]|0);
-      if(Array.isArray(X.q))b.q=[0,1].map(i=>Array.isArray(X.q[i])?X.q[i].filter(k=>ITEMS[k]):[])}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0));if(a[0]==='reactor')b.husk=Math.max(0,Math.min(4,F.h|0))}if(a[5]!==1&&a[4]&&typeof a[4]==='object'){const X=a[4];if(a[0]==='separator'){b.n=Math.max(0,Math.min(1200,X.n|0));if(X.oq&&typeof X.oq==='object')for(const k in X.oq)if(ITEMS[k]&&X.oq[k]>0)b.oq[k]=X.oq[k]|0;b.nx=ITEMS[X.nx]&&b.oq[X.nx]?X.nx:null}else if(a[0]==='spaceport'){b.m=MISSIONS[X.m]?X.m:null;if(X.h&&typeof X.h==='object')for(const k in X.h)if(ITEMS[k]&&X.h[k]>0)b.h[k]=X.h[k]|0;b.st=X.st?1:0;b.p=Math.max(0,Math.min(1,+X.p||0));b.go=!!X.go}else if(a[0]==='railterm'){b.role=X.r?1:0;if(Array.isArray(X.q))b.q=X.q.filter(k=>ITEMS[k]).slice(0,2000);if(typeof X.l==='number')b.lab=X.l;if(typeof X.dt==='number')b.dest=X.dt;if(Array.isArray(X.f))b.flt=X.f.filter(k=>ITEMS[k])}}if(a[5]===1)b.bp=true}}
+      if(Array.isArray(X.q))b.q=[0,1].map(i=>Array.isArray(X.q[i])?X.q[i].filter(k=>ITEMS[k]):[])}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0));if(a[0]==='reactor')b.husk=Math.max(0,Math.min(4,F.h|0))}if(a[5]!==1&&a[4]&&typeof a[4]==='object'){const X=a[4];if(a[0]==='stock'){if(ITEMS[X.it]){b.it=X.it;b.n=Math.max(0,Math.min(STOCK_CAP,X.n|0));if(!b.n)b.it=null}}else if(a[0]==='separator'){b.n=Math.max(0,Math.min(1200,X.n|0));if(X.oq&&typeof X.oq==='object')for(const k in X.oq)if(ITEMS[k]&&X.oq[k]>0)b.oq[k]=X.oq[k]|0;b.nx=ITEMS[X.nx]&&b.oq[X.nx]?X.nx:null}else if(a[0]==='spaceport'){b.m=MISSIONS[X.m]?X.m:null;if(X.h&&typeof X.h==='object')for(const k in X.h)if(ITEMS[k]&&X.h[k]>0)b.h[k]=X.h[k]|0;b.st=X.st?1:0;b.p=Math.max(0,Math.min(1,+X.p||0));b.go=!!X.go}else if(a[0]==='railterm'){b.role=X.r?1:0;if(Array.isArray(X.q))b.q=X.q.filter(k=>ITEMS[k]).slice(0,2000);if(typeof X.l==='number')b.lab=X.l;if(typeof X.dt==='number')b.dest=X.dt;if(Array.isArray(X.f))b.flt=X.f.filter(k=>ITEMS[k])}}if(a[5]===1)b.bp=true}}
     if(Array.isArray(d.dn))for(const [x,y,v] of d.dn){const q=at(x+OFF,y+OFF);if(!q)continue;if(q.t==='compressor')q.mode=Math.max(0,Math.min(2,v|0));else if(DM.includes(q.t))q.dn=Math.max(1,Math.min(2,v|0))}
     // The Compressor building was retired: remove any that were built, refunding their cost and contents
     for(const q of [...S.bs.values()])if(q.t==='compressor'){for(const t of contents(q))addInv(t);pay(costOf('compressor'),1);S.bs.delete(q.id);for(let j=0;j<(q.w||1);j++)for(let i=0;i<(q.w||1);i++)S.grid[(q.y+j)*W+q.x+i]=0}

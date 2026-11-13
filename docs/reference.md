@@ -18,6 +18,7 @@ Regenerate with `node tests/reference.mjs`.
 | Foundry | 3×3 | 20 Composite plate, 20 Frame, 100 Steel | uses 160 kW | ×4 |
 | Splitter | 1×1 | 4 Iron ingot, 2 Copper ingot | – |  |
 | Sorter | 1×1 | 4 Iron ingot, 2 Circuit | – |  |
+| Stockpile | 2×2 | 40 Steel, 6 Frame, 20 Gear | – |  |
 | Batcher | 2×2 | 10 Iron ingot, 6 Gear, 2 Circuit | – |  |
 | Combustor | 1×1 | 14 Iron ingot, 6 Copper ingot | makes up to 150 kW |  |
 | Sun Leaf | 1×1 | 6 Glass, 3 Circuit | makes up to 45 kW |  |
