@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:56,date:'2026-11-12',title:'Commissions, Nova shards to the Core, and a fairer daily score',items:[
+    'Market contracts no longer pay Relics. Instead, after every 12 contracts the Patron offers a commission: about a million ore’s worth of your best parts, often dense or packed, for a Relic, 3 Nova shards and a pile of Starseeds. Each commission asks for more than the last.',
+    'New contracts arrive a little less often. In exchange, clients have a few unannounced extras: fill an order quickly, keep a regular happy, or please an odd one, and see what happens. Huge timed contracts now pay 2 Nova shards.',
+    'Nova shards are now real items. Reactors push them out of their bright edge along with husks: belt or Uplink them to the Core to bank them. Uplinks never duplicate Nova or Ember shards.',
+    'The Nova workshop costs more and goes further: most upgrades cost about twice as much and have more levels (Nova bore up to 20, echo, crucible and reactor up to 10, and more). Two long new ones: Nova forge (+2% machine speed per level, 25 levels) and Nova prism (+3% Starseeds per level, 20 levels). Levels you already own are kept.',
+    'Daily moon scoring: parts deeper in the recipe tree score more (up to about double), petals and Lattice cores launched score double their value, and every upgrade, research and grid or furnace tier you buy scores what it cost. The results screen shows where your points came from.'
+  ]},
   {n:55,date:'2026-11-12',title:'Overcharge has a price, and Nova packs it in',items:[
     'Overcharge research now makes machines draw 10% more power per level, as well as working 5% faster. Deep Drills and Incinerators are left out: they already have their own steep power costs.',
     'Nova press (Nova workshop, needs Compression): Deep Drills in Dense or Packed mode need 15% less ore per dig per level, up to 3 levels. At the top, a dense dig takes 3 ore instead of 5 and a packed one 11 instead of 20.',

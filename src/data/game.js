@@ -74,7 +74,7 @@ const B={
   relay:{n:'Pulse Relay',cost:{steel:10,circuit:10,lens:4},pw:30,d:'A forward base for construction. Blueprints closer to this relay than to the Core are built by pulses launched from here. Pulses crawl at 40% speed outside the starting area, so relays out there save a lot of waiting.'},
   assembler:{n:'Assembler',cost:{frame:20,circuit:40,motor:10},pw:150,dir:1,w:3,d:'A 3×3 factory for the advanced parts a Fabricator can’t make, starting with Processors and Servos. Feed it from any side; output leaves its bright edge.'},
   refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether, the fuel of Reactors and rockets and the reason to Ascend. It starts at 1,000 ore per Aether and needs 1 ore less for every 1,000 Aether you have ever made, down to 50.'},
-  reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:40000,burn:10,w:3,dir:1,d:'Burns one Aether every 10 seconds for 40 MW. Reactors like company: +25% for each other Reactor lined up against one of its sides, up to +100%. Takes Aether from any side. Each Aether burned leaves a husk, pushed out of its bright edge; if four pile up, it stops, so belt them away. Husks count triple toward Starseeds.'},
+  reactor:{n:'Aether Reactor',cost:{servo:20,processor:40,frame:60},gen:40000,burn:10,w:3,dir:1,d:'Burns one Aether every 10 seconds for 40 MW. Reactors like company: +25% for each other Reactor lined up against one of its sides, up to +100%. Takes Aether from any side. Each Aether burned leaves a husk, pushed out of its bright edge; if four pile up, it stops, so belt them away. Husks count triple toward Starseeds. Very rarely a Nova shard comes out too: belt or Uplink it to the Core to bank it.'},
   separator:{n:'Separator',cost:{frame:40,servo:20,composite:80,steel:200},pw:400,dir:1,w:3,d:'Sifts Starsand into what’s hidden in it. Takes 1,000 Starsand and, 20 seconds later, sends a mixed stream out of three slots on its bright edge: about 10% Rare earth, plus ferrite, cuprite, silica and Slag. Sort it with Sorters; if any item can’t get out, the Separator stops.'},
   incinerator:{n:'Incinerator',cost:{steel:20,circuit:10},pw:1000000,d:'Destroys anything fed into it, from any side, but draws 1 GW while it burns. Usually it’s better to belt or Uplink spare Slag to the Core.'},
   spaceport:{n:'Spaceport',cost:{servo:10000,slagcrete:5000,magnet:2000,frame:1000,guidance:200,voidglass:2000},pw:1000000,w:7,d:'A 7×7 launch silo, your road to orbit. Pick a mission, then belt in the rocket (Hull plates and Guidance units), the payload and the Aether fuel, from any side. When everything is aboard, the rocket takes 60 seconds to assemble and lift off; machine speed bonuses don’t apply. Draws 1 GW standing, 10 GW while a rocket is being built.'},
@@ -84,7 +84,7 @@ const B={
   elevator:{n:'Space Elevator',cost:{slagcrete:4000,magnet:1000,composite:1500,frame:800},pw:200000,w:5,d:'A tether from the ground to orbit, raised in 8 stages. Belt in each stage’s materials from any side. Every finished stage cuts the Aether that Spaceport launches burn by 6%, so nearly half by the top. One per moon.'},
   bore:{n:'Deep Core Bore',cost:{steel:5000,slagcrete:3000,motor:800,servo:500},pw:300000,w:5,d:'A shaft into the moon’s mantle, sunk in 6 stages. Belt in each stage’s materials from any side. As it goes down it brings up things found nowhere else: Heavy metal, then Magma glass (stage 3) and Helium-3 (stage 5), out of every side and faster with each stage. The last stage reaches the moon’s heart. One per moon.'},
   wreck:{n:'Wreck',cost:{steel:150,gear:200,circuit:120,motor:40,processor:20,frame:10},w:2,nobuild:1,d:'What’s left of someone else’s foundry. Remove it to salvage its parts.'},
-  market:{n:'Market Uplink',cost:{frame:40,circuit:200,motor:30},pw:500,w:5,d:'Your link to buyers across the system. Clients post contracts here: belt in what they ask for, from any side, and they pay in Starseeds plus a bonus, sometimes a Relic. Regulars remember you and come back with bigger orders, and a timed contract turns up every hour. Anything the contracts don’t need goes on to the Core. One per moon.'},
+  market:{n:'Market Uplink',cost:{frame:40,circuit:200,motor:30},pw:500,w:5,d:'Your link to buyers across the system. Clients post contracts here: belt in what they ask for, from any side, and they pay in Starseeds plus a bonus. Now and then the Patron offers a commission: a huge order of top-tier parts, often dense, that pays a Relic. Regulars remember you and come back with bigger orders, and a timed contract turns up every hour. Anything the contracts don’t need goes on to the Core. One per moon.'},
   compressor:{n:'Compressor',cost:{steel:20,circuit:20,motor:4},pw:60,dir:1,d:'Packs 5 worth of an item into 1 dense item (worth 2), or 20 worth into 1 packed item (worth 4), or unpacks dense and packed items back to plain ones. Takes items from the back and sides, sends them out of the bright edge.'},
   core:{n:'Core',w:3,gen:CORE_GEN,d:'The heart of the foundry. It accepts any item from any side: items count toward the current milestone first, then go to storage, where they pay for buildings and upgrades. Supplies 120 kW.'}
 };
@@ -368,27 +368,29 @@ const EVERY_ITEMS=['ferrite','cuprite','silica','carbon','iron','copper','glass'
 const EVERY_N=1000;
 // Nova workshop: permanent Deep Drill upgrades bought with Nova shards
 const NUP={
-  bore:{n:'Nova bore',max:10,cost:L=>1+L,d:'Deep Drills mine 20% faster per level.',eff:L=>`+${L*20}% speed`},
-  reach:{n:'Nova reach',max:2,cost:L=>[3,8][L],d:'Deep Drills reach one tile farther in every direction: 6×6, then 8×8, then 10×10.',eff:L=>`${6+2*L}×${6+2*L}`},
-  thrift:{n:'Nova thrift',max:5,cost:L=>2+L,d:'Deep Drills use up ore 15% slower per level, so patches last longer.',eff:L=>`×${Math.pow(.85,L).toFixed(2)} ore used`},
-  cool:{n:'Nova cooling',max:3,cost:L=>1+L,d:'Deep Drills draw 25% less power per level.',eff:L=>`−${25*L}%`},
-  resonance:{n:'Nova resonance',max:5,cost:L=>4+3*L,d:'The Deep Drill power climb starts one step later per level: more of your drills draw the base 40 kW.',eff:L=>`${L+1} at base power`},
-  grant:{n:'Nova grant',max:5,cost:L=>3+3*L,d:'Your first Deep Drills on each moon cost no Ember shards: one more per level.',eff:L=>`${L} free`},
-  echo:{n:'Nova echo',max:5,cost:L=>3+2*L,d:'Each Deep Drill dig has a 10% chance per level to bring up a second ore.',eff:L=>`${10*L}% chance`},
-  press:{n:'Nova press',max:3,cost:L=>4+3*L,req:'dense',d:'Deep Drills in Dense or Packed mode squeeze more out of the rock: each dig needs 15% less ore per level.',eff:L=>`${Math.ceil(5*(1-.15*L))} ore per dense dig, ${Math.ceil(20*(1-.15*L))} per packed`},
-  overpack:{n:'Nova overpack',max:5,cost:L=>5+2*L,req:'dense',d:'Each Dense dig of a Deep Drill has a 6% chance per level to come up Packed instead, worth 4 rather than 2, for the same ore.',eff:L=>`${6*L}% chance`},
-  crucible:{n:'Nova crucible',max:5,cost:L=>3+2*L,d:'Foundries smelt 10% faster per level.',eff:L=>`+${10*L}%`},
-  reactor:{n:'Nova reactor',max:5,cost:L=>3+2*L,d:'Aether Reactors make 10% more power per level.',eff:L=>`+${10*L}%`},
-  still:{n:'Nova still',max:5,cost:L=>3+2*L,d:'Refineries need 5% less ore per level.',eff:L=>`−${5*L}%`},
-  sparks:{n:'Nova sparks',max:3,cost:L=>[5,10,20][L],d:'Nova shards drop 25% more often per level.',eff:L=>`+${25*L}%`},
-  haul:{n:'Nova haul',max:3,cost:L=>[4,8,12][L],d:'Mag-rail shuttles carry 10% more and move 10% faster per level.',eff:L=>`+${10*L}%`},
-  silo:{n:'Nova silo',max:3,cost:L=>[4,8,12][L],d:'Rockets assemble 10% faster per level.',eff:L=>`−${10*L}% time`},
+  bore:{n:'Nova bore',max:20,cost:L=>2+2*L,d:'Deep Drills mine 20% faster per level.',eff:L=>`+${L*20}% speed`},
+  reach:{n:'Nova reach',max:2,cost:L=>[6,16][L],d:'Deep Drills reach one tile farther in every direction: 6×6, then 8×8, then 10×10.',eff:L=>`${6+2*L}×${6+2*L}`},
+  thrift:{n:'Nova thrift',max:8,cost:L=>4+2*L,d:'Deep Drills use up ore 15% slower per level, so patches last longer.',eff:L=>`×${Math.pow(.85,L).toFixed(2)} ore used`},
+  cool:{n:'Nova cooling',max:3,cost:L=>2+2*L,d:'Deep Drills draw 25% less power per level.',eff:L=>`−${25*L}%`},
+  resonance:{n:'Nova resonance',max:8,cost:L=>8+4*L,d:'The Deep Drill power climb starts one step later per level: more of your drills draw the base 40 kW.',eff:L=>`${L+1} at base power`},
+  grant:{n:'Nova grant',max:8,cost:L=>6+4*L,d:'Your first Deep Drills on each moon cost no Ember shards: one more per level.',eff:L=>`${L} free`},
+  echo:{n:'Nova echo',max:10,cost:L=>6+3*L,d:'Each Deep Drill dig has a 10% chance per level to bring up a second ore.',eff:L=>`${10*L}% chance`},
+  press:{n:'Nova press',max:3,cost:L=>8+6*L,req:'dense',d:'Deep Drills in Dense or Packed mode squeeze more out of the rock: each dig needs 15% less ore per level.',eff:L=>`${Math.ceil(5*(1-.15*L))} ore per dense dig, ${Math.ceil(20*(1-.15*L))} per packed`},
+  overpack:{n:'Nova overpack',max:5,cost:L=>10+4*L,req:'dense',d:'Each Dense dig of a Deep Drill has a 6% chance per level to come up Packed instead, worth 4 rather than 2, for the same ore.',eff:L=>`${6*L}% chance`},
+  crucible:{n:'Nova crucible',max:10,cost:L=>6+3*L,d:'Foundries smelt 10% faster per level.',eff:L=>`+${10*L}%`},
+  reactor:{n:'Nova reactor',max:10,cost:L=>6+3*L,d:'Aether Reactors make 10% more power per level.',eff:L=>`+${10*L}%`},
+  still:{n:'Nova still',max:8,cost:L=>6+3*L,d:'Refineries need 5% less ore per level.',eff:L=>`−${5*L}%`},
+  sparks:{n:'Nova sparks',max:3,cost:L=>[10,20,40][L],d:'Nova shards drop 25% more often per level.',eff:L=>`+${25*L}%`},
+  haul:{n:'Nova haul',max:3,cost:L=>[8,16,24][L],d:'Mag-rail shuttles carry 10% more and move 10% faster per level.',eff:L=>`+${10*L}%`},
+  silo:{n:'Nova silo',max:3,cost:L=>[8,16,24][L],d:'Rockets assemble 10% faster per level.',eff:L=>`−${10*L}% time`},
+  forge:{n:'Nova forge',max:25,cost:L=>10+5*L,d:'Every machine works 2% faster per level.',eff:L=>`+${2*L}%`},
+  prism:{n:'Nova prism',max:20,cost:L=>15+5*L,d:'+3% Starseeds when you Ascend, per level.',eff:L=>`+${3*L}%`},
   // one-offs
-  heart:{n:'Nova heart',max:1,cost:()=>30,d:'With Core size maxed, the Core grows once more, to 9×9.',eff:L=>L?'9×9':'off'},
-  seed:{n:'Nova seed',max:1,cost:()=>25,d:'Every Voidstone patch gets a seed tile that never runs out.',eff:L=>L?'on':'off'},
-  lens:{n:'Nova lens',max:1,cost:()=>20,d:'Deep Drills on Voidstone mine 50% faster.',eff:L=>L?'on':'off'},
-  lantern:{n:'Nova lantern',max:1,cost:()=>15,d:'Offline time counts 4 hours longer.',eff:L=>L?'+4 h':'off'},
-  keystone:{n:'Nova keystone',max:1,cost:()=>35,d:'Rare-or-better Relics turn up 25% more often in every Relic choice.',eff:L=>L?'on':'off'}
+  heart:{n:'Nova heart',max:1,cost:()=>60,d:'With Core size maxed, the Core grows once more, to 9×9.',eff:L=>L?'9×9':'off'},
+  seed:{n:'Nova seed',max:1,cost:()=>50,d:'Every Voidstone patch gets a seed tile that never runs out.',eff:L=>L?'on':'off'},
+  lens:{n:'Nova lens',max:1,cost:()=>40,d:'Deep Drills on Voidstone mine 50% faster.',eff:L=>L?'on':'off'},
+  lantern:{n:'Nova lantern',max:1,cost:()=>30,d:'Offline time counts 4 hours longer.',eff:L=>L?'+4 h':'off'},
+  keystone:{n:'Nova keystone',max:1,cost:()=>70,d:'Rare-or-better Relics turn up 25% more often in every Relic choice.',eff:L=>L?'on':'off'}
 };
 // Past the named rungs the ladder alternates: machines +8%, then conveyors +5%, ×3 power each tier
 function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486000*Math.pow(3,k+1);

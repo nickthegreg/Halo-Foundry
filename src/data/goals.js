@@ -10,6 +10,8 @@ export const CLIENTS={
   harbor:{n:'Harbor Concord',lines:['Bulk orders for the far docks.','Raw and refined, by the ton.','Ships are waiting.'],pool:[['ferrite',2],['cuprite',2],['silica',2],['carbon',2],['iron',2],['copper',2]]},
   sails:{n:'Choir of Sails',lines:['We sing the petals into orbit.','More sails for the halo choir.','The sky could use more shine.'],pool:[['petal',3],['prism',2],['motor',1],['servo',1]]},
   wren:{n:'Old Wren',odd:1,lines:['Don’t ask what it’s for.','Exactly this many. It matters.','A little of this, a little of that.'],pool:'any'},
+  // Commissions only (see newCommission in main.js)
+  patron:{n:'The Patron',lines:['A monument needs a foundry like yours.','Only the finest, and plenty of it.','Pack it tight. It has a long way to go.'],pool:[]},
   collector:{n:'The Collector',odd:1,lines:['I collect the unusual.','Leftovers? Those are treasures.','Dense things are delightful.'],pool:[['husk',3],['slag',3],['rare',2],['voidglass',2],['starsand',2],['D_gear',2],['D_iron',2],['D_wire',2]]}
 };
 // Timed contracts: one offer an hour; accept it and you have an hour to fill it
@@ -74,6 +76,7 @@ export const ACH={
   nova:{n:'Supernova',d:'Find a Nova shard.',s:3},
   contract1:{n:'Open for business',d:'Complete a Market contract.',s:2},
   contract10:{n:'Trusted supplier',d:'Complete 10 Market contracts.',s:5},
+  commission:{n:'Patronage',d:'Complete a Market commission.',s:10},
   contract50:{n:'Merchant prince',d:'Complete 50 Market contracts.',s:12},
   timed:{n:'Against the clock',d:'Complete a timed contract.',s:4},
   huge:{n:'Tall order',d:'Complete a Huge timed contract.',s:10},
