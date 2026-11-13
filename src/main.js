@@ -1981,7 +1981,7 @@ function drawMachine(g,b,x,y,s){
         g.strokeStyle='rgba(127,240,208,.8)';g.lineWidth=s*.05;g.beginPath();g.moveTo(c7x-s*.8,top+rh*(1-f));g.lineTo(c7x+s*.8,top+rh*(1-f));g.stroke();glow(b.x+3.5,b.y+3.5-2.4*f+1.2,1.4,'#7ff0d0',.3)}
       if(hot){glow(b.x+3.5,b.y+5,2.2,'#ffb070',.7);if(Math.random()<.4)PARTS.push({k:'smoke',x:b.x+3.5+(Math.random()-.5)*1.6,y:b.y+5.2,vx:(Math.random()-.5)*1.2,vy:-.2,life:1.6,max:1.6,r:.35})}
       // mission badge and loading bar
-      if(b.m){const ic={lab:'photonic',kits:'kitf',ring:'lattice'}[b.m],q=s*.85;g.beginPath();g.arc(c7x,y+s*.85,s*.6,0,7);g.fillStyle='#2c2740';g.fill();g.strokeStyle='#f3c25a';g.lineWidth=s*.05;g.stroke();g.drawImage(SPR[ic],c7x-q/2,y+s*.85-q/2,q,q)
+      if(b.m){const ic={lab:'photonic',kits:'kitf',ring:'lattice',array:'voidlens',ark:'composite',swarm:'fusion'}[b.m]||'hull',q=s*.85;g.beginPath();g.arc(c7x,y+s*.85,s*.6,0,7);g.fillStyle='#2c2740';g.fill();g.strokeStyle='#f3c25a';g.lineWidth=s*.05;g.stroke();g.drawImage(SPR[ic],c7x-q/2,y+s*.85-q/2,q,q)
         g.fillStyle='#16141c';rr(g,x+s*1.9,y+S7-s*.75,S7-s*3.8,s*.26,s*.13);g.fill();if(lf>0){g.fillStyle=lf>=1?'#72e3b2':'#f3c25a';rr(g,x+s*1.9,y+S7-s*.75,(S7-s*3.8)*lf,s*.26,s*.13);g.fill()}}
       break;}
     case 'railterm':{

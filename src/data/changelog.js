@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:61,date:'2026-11-13',title:'Fixed: game stopped with a new Spaceport mission',items:[
+    'Fixed: if a Spaceport was set to one of the new missions (Deep Array dish, Seed Ark module or Swarm node), the game stopped on load: nothing moved and nothing ran. The Spaceport now shows an icon for every mission.'
+  ]},
   {n:60,date:'2026-11-13',title:'A safety net',items:[
     'If something in the game breaks, you now see what went wrong instead of a frozen screen. Saving pauses so your last good save is kept, the map stays movable, and a button copies your save code to send in.'
   ]},
