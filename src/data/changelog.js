@@ -1,6 +1,14 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:65,date:'2026-11-19',title:'Voyage: leave for a new star',items:[
+    'A new tier above Ascending. Close a Halo Ring and a Dyson swarm shell, then build a Starship (5×5, five belt-fed stages that need Iridium, Fusion cells, Quantum chips, Lattice cores and composite). When it’s finished, choose a new star and Voyage.',
+    'A Voyage starts the whole game over. You keep your Relics, achievements and blueprints; everything else resets, Starseeds and the Starseed shop included. In return you get Starcharts (the cube root of every Starseed you’ve earned since the last Voyage) and +50% to all Starseeds you earn from then on.',
+    'The Helm (Powers → Ascension → Voyage) spends Starcharts on permanent upgrades: more, bigger and faster barges, asteroid survey and landfall, more Starseeds, a fourth star to choose from, a settler crate, Compression from the start, and ways to keep some Nova levels, your Commander or the whole Starseed shop on later Voyages.',
+    'Every star plays differently: red dwarfs are dim but ore-rich, blue giants blaze but have few patches, binaries have short days, white dwarfs need burners, rubble stars are full of asteroids. Moons after a Voyage have far fewer ore patches.',
+    'Asteroids: big ones pass the moon every few minutes. The new Barge Dock (after the Grid Charter, from your second ascension or after a Voyage) sends barges to mine the one you pick, for carbon fuel, bringing back ore and Iridium. After a Voyage, small asteroids also land on the moon, leaving rich ore patches.',
+    'Three new achievements, and two new questions in the Guide.'
+  ]},
   {n:64,date:'2026-11-13',title:'Spaceport takes the last dense item',items:[
     'Fixed: a Spaceport could get stuck one or two short (say 624 of 625) when fed dense or packed parts, because the next item would have overfilled it. It now takes that last item and fills the line; the spare is lost, the same as with Market contracts and megaprojects.'
   ]},

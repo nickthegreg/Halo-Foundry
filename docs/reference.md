@@ -40,6 +40,8 @@ Regenerate with `node tests/reference.mjs`.
 | Pylon | 1×1 | 10 Slagcrete, 10 Steel | – |  |
 | Space Elevator | 5×5 | 4000 Slagcrete, 1000 Magnet, 1500 Composite plate, 800 Frame | uses 200 MW |  |
 | Deep Core Bore | 5×5 | 5000 Steel, 3000 Slagcrete, 800 Motor, 500 Servo | uses 300 MW |  |
+| Barge Dock | 3×3 | 300 Steel, 60 Motor, 40 Frame, 200 Circuit | uses 2 MW |  |
+| Starship | 5×5 | 3000 Composite plate, 3000 Slagcrete, 1500 Frame, 800 Processor | uses 500 MW |  |
 | Market Uplink | 5×5 | 40 Frame, 200 Circuit, 30 Motor | uses 500 kW |  |
 | Compressor | 1×1 | 20 Steel, 20 Circuit, 4 Motor | uses 60 kW |  |
 | Core | 3×3 | – | makes 120 kW |  |
@@ -188,6 +190,7 @@ Each segment: +10% power from every source, +3% machine speed, +10% Starseeds wh
 | Project | Stages | Stage 1 needs | Growth per stage | Effect |
 |---|---|---|---|---|
 | Space Elevator | 8 | 1,500 Slagcrete + 600 Magnet + 800 Composite plate + 600 Void glass | ×1.3 | −6% launch Aether per stage |
+| Starship | 5 | 1,500 Iridium + 150 Fusion cell + 150 Quantum chip + 200 Lattice core + 4,000 Composite plate | ×1.5 | Brings up items (below); last stage: Moonheart Relic, then a Relic choice |
 | Deep Core Bore | 6 | 3,000 Steel + 400 Motor + 1,500 Slagcrete + 80 Void cell | ×1.5 | Brings up items (below); last stage: Moonheart Relic, then a Relic choice |
 
 Deep Core Bore output from all sides (before machine speed bonuses):

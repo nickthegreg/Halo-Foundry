@@ -91,6 +91,9 @@ export const ACH={
   ark:{n:'Bon voyage',d:'Launch a Seed Ark module.',s:4},
   shell:{n:'Shell game',d:'Close a shell of the Dyson swarm.',s:15},
   salvage:{n:'Scrapper',d:'Salvage a wreck on a Derelict moon.',s:3},
+  voyage:{n:'Beyond the sun',d:'Voyage to a new star.',s:20},
+  barge:{n:'Prospector',d:'Bring home a barge load from an asteroid.',s:4},
+  landfall:{n:'Skyfall',d:'See an asteroid land on your moon.',s:3},
   daily:{n:'Daily driver',d:'Claim a daily moon prize.',s:3},
   challenge:{n:'Challenger',d:'Win a challenge.',s:5}
 };

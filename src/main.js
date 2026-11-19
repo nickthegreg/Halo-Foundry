@@ -2,6 +2,7 @@ import {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCK
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {genGalaxy,moonSeedMul,QUADS,BANDS,bandOf,SPECIALS,BIAS,GAL_RINGS} from './data/galaxy.js';
 import {FIRST_STEPS,HOWTO,FAQ} from './data/guide.js';
+import {STARS,VOY_THIN,HELM,AST_KINDS} from './data/voyage.js';
 import {CLIENTS,TIMED_SIZES,OBJECTIVES,OBJ_BONUS,OBJ_ALL,BANES,ACH} from './data/goals.js';
 import {EV,CANDY_UP} from './data/event.js';
 import {makeDefense} from './defense.js';
@@ -30,7 +31,7 @@ const PARTS=[];
 let hover=null, tapFx=null;
 
 function fresh(seed){
-  return {v:1,seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,ft:0,favg:0,cmd:{},cmdBank:0,cmdSpent:0,asc:{n:0,seeds:0,total:0},ss:{},nup:{},relics:[],relicPick:null,trk:{},res:{done:{},cur:null,p:{},lv:{}},charge:0,up:{belt:0,vein:0,night:0,haul:0},pulses:[],pq:[],rail:new Set(),orb:orbFresh(),free:{},grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
+  return {v:1,landed:[],seed,inv:{iron:160,copper:80},ms:0,prog:{},petals:0,time:0,flags:{del:0},unl:['belt','junction','drill','smelter'],rec:[],bs:new Map(),gt:0,gavg:0,ft:0,favg:0,cmd:{},cmdBank:0,cmdSpent:0,asc:{n:0,seeds:0,total:0},ss:{},nup:{},relics:[],relicPick:null,trk:{},res:{done:{},cur:null,p:{},lv:{}},charge:0,up:{belt:0,vein:0,night:0,haul:0},pulses:[],pq:[],rail:new Set(),orb:orbFresh(),free:{},grid:new Int32Array(W*H),nid:1,cnt:{},seen:{},speed:1,newT:[]};
 }
 
 // ================= helpers =================
@@ -137,7 +138,7 @@ function dIn(b,t){return b.dn?(BASE_OF[t]||null):(BASE_OF[t]?null:t)}
 function digOre(b){const m=b.dn|0;return m&&b.t==='deepdrill'?Math.ceil(TIN[m]*(1-.15*nupLv('press'))):TIN[m]}
 function dOut(b,t){return b.dn===2&&PACK_OF[t]?PACK_OF[t]:b.dn&&DENSE_OF[t]?DENSE_OF[t]:t}
 // Switching mode sends whatever the machine holds to storage, then it starts clean
-function setDense(b,v){v=v|0;for(const t of contents(b))addInv(t);
+function setDense(b,v){v=v|0;if(b.t==='dock'){b.dn=v;return}for(const t of contents(b))addInv(t);
   if(b.t==='drill'||b.t==='deepdrill')b.out=0;
   else if(b.t==='smelter'||b.t==='foundry')Object.assign(b,{inT:null,inN:0,outT:null,outN:0,run:false,prog:0});
   else Object.assign(b,{buf:{},outN:0,run:false,prog:0});
@@ -162,6 +163,7 @@ function init(t){
     case 'market':return{ang:0};
     case 'bore':return{ang:0,ob:{},oa:{}};
     case 'stock':return{it:null,n:0};
+    case 'dock':return{fuel:0,ob:{},bar:[],tg:null,rr:0};
     case 'compressor':return{inT:null,inN:0,outT:null,outN:0,run:false,prog:0,mode:0,ang:0};
     case 'separator':return{n:0,run:false,prog:0,oq:{},nx:null,ang:0};
     case 'incinerator':return{heat:0,ang:0};
@@ -212,6 +214,7 @@ function contents(b){
     case 'spaceport':for(const k in b.h)add(k,b.h[k]);break;
     case 'bore':break;
     case 'stock':if(b.it)add(b.it,b.n);break;
+    case 'dock':add('carbon',b.fuel|0);for(const k in b.ob)add(k,Math.floor(b.ob[k]));break;
     case 'railterm':o.push(...b.q,...(b.sh.load||[]));break;
   }
   return o;
@@ -310,6 +313,8 @@ function accept(nb,t,side,p0){
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
     case 'market':return isCamp()&&!!S.mk&&mkAccept(t);
     case 'elevator':return late()&&megaAccept('elevator',t);
+    case 'starship':return isCamp()&&megaAccept('starship',t);
+    case 'dock':{const u=worth(t);if(side===nb.d||(BASE_OF[t]||t)!=='carbon'||nb.fuel+u>200)return false;nb.fuel+=u;return true}
     case 'bore':return late()&&side!==nb.d&&megaAccept('bore',t);
     case 'stock':if(side===nb.d||(nb.it&&nb.it!==t)||nb.n>=STOCK_CAP)return false;nb.it=t;nb.n++;return true;
     case 'core':deliver(t);return true;
@@ -366,7 +371,7 @@ function launch(b){
 }
 
 // ================= simulation =================
-function dayPhase(){return (S.time/DAY_LEN+0.18)%1}
+function dayPhase(){return (S.time/(DAY_LEN*starP('day'))+0.18)%1}
 function daylight(){if(modOn('eternal'))return 1;return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*1.3+(modOn('longnight')?-.15:.5)))}
 
 function sim(dt){
@@ -385,14 +390,14 @@ function sim(dt){
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)&&!(b.t==='reactor'&&(b.husk||0)>=4)){cap+=B[b.t].gen*(b.t==='reactor'?reactorMul(b):1);comb.push(b)}
   }
   demand*=bm('pow',1.08);solar*=bm('sun',.94);
-  const gridOn=S.ms>=MS.length,gmul=(1+.05*swarmN())*(1+.25*slLv('sun'))*(1+galPerk('pow'))*(1+mkB('pow'))*(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1)*(1+.1*ringN())*(1+.1*orbLv('yield'));solar*=gmul*stellarMul()*(moonSp('storm')?.7:1);cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
+  const gridOn=S.ms>=MS.length,gmul=(1+.05*swarmN())*(1+.25*slLv('sun'))*(1+galPerk('pow'))*(1+mkB('pow'))*(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1)*(1+.1*ringN())*(1+.1*orbLv('yield'));solar*=gmul*stellarMul()*(moonSp('storm')?.7:1)*starP('solar');cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
   const sat0=demand>0?Math.min(1,gen/demand):1;
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load};
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
   for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');c.nova=(c.nova||0)+1}}if(c.energy<0)c.energy=0}
-  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt)}
+  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt);astTick(dt)}
   goalTick(dt);
   stepPulses(dt);seedTick(dt);trickleTick(dt);
 
@@ -491,6 +496,7 @@ function sim(dt){
       case 'incinerator':b.heat=Math.max(0,b.heat-dt*1.5);b.active=b.heat>.01;b.ang+=dt*(.3+b.heat*4);break;
       case 'spaceport':padTick(b,dt,sat0);break;
       case 'bore':boreTick(b,dt,sat0);break;
+      case 'dock':dockTick(b,dt,sat0);break;
       case 'stock':for(let k=0;k<2&&b.n>0;k++){if(pushDir(b,b.it,b.d)){b.n--;if(!b.n)b.it=null}else break}break;
       case 'railterm':railTick(b,dt,sat);break;
       case 'belt':{
@@ -875,7 +881,7 @@ function mkPanel(){
   return h;
 }
 // ---------- Megaprojects fed by belt (Space Elevator, Deep Core Bore) ----------
-const ONE_OF=['market','elevator','bore'];
+const ONE_OF=['market','elevator','bore','starship'];
 function megaSt(k){return (S.mega&&S.mega[k]&&S.mega[k].st)||0}
 function megaLv(k){if(!isCamp()||!S.mega||!S.mega[k])return 0;for(const b of S.bs.values())if(b.t===k&&!b.bp)return S.mega[k].st;return 0}
 function megaNeed(k,st){const M=MEGA[k],o={},m=Math.pow(M.grow,st);for(const i in M.need)o[i]=Math.round(M.need[i]*m/10)*10;return o}
@@ -929,7 +935,7 @@ function achCheck(k){const L=(S.relics||[]).length,a=ascN();switch(k){
   case 'grid5':return S.gt>=5;case 'grid10':return S.gt>=10;case 'grid15':return S.gt>=15;case 'gw':return PW.gen>=1e6;case 'gw10':return PW.gen>=1e7;
   case 'asc1':return a>=1;case 'asc3':return a>=3;case 'asc5':return a>=5;case 'asc10':return a>=10;case 'relics5':return L>=5;case 'relics15':return L>=15;
   case 'deep10':return countOf('deepdrill')>=10;case 'aether':return (S.refined||0)>=1000;case 'aether100k':return (S.refined||0)>=100000;case 'nova':return !!S.flags.nova;
-  case 'contract1':return (S.mkTot||0)>=1;case 'contract10':return (S.mkTot||0)>=10;case 'contract50':return (S.mkTot||0)>=50;case 'timed':return (S.mkTimed||0)>=1;case 'commission':return (S.mkComm||0)>=1;case 'huge':return (S.mkHuge||0)>=1;
+  case 'contract1':return (S.mkTot||0)>=1;case 'contract10':return (S.mkTot||0)>=10;case 'contract50':return (S.mkTot||0)>=50;case 'timed':return (S.mkTimed||0)>=1;case 'commission':return (S.mkComm||0)>=1;case 'voyage':return voyN()>=1;case 'barge':return !!S.flags.barge;case 'landfall':return !!S.flags.landed;case 'huge':return (S.mkHuge||0)>=1;
   case 'objectives':return (S.objAll||0)>=1;case 'dense':return Object.keys(S.seen).some(q=>BASE_OF[q]);case 'rocket':return !!(S.orb&&S.orb.mods);case 'ring':return (S.ringWins||0)>=1;
   case 'explorer':return !!S.gal&&S.gal.vis.length>=11;case 'sector':return ['spd','pow','ore','seeds'].some(q=>galPerk(q)>0);case 'elevator':return megaSt('elevator')>=MEGA.elevator.stages;
   case 'heart':return (S.boreWins||0)>=1;case 'ark':return (S.arkN||0)>=1||Object.keys(S.ark||{}).length>0;case 'shell':return (S.starlight||0)+Object.values(S.sl||{}).reduce((a,b)=>a+b*(b+1)/2,0)>=1;case 'salvage':return !!S.flags.salv;
@@ -1033,7 +1039,7 @@ function ascMin(){const n=(S.asc&&S.asc.n)||0;return 20*n*n}
 function canAscend(){return hasAether()&&ascSeeds()>=ascMin()}
 function modSeedMul(){if(S.moon)return moonSeedMul({r:S.moon.r||0,mods:modList()});let m=1;for(const k of modList())m*=MODS[k].seeds;return m}
 function seedTierMul(){return 1+.05*((S.gt||0)+(S.ft||0))}
-function ascSeeds(){return Math.floor(Math.sqrt((S.inv.aether||0)+3*(S.inv.husk||0))*seedTierMul()*rp('seeds')*modSeedMul()*ringSeedMul()*(1+.05*orbLv('bloom'))*bm('seeds',.95)*objMul()*(1+(S.mkSeed||0)/100)*(S.stormWon?1.25:1)*(1+galPerk('seeds'))*(1+.04*swarmN())*(1+.15*slLv('bloom'))*(1+.03*nupLv('prism')))}
+function ascSeeds(){return Math.floor((1+.5*voyN())*(1+.15*helmLv('oldlight'))*starP('seeds')*Math.sqrt((S.inv.aether||0)+3*(S.inv.husk||0))*seedTierMul()*rp('seeds')*modSeedMul()*ringSeedMul()*(1+.05*orbLv('bloom'))*bm('seeds',.95)*objMul()*(1+(S.mkSeed||0)/100)*(S.stormWon?1.25:1)*(1+galPerk('seeds'))*(1+.04*swarmN())*(1+.15*slLv('bloom'))*(1+.03*nupLv('prism')))}
 function ascMenu(){
   const A=S.asc||{n:0,seeds:0};if(!canAscend()&&!A.n&&!lifeSeeds())return '';
   return `<div class="sec-label">Ascension${A.n?' · '+A.n+' so far':''}</div>
@@ -1052,7 +1058,7 @@ function novaMenu(){
 function showAscension(){
   const A=S.asc,T=lifeSeeds(),n=ascN();
   const card=(title,eff,desc,right)=>`<div class="ms cur"><div class="ms-top"><h4>${title}</h4><span class="st">${eff}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${desc}</div>${right||''}</div></div>`;
-  const sl=starMenu(),tb=[['ascend','Ascend'],['shop','Shop'],['relics','Relics']];if(sl)tb.push(['star','Starlight']);
+  const sl=starMenu(),tb=[['ascend','Ascend'],['shop','Shop'],['relics','Relics']];if(sl)tb.push(['star','Starlight']);if(voyN()||isUnl('starship')||megaSt('starship')||late())tb.push(['voy','Voyage']);
   const head=`<div class="card-head"><h3>Ascension</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${tabs('asc',tb)}`,t=TAB.asc;
   let h=`<p><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend · ${T.toLocaleString()} earned in all · ${n} ascension${n===1?'':'s'}</p>
   ${S.moon?`<p style="font-size:14px">This moon: <strong>${S.moon.n}</strong> (${moonWhere(S.moon)}). ${moonTraits({mods:modList(),bias:S.moon.bias,sp:S.moon.sp}).join(' ')} Starseeds ×${modSeedMul()} when you leave.</p>`:S.mod&&MODS[S.mod]?`<p style="font-size:14px">This moon: <strong>${MODS[S.mod].n}</strong>. ${MODS[S.mod].d} Starseeds ×${MODS[S.mod].seeds} when you leave.</p>`:''}
@@ -1082,7 +1088,7 @@ function showAscension(){
   const asc=`<div class="sec-label">Ascend</div>`+(canAscend()?`<div class="ms cur"><div class="ms-unl">Leave this moon for a fresh one and bank <strong>${g.toLocaleString()} Starseed${g===1?'':'s'}</strong>.<br><b>You keep:</b> Starseeds and everything bought with them, Relics, Ember and Nova shards, Nova upgrades, your Commander and blueprints.<br><b>Left behind:</b> buildings, storage, research, Factory upgrades, petals and tiers.</div><div class="ms-unl" style="font-size:12.5px;opacity:.8">Starseeds grow with the square root of what’s in storage: ${(S.inv.aether||0).toLocaleString()} Aether + 3 × ${(S.inv.husk||0).toLocaleString()} husks${mulTxt?', '+mulTxt:''}. Husks are what Reactors leave behind; belt them to the Core.</div>
   <button class="btn primary" data-ascend>Choose your next moon →</button></div>`:hasAether()?`<p class="guide">Ascension ${ascN()+1} needs at least <strong>${ascMin().toLocaleString()} Starseeds</strong>, and right now you’d get ${ascSeeds().toLocaleString()}. Store more Aether and husks, or climb more grid and furnace tiers.</p>`:'<p class="guide">Ascending trades the Aether in your storage for Starseeds and a fresh moon. Build a Refinery, keep some Aether in storage, and this is where you leave from.</p>');
   {const k='<div class="sec-label">Always on</div>',x=hAsc.indexOf(k);h=hAsc.slice(0,x)+asc+hAsc.slice(x)}
-  openModal(head+(t==='shop'?`<p class="guide"><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend. Everything here is permanent.</p>`+hShop:t==='relics'?hRel:t==='star'?sl:h));
+  openModal(head+(t==='voy'?voyTab():t==='shop'?`<p class="guide"><strong>${A.seeds.toLocaleString()} Starseeds</strong> to spend. Everything here is permanent.</p>`+hShop:t==='relics'?hRel:t==='star'?sl:h));
 }
 function relicTitle(k){return `<span style="color:${RARITY[RELICS[k].r].col}">${RELICS[k].n}</span>`}
 // Three different Relics, weighted by rarity; challenge relics never come from here
@@ -1125,11 +1131,94 @@ function doAscend(mod){
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv,ms:TUT,prog:{},petals:0,gt:warm,gavg:0,ft:warm,favg:0,rsh:{done,cur:null,p:{},lv:{}},free:ssLv('crate')?{drill:4,smelter:4,fab:2}:{},ringWins:S.ringWins||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,relicRR:ssLv('reroll'),
     cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,crown:S.crown||{},crownBank:(S.crownBank||0)+crownN(),crownSpent:S.crownSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
     up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,nova:S.flags.nova,ascHint:1},refined:S.refined||0,seen:S.seen,bs:[],fromCode:1,
-    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod,mods,moon,gal,past,arrLv:S.arrLv||0,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,banes:S.banes||[],banePick:baneOffer(),ach:S.ach||{},mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,objAll:S.objAll||0};if(S.relicPick)d.relicExtra++;if(moon&&moon.sp==='anomaly')d.relicExtraR++;
+    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod,mods,moon,gal,past,voy:S.voy||null,starOffer:S.starOffer||null,arrLv:S.arrLv||0,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,banes:S.banes||[],banePick:baneOffer(),ach:S.ach||{},mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,objAll:S.objAll||0};if(S.relicPick)d.relicExtra++;if(moon&&moon.sp==='anomaly')d.relicExtraR++;
   start(d);GALP=null;if(moon&&moon.sp==='derelict')placeWrecks();cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,'#d8b4ff',60);sfx('fanfare');
   setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${arkN?`, ${arkN.toLocaleString()} items from your Seed Ark`:''}${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards${ddRefund?` (${ddRefund.toLocaleString()} refunded from your Deep Drills)`:''}`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p>${moon?`<p>You land on <strong>${moon.n}</strong>. ${moonTraits({mods,bias:moon.bias,sp:moon.sp}).join(' ')}</p>`:mod?`<p>This moon: <strong>${MODS[mod].n}</strong>. ${MODS[mod].d}</p>`:''}<p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
 }
 
+
+
+// ================= Voyage: the second tier =================
+// Build a Starship, leave the star, and start the whole game again with Starcharts to spend in the Helm.
+function voyN(){return (S&&S.voy&&S.voy.n)||0}
+function helmLv(k){return (S&&S.voy&&S.voy.helm&&S.voy.helm[k])||0}
+function curStar(){const k=S&&S.voy&&S.voy.star;return k&&STARS[k]?STARS[k]:null}
+function starP(k){const st=isCamp()?curStar():null;return st?st[k]:1}
+// Starship unlocks once you've closed a Halo Ring and a Dyson shell, on any moon
+function voyReady(){return (S.ringWins||0)>=1&&((S.starlight||0)>0||Object.values(S.sl||{}).some(v=>v>0))}
+function voyCharts(){return Math.floor(Math.cbrt(lifeSeeds()+ascSeeds())*(1+.1*voyN())*starP('seeds'))}
+function canVoyage(){return isCamp()&&megaSt('starship')>=MEGA.starship.stages}
+function starOffer(){if(S.starOffer&&S.starOffer.length)return S.starOffer;const ks=Object.keys(STARS),o=[];const n=3+helmLv('sense');
+  while(o.length<Math.min(n,ks.length)){const k=ks[Math.floor(Math.random()*ks.length)];if(!o.includes(k))o.push(k)}S.starOffer=o;save();return o}
+function starCard(k,btn){const st=STARS[k];return `<div class="ms cur"><div class="ms-top"><h4><span style="color:${st.col}">●</span> ${st.n}</h4><span class="st">Starseeds ×${st.seeds}</span></div><div class="ms-unl">${st.d}</div><div class="ms-unl" style="font-size:12.5px;opacity:.8">Solar ×${st.solar} · ore patches ×${(VOY_THIN*st.patches).toFixed(2)} · ore ×${st.rich} · asteroids ×${st.ast}${st.day!==1?` · days ×${st.day}`:''}</div>${btn||''}</div>`}
+function helmMenu(){const v=S.voy||{charts:0},have=v.charts||0;
+  return `<div class="sec-label">The Helm · ${have} Starchart${have===1?'':'s'} to spend</div><div class="ms-list">${Object.keys(HELM).map(k=>{const u=HELM[k],L=helmLv(k),mx=L>=u.max,c=mx?0:u.cost(L),ok=!mx&&have>=c;
+    return `<div class="ms cur"><div class="ms-top"><h4>${u.n}${u.max>1?' · level '+L:''}</h4><span class="st">${mx?(u.max>1?'Maxed':'Owned'):c+' chart'+(c===1?'':'s')}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-helm="${k}">${u.max>1?'+1':'Buy'}</button>`}</div></div>`}).join('')}</div>`}
+function voyTab(){const v=S.voy||{},L=megaSt('starship'),st=curStar();
+  let h=`<p class="guide">${voyN()?`Voyage ${voyN()}${st?`, around a <strong>${st.n}</strong>`:''}. `:''}A Voyage leaves this star for a new one and starts the whole game over: Starseeds, the Starseed shop, Nova, Commander and Starlight all reset. You keep your <strong>Relics</strong>, achievements and blueprints, and you’re paid <strong>Starcharts</strong> for the Helm. Every Voyage also adds +50% to all Starseeds you earn afterwards.</p>`;
+  if(canVoyage())h+=`<div class="ms cur"><div class="ms-top"><h4>The Starship is ready</h4><span class="st">+${voyCharts()} Starcharts</span></div><div class="ms-unl">Starcharts come from every Starseed you’ve earned since the last Voyage (cube root), counting this moon’s.</div><button class="btn primary" data-voyopen>Choose a star →</button></div>`;
+  else if(isUnl('starship')||L)h+=`<div class="ms cur"><div class="ms-top"><h4>Build the Starship</h4><span class="st">${L} of 5 stages</span></div><div class="ms-unl">Place a Starship (in the build bar) and belt in each stage: Iridium from asteroids, Fusion cells, Quantum chips, Lattice cores and composite. Right now it would pay about ${voyCharts()} Starcharts.</div></div>`;
+  else h+=`<div class="ms"><div class="ms-top"><h4>The Starship</h4><span class="st">Locked</span></div><div class="ms-unl">Unlocks from your second ascension once you’ve closed a Halo Ring and a shell of the Dyson swarm, on any moon.</div></div>`;
+  if(voyN()||(v.charts||0))h+=helmMenu();
+  return h}
+function showStarPick(){const o=starOffer();
+  openModal(`<span class="eyebrow">Voyage ${voyN()+1}</span><h1>Choose a new star</h1><p>You’ll arrive with <strong>${voyCharts()} Starcharts</strong> and start the game over around the star you pick. Its moons are sparser than home, so you’ll be mining asteroids before long. Your Relics, achievements and blueprints come with you.</p><div class="ms-list">${o.map(k=>starCard(k,`<button class="btn primary" data-voy="${k}">Set course</button>`)).join('')}</div><div class="actions"><button class="btn" data-ascopen>Not yet</button></div>`)}
+function doVoyage(k){if(!canVoyage()||!STARS[k])return;
+  const v=S.voy||{n:0,charts:0,total:0,helm:{}},got=voyCharts(),H=v.helm||{},hl=x=>H[x]||0;
+  const nup={};if(hl('novamem'))for(const q in S.nup||{})nup[q]=Math.floor((S.nup[q]||0)*.25*hl('novamem'));
+  const ss=hl('ancestry')?Object.assign({},S.ss||{}):{};if(hl('packed'))ss.dense=Math.max(ss.dense||0,2);
+  const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv:{iron:400,copper:200},ms:TUT,prog:{},petals:0,gt:0,gavg:0,ft:0,favg:0,
+    free:hl('crate')?{drill:4,smelter:4,fab:2}:{},relics:S.relics||[],relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,
+    cmd:hl('command')?S.cmd||{}:{},cmdBank:hl('command')?(S.cmdBank||0)+constN(S.petals):0,cmdSpent:hl('command')?S.cmdSpent||0:0,
+    asc:{n:0,seeds:0,total:0},up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,ascHint:1},seen:{},bs:[],fromCode:1,ss,nup,ach:S.ach||{},
+    voy:{n:v.n+1,charts:(v.charts||0)+got,total:(v.total||0)+got,helm:H,star:k,hist:[...(v.hist||[]),{star:v.star||'home',seeds:lifeSeeds()+ascSeeds()}]}};
+  start(d);GALP=null;cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,STARS[k].col,80);sfx('fanfare');
+  setTimeout(()=>openModal(`<span class="eyebrow">Voyage ${S.voy.n}</span><h1>${STARS[k].n}</h1><p>The Starship settles into orbit around a new sun, and the foundry wakes on a moon no one has touched. You have <strong>${S.voy.charts} Starcharts</strong> to spend in the Helm (Powers → Ascension → Voyage).</p><p>${STARS[k].d}</p><p>Ore patches are scarcer out here. Once you sign the Grid Charter you can build a <strong>Barge Dock</strong> and mine the asteroids that pass by, and now and then a small one lands on the moon itself.</p><button class="btn primary" data-close>Begin again</button>`),900)}
+
+// ---------- asteroids ----------
+// Big ones pass overhead and are mined by Barge Docks; small ones (after a Voyage) land on the moon as ore.
+function astOn(){return isCamp()&&(voyN()>0||countOf('dock')>0)}
+function astName(){const L='ABCDEFGHJKLMNPRSTVXZ';return L[Math.random()*20|0]+L[Math.random()*20|0]+'-'+(10+Math.random()*90|0)}
+function newAst(){const ks=Object.keys(AST_KINDS).filter(k=>k!=='void'||late()||voyN()),kind=ks[Math.random()*ks.length|0],sz=(1+.25*helmLv('survey'))*(30000+Math.random()*90000);
+  return {id:(S.astId=(S.astId||0)+1),n:astName(),kind,d:1+Math.floor(Math.random()*5),left:Math.round(sz),size:Math.round(sz),exp:S.time+7200}}
+function astTick(dt){if(!astOn())return;S.ast=S.ast||[];
+  S.ast=S.ast.filter(a=>a.left>0&&a.exp>S.time);
+  S.astT=(S.astT==null?60:S.astT)-dt*(1+.25*helmLv('survey'))*starP('ast');
+  if(S.astT<=0){S.astT=360;if(S.ast.length<5){const a=newAst();S.ast.push(a);if(countOf('dock'))showToast(`Asteroid ${a.n} (${AST_KINDS[a.kind].n}) is passing the moon`)}}
+  if(voyN()>0&&S.ms>=1){S.landT=(S.landT==null?240:S.landT)-dt*(1+.25*helmLv('landfall'))*starP('ast');if(S.landT<=0){S.landT=600;landfall()}}}
+// a small asteroid lands somewhere open inside the frontier and leaves a rich patch of ore
+function landBlob(L){for(let y=Math.floor(L.y-L.r-1);y<=L.y+L.r+1;y++)for(let x=Math.floor(L.x-L.r-1);x<=L.x+L.r+1;x++){if(x<1||y<1||x>=W-1||y>=H-1)continue;
+  const d=Math.hypot(x+.5-L.x,y+.5-L.y);if(d<L.r){const i=y*W+x;if(ORE[i]&&ORE[i]!==L.k)continue;ORE[i]=L.k;RES[i]=Math.round(L.v*(1.2-.4*d/L.r))}}}
+function landfall(){const lim=mapLim(),R=Math.random;
+  for(let t=0;t<300;t++){const a=R()*6.283,dd=14+R()*(lim-18),x=Math.round(CX+Math.cos(a)*dd)+.5,y=Math.round(CY+Math.sin(a)*dd)+.5,r=2.2+R()*1.6;
+    let ok=true;for(let yy=Math.floor(y-r-1);yy<=y+r+1&&ok;yy++)for(let xx=Math.floor(x-r-1);xx<=x+r+1;xx++){const i=yy*W+xx;if(!inLim(xx,yy)||ORE[i]||S.grid[i]){ok=false;break}}
+    if(!ok)continue;const k=1+(R()*4|0),P=ORE_P[ORE_KEYS[k]],L={x,y,r,k,v:Math.round(P.hi*4)};
+    S.landed.push(L);landBlob(L);for(let yy=Math.floor(y-r-1);yy<=y+r+1;yy++)for(let xx=Math.floor(x-r-1);xx<=x+r+1;xx++){const i=yy*W+xx;RES0[i]=RES[i]}
+    CHUNKS.clear();buildPatches();burst(x,y,'#ffb070',50);sfx('fanfare');S.flags.landed=1;
+    showBanner('An asteroid has landed',`A rich patch of ${ITEMS[ORE_KEYS[k]].s} now lies ${Math.round(dd)} tiles from the Core, to the ${['east','south-east','south','south-west','west','north-west','north','north-east'][Math.round(a/0.785)%8]}.`);save();return}}
+
+// ---------- Barge Dock ----------
+function bargeN(){return 1+helmLv('barges')}
+function bargeCap(){return Math.round(300*(1+.5*helmLv('holds')))}
+function tripT(a){return (30+25*a.d)/(1+.2*helmLv('thrust'))}
+function dockAst(b){S.ast=S.ast||[];let a=S.ast.find(q=>q.id===b.tg);if(!a&&S.ast.length){a=S.ast.slice().sort((p,q)=>p.d-q.d)[0];b.tg=a.id}return a||null}
+function dockHeld(b){let n=0;for(const k in b.ob)n+=b.ob[k];return n}
+function dockTick(b,dt,sat){b.bar=b.bar||[];while(b.bar.length<bargeN())b.bar.push({t:0});
+  for(const g of b.bar){
+    if(g.t>0){g.t-=dt*sat;if(g.t<=0){g.t=0;const a=S.ast&&S.ast.find(q=>q.id===g.a);if(a){const m=AST_KINDS[a.kind].mix,tot=Object.values(m).reduce((p,q)=>p+q,0),load=Math.min(a.left,bargeCap()*[1,2,4][b.dn|0]);a.left-=load;
+        for(const k in m){const it=k;b.ob[it]=(b.ob[it]||0)+load*m[k]/tot}S.flags.barge=1}}}
+    else{const a=dockAst(b);if(a&&a.left>0&&b.fuel>=10&&dockHeld(b)<bargeCap()*[1,2,4][b.dn|0]*2){b.fuel-=10;g.t=tripT(a);g.a=a.id}}}
+  // three slots on the bright edge; dense or packed if the dock is set to it
+  for(let k=0;k<3;k++){const ks=Object.keys(b.ob).filter(q=>b.ob[q]>=1);if(!ks.length)break;const base=ks[(b.rr++)%ks.length],w=[1,2,4][b.dn|0],key=w===1?base:w===2?DENSE_OF[base]:PACK_OF[base];
+    const it=key||base,u=key?w:1;if(b.ob[base]<u)continue;if(pushPorts(b,it,[[b.d,0],[b.d,1],[b.d,2]])){b.ob[base]-=u;stat('p',base)}}}
+function dockStatus(b){const a=dockAst(b),fl=(b.bar||[]).filter(g=>g.t>0).length;
+  if(!a)return['warn','No asteroid in range · one passes every few minutes'];if(b.fuel<10&&!fl)return['warn','Needs carbon for fuel'];
+  return[fl?'ok':'idle',`${fl} of ${bargeN()} barge${bargeN()>1?'s':''} out · ${a.n}`]}
+function dockRow(b){const a=dockAst(b),held=Object.keys(b.ob||{}).filter(k=>b.ob[k]>=1);
+  return `<div class="flow"><span class="lbl">Fuel ${b.fuel|0}/200 carbon · ${bargeCap().toLocaleString()} ore per hold${b.dn?` (×${[1,2,4][b.dn]} ${['','dense','packed'][b.dn]})`:''}</span></div>${(b.bar||[]).map((g,i)=>`<div class="flow"><span class="lbl">Barge ${i+1}: ${g.t>0?'back in '+Math.ceil(g.t)+' s':'docked'}</span></div>`).join('')}${held.length?`<div class="flow"><span class="lbl">Unloading</span>${held.map(k=>chip(k,Math.floor(b.ob[k]).toLocaleString())).join('')}</div>`:''}${a?`<p class="desc">Target: <strong>${a.n}</strong>, ${AST_KINDS[a.kind].n.toLowerCase()}, ${Math.round(a.left/a.size*100)}% left, drifts away in ${fmtDur(a.exp-S.time)}.</p>`:''}`}
+function dockCtrl(b){const as=S.ast||[],m=b.dn|0;
+  return `<div class="sec-label">Asteroids in range · ${as.length}</div>${as.length?`<div class="ms-list">${as.map(a=>{const mx=AST_KINDS[a.kind].mix;return `<div class="ms${a.id===b.tg?' cur':''}"><div class="ms-top"><h4>${a.n} · ${AST_KINDS[a.kind].n}</h4><span class="st">${a.d} AU · ${fmtN(a.left)}</span></div><div class="ms-req">${Object.keys(mx).map(k=>`<span class="req"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${Math.round(mx[k]/Object.values(mx).reduce((p,q)=>p+q,0)*100)}%</span>`).join('')}</div>${a.id===b.tg?'':`<button class="btn" data-ast="${a.id}">Send barges here</button>`}</div>`}).join('')}</div>`:'<p class="desc">None right now. One passes every few minutes and stays for up to two hours.</p>'}
+  ${ssLv('dense')?`<div class="sec-label">Hold</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Loose</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">Barges pack their holds, carrying 2× or 4× as much ore, and it comes out dense or packed.</p>`:''}`}
 
 // ================= galaxy map =================
 // Moons in rings around home. You travel to any unvisited moon next to one you've been to; you can see traits
@@ -1196,7 +1285,7 @@ function showGalaxy(selId){
 // ================= main menu, daily moon, challenges =================
 const DAILY_LEN=3600;
 // Daily score: each item delivered to the Core is worth roughly the raw ore that went into it
-const VAL=(()=>{const v={ferrite:1,cuprite:1,silica:1,carbon:1,aether:50,ember:5,nova:100,heavy:30,magma:40,he3:60};for(const o in SMELT)v[SMELT[o]]=2;
+const VAL=(()=>{const v={ferrite:1,cuprite:1,silica:1,carbon:1,aether:50,ember:5,nova:100,heavy:30,magma:40,he3:60,iridium:40};for(const o in SMELT)v[SMELT[o]]=2;
   const calc=k=>{if(v[k]!=null)return v[k];const r=RECIPES[k];if(!r)return v[k]=1;v[k]=1;let s=0;for(const i in r.in)s+=calc(i)*r.in[i];return v[k]=Math.round((s/r.out+1)*10)/10};
   for(const k in RECIPES)calc(k);return v})();
 // Daily scoring. Delivered items score their ore value, more for deeper recipes; launches score double;
@@ -1325,7 +1414,9 @@ function genWorld(seed){
     }
   };
   // Inner 128×128 starting region (kept identical to earlier versions so saves line up)
-  const R=mulberry(seed),O=128,LW=128,LC=64.5,blob=mkBlob(R,O,O,LW,LC,LC,1);
+  // After a Voyage, moons are sparser: each patch past the first four is kept with chance keep
+  const vy=S&&isCamp()&&voyN()>0,keep=vy?VOY_THIN*starP('patches'):1;let nb=0;const thin=f=>(...a)=>{const n=nb++;if(vy&&n>=4&&((Math.imul(seed^0x9e3779b9,n+1)>>>8)%1000)/1000>=keep)return;f(...a)};
+  const R=mulberry(seed),O=128,LW=128,LC=64.5,blob=thin(mkBlob(R,O,O,LW,LC,LC,1));
   const tryBlob=(k,dmin,dmax,rmin,rmax,ang)=>{
     for(let n=0;n<60;n++){
       const a=ang!=null?ang+(R()-.5)*.35:R()*6.283,d=dmin+R()*(dmax-dmin),r=rmin+R()*(rmax-rmin),x=LC+Math.cos(a)*d,y=LC+Math.sin(a)*d;
@@ -1341,7 +1432,7 @@ function genWorld(seed){
   // Frontier rings: bigger, richer patches farther out
   const R2=mulberry(seed^0x5bd1e995);
   const outer=(k,dmin,dmax,rmin,rmax,rich)=>{
-    const ob=mkBlob(R2,0,0,W,CX,CY,rich);
+    const ob=thin(mkBlob(R2,0,0,W,CX,CY,rich));
     for(let n=0;n<80;n++){
       const a=R2()*6.283,d=dmin+R2()*(dmax-dmin),r=rmin+R2()*(rmax-rmin),x=CX+Math.cos(a)*d,y=CY+Math.sin(a)*d;
       if(x-r<4||y-r<4||x+r>W-4||y+r>H-4)continue;
@@ -1355,19 +1446,20 @@ function genWorld(seed){
   for(let k=1;k<=4;k++)for(let i=0;i<10;i++)outer(k,150,260,7,11,3);
   // Late game (main game, ascension 2+): Starsand in the near frontier, deep-only Voidstone farther out
   if(S&&(!S.mode||S.mode==='campaign')&&S.asc&&S.asc.n>=2){const R3=mulberry(seed^0x2c1b3c6d);
-    const lateBlob=(k,dmin,dmax,rmin,rmax,rich)=>{const ob=mkBlob(R3,0,0,W,CX,CY,rich);
+    const lateBlob=(k,dmin,dmax,rmin,rmax,rich)=>{const ob=thin(mkBlob(R3,0,0,W,CX,CY,rich));
       for(let n=0;n<80;n++){const a=R3()*6.283,d=dmin+R3()*(dmax-dmin),r=rmin+R3()*(rmax-rmin),x=CX+Math.cos(a)*d,y=CY+Math.sin(a)*d;
         if(x-r<4||y-r<4||x+r>W-4||y+r>H-4)continue;if(Math.abs(x-CX)<64+r+2&&Math.abs(y-CY)<64+r+2)continue;
         if(centers.some(c=>Math.hypot(c[0]-x,c[1]-y)<c[2]+r+6))continue;centers.push([x,y,r]);ob(k,x,y,r);return}};
     for(let i=0;i<8;i++)lateBlob(6,70,120,4,6.5,1.2);
     for(let i=0;i<10;i++)lateBlob(5,110,240,4,6,1)}
   // moon modifiers that change the ground
-  const mdl=S?modList():[],bias=(S&&S.moon&&S.moon.bias)||0;
-  if(mdl.length||bias)for(let i=0;i<W*H;i++){const k=ORE[i];if(!k)continue;let m=k===bias?2:1,cut=false;
+  const mdl=S?modList():[],bias=(S&&S.moon&&S.moon.bias)||0,srich=vy?starP('rich'):1;
+  if(mdl.length||bias||srich!==1)for(let i=0;i<W*H;i++){const k=ORE[i];if(!k)continue;let m=(k===bias?2:1)*srich,cut=false;
     for(const md of mdl){if(md==='rich')m*=2;else if(md==='barren')m*=.5;else if(md==='seeded')m*=.3;else if(md==='carbon')m*=k===4?3:k===2?.5:1;
       else if(md==='frontier'&&Math.max(Math.abs(i%W+.5-CX),Math.abs(((i/W)|0)+.5-CY))<24)cut=true}
     if(cut){ORE[i]=0;RES[i]=0;continue}
     RES[i]=Math.max(1,Math.round(RES[i]*m))}
+  if(S&&S.landed)for(const L of S.landed)landBlob(L);
   RES0=RES.slice();
   CHUNKS.clear();
   buildPatches();
@@ -1659,6 +1751,9 @@ function drawItem(g,t,r){
       g.strokeStyle='rgba(8,6,16,.9)';g.lineWidth=r*.13;rr(g,-r*.85,-r*.5,r*1.7,r*1.2,r*.16);g.fillStyle='#4a5470';g.fill();g.stroke();
       rr(g,-r*.6,-r*.3,r*.8,r*.6,r*.08);g.fillStyle='#0f2a22';g.fill();g.strokeStyle='#72e3b2';g.lineWidth=r*.07;g.beginPath();g.moveTo(-r*.5,r*.1);g.lineTo(-r*.3,-r*.1);g.lineTo(-r*.1,r*.05);g.lineTo(r*.1,-r*.15);g.stroke();
       g.fillStyle='#f3c25a';g.beginPath();g.arc(r*.5,r*.25,r*.1,0,7);g.fill();break;}
+    case 'iridium':{g.beginPath();for(let k=0;k<7;k++){const a=k/7*6.283,rr2=r*(.7+.25*Math.sin(k*2.3));g.lineTo(Math.cos(a)*rr2,Math.sin(a)*rr2)}g.closePath();
+      const gr=g.createLinearGradient(-r,-r,r,r);gr.addColorStop(0,'#f2f4ff');gr.addColorStop(.5,'#a9b8d8');gr.addColorStop(1,'#5a6790');g.fillStyle=gr;g.fill();g.stroke();
+      g.fillStyle='rgba(255,255,255,.7)';g.beginPath();g.arc(-r*.25,-r*.25,r*.14,0,7);g.fill();g.fillStyle='#ff9ad9';g.beginPath();g.arc(r*.3,r*.2,r*.1,0,7);g.fill();break;}
     case 'heavy':{g.beginPath();g.moveTo(-r*.85,r*.4);g.lineTo(-r*.45,-r*.45);g.lineTo(r*.55,-r*.45);g.lineTo(r*.85,r*.4);g.closePath();
       const gr=g.createLinearGradient(0,-r*.5,0,r*.5);gr.addColorStop(0,'#9aa3b8');gr.addColorStop(1,'#3e4456');g.fillStyle=gr;g.fill();g.stroke();
       g.fillStyle='rgba(255,255,255,.35)';g.fillRect(-r*.35,-r*.35,r*.7,r*.12);g.fillStyle='#5a3a8a';g.fillRect(-r*.85,r*.4,r*1.7,r*.18);break;}
@@ -1916,6 +2011,25 @@ function drawMachine(g,b,x,y,s){
       g.strokeStyle=`rgba(216,180,255,${.4+.08*L})`;g.lineWidth=s*.09;g.beginPath();g.moveTo(c5x,c5y);g.lineTo(c5x,y+s*.15);g.stroke();
       if(L){const q=(T*.25)%1,cy2=c5y-(c5y-y-s*.4)*q;rr(g,c5x-s*.22,cy2-s*.18,s*.44,s*.36,s*.08);g.fillStyle='#f3c25a';g.fill()}
       break;}
+    case 'dock':{
+      const S3=s*3,cx3=x+S3/2,cy3=y+S3/2,T=S?S.time:0;
+      rr(g,x+s*.1,y+s*.1,S3-s*.2,S3-s*.2,s*.35);g.fillStyle='#2b2840';g.fill();g.lineWidth=s*.06;g.strokeStyle='#8a83b8';g.stroke();
+      // landing pad with a beacon
+      g.beginPath();g.arc(cx3,cy3,s*1.05,0,7);g.fillStyle='#3d3858';g.fill();g.strokeStyle='#f3c25a';g.setLineDash([s*.18,s*.14]);g.lineWidth=s*.06;g.stroke();g.setLineDash([]);
+      const out=(b.bar||[]).filter(q=>q.t>0).length,home=(b.bar||[]).length-out;
+      for(let k=0;k<Math.min(home,3);k++){const a=k*2.1+.4;g.save();g.translate(cx3+Math.cos(a)*s*.5,cy3+Math.sin(a)*s*.5);g.rotate(a);g.fillStyle='#c8d4f0';g.beginPath();g.moveTo(s*.32,0);g.lineTo(-s*.22,-s*.18);g.lineTo(-s*.22,s*.18);g.closePath();g.fill();g.restore()}
+      g.beginPath();g.arc(cx3,cy3,s*.14,0,7);g.fillStyle=`rgba(255,180,90,${.5+.5*Math.sin(T*4)})`;g.fill();
+      port(g,b,x,y,s,'#c8d4f0',0);port(g,b,x,y,s,'#c8d4f0',1);port(g,b,x,y,s,'#c8d4f0',2);break;}
+    case 'starship':{
+      const S5=s*5,c5x=x+S5/2,L=S?megaSt('starship'):0;
+      rr(g,x+s*.1,y+s*.1,S5-s*.2,S5-s*.2,s*.4);g.fillStyle='#1f1c33';g.fill();g.lineWidth=s*.06;g.strokeStyle='#8a83b8';g.stroke();
+      // gantry
+      g.strokeStyle='#5d5680';g.lineWidth=s*.1;for(const dx of [.8,4.2]){g.beginPath();g.moveTo(x+s*dx,y+s*.5);g.lineTo(x+s*dx,y+s*4.6);g.stroke()}
+      // hull: one section lit per stage, nose to tail
+      for(let k=0;k<5;k++){const yy=y+s*(.6+k*.78),wd=s*(k===0?.7:1.3);g.beginPath();if(k===0){g.moveTo(c5x,yy-s*.15);g.lineTo(c5x+wd,yy+s*.7);g.lineTo(c5x-wd,yy+s*.7)}else rr(g,c5x-wd,yy,wd*2,s*.7,s*.12);
+        g.fillStyle=k<L?'#e8ecff':'#3d3858';g.fill()}
+      g.fillStyle=L>=5?'#7fd7ff':'#3d3858';for(const dx of [-.9,0,.9]){g.beginPath();g.arc(c5x+s*dx,y+s*4.55,s*.24,0,7);g.fill()}
+      break;}
     case 'stock':{
       const S2=s*2,f=b.n?Math.min(1,b.n/STOCK_CAP):0;
       rr(g,x+s*.1,y+s*.1,S2-s*.2,S2-s*.2,s*.25);g.fillStyle='#3a3550';g.fill();g.lineWidth=s*.05;g.strokeStyle='#8a83b8';g.stroke();
@@ -2067,7 +2181,7 @@ let DPR=1,VW=0,VH=0;
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);VW=window.innerWidth;VH=window.innerHeight;cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);cv.style.width=VW+'px';cv.style.height=VH+'px'}
 const w2sx=x=>(x-cam.x)*cam.z+VW/2,w2sy=y=>(y-cam.y)*cam.z+VH/2;
 const s2wx=x=>(x-VW/2)/cam.z+cam.x,s2wy=y=>(y-VH/2)/cam.z+cam.y;
-const ITEM_TINT={heavy:'#7a8296',magma:'#ff7a3a',he3:'#9fe8ff',quantum:'#ff7ad9',fusion:'#ffd27a',wafer:'#a7b0ee',film:'#3d66d0',composite:'#aab4cc',coil:'#e88a55',photonic:'#9fe8ff',lattice:'#c99bff',ferrite:'#e07a40',cuprite:'#3cc49c',silica:'#c8c0ea',carbon:'#8d7fc8',iron:'#b8c0d6',copper:'#e88a55',glass:'#9fdcf0',gear:'#a3abc0',wire:'#ec9a5e',circuit:'#3aa070',steel:'#7d88a6',lens:'#7fd6ea',motor:'#f08a3c',prism:'#ffd66e',petal:'#f3c25a',frame:'#8a94b0',processor:'#6fe0c0',servo:'#e08a3c',aether:'#c99bff',ember:'#ff6a3d',nova:'#e0c8ff',husk:'#6a5e7c',voidstone:'#6a4cd8',starsand:'#e0b866',rare:'#7ff0d0',slag:'#6a5e66',voidglass:'#8a6bff',slagcrete:'#8a8494',magnet:'#e04848',voidlens:'#a88bff',voidcell:'#8a6bff',gyro:'#f3c25a',hull:'#b8c0d6',guidance:'#72e3b2',kitf:'#ff6a6a',kitv:'#9a6bff',kits:'#f3c25a'};
+const ITEM_TINT={iridium:'#c8d4f0',heavy:'#7a8296',magma:'#ff7a3a',he3:'#9fe8ff',quantum:'#ff7ad9',fusion:'#ffd27a',wafer:'#a7b0ee',film:'#3d66d0',composite:'#aab4cc',coil:'#e88a55',photonic:'#9fe8ff',lattice:'#c99bff',ferrite:'#e07a40',cuprite:'#3cc49c',silica:'#c8c0ea',carbon:'#8d7fc8',iron:'#b8c0d6',copper:'#e88a55',glass:'#9fdcf0',gear:'#a3abc0',wire:'#ec9a5e',circuit:'#3aa070',steel:'#7d88a6',lens:'#7fd6ea',motor:'#f08a3c',prism:'#ffd66e',petal:'#f3c25a',frame:'#8a94b0',processor:'#6fe0c0',servo:'#e08a3c',aether:'#c99bff',ember:'#ff6a3d',nova:'#e0c8ff',husk:'#6a5e7c',voidstone:'#6a4cd8',starsand:'#e0b866',rare:'#7ff0d0',slag:'#6a5e66',voidglass:'#8a6bff',slagcrete:'#8a8494',magnet:'#e04848',voidlens:'#a88bff',voidcell:'#8a6bff',gyro:'#f3c25a',hull:'#b8c0d6',guidance:'#72e3b2',kitf:'#ff6a6a',kitv:'#9a6bff',kits:'#f3c25a'};
 const glowCache={},DISCO=['#ffd77a','#ff9fd0','#9fe8ff','#ffffff','#c7b2ff'];
 function glowSpr(col){
   if(glowCache[col])return glowCache[col];
@@ -2258,7 +2372,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='dock'&&isCamp()&&S.ms>=MS.length&&(late()||voyN()>0))||(t==='starship'&&late()&&voyReady())||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -2402,6 +2516,8 @@ function status(b){
     case 'separator':{const t=sepTot(b);return b.run?(lp?['warn','Low power · '+pct]:['ok','Separating']):t>0&&b.nx?['warn','Output blocked: '+ITEMS[b.nx].n]:b.n<1000?['warn',`Collecting Starsand · ${b.n} / 1,000`]:['ok','Sending out the last batch']}
     case 'incinerator':return b.heat>.05?['ok','Burning']:['ok','Idle'];
     case 'wreck':return['idle','Remove it to salvage its parts'];
+    case 'dock':return dockStatus(b);
+    case 'starship':{const L=megaSt('starship');return L>=5?['ok','Ready · Voyage from the Ascension panel']:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of 5`]}
     case 'stock':return b.it?[b.n>=STOCK_CAP?'warn':'ok',`${b.n.toLocaleString()} / ${STOCK_CAP.toLocaleString()} ${ITEMS[b.it].s}${b.n>=STOCK_CAP?' · full':''}`]:['idle','Empty · takes the first item it’s given'];
     case 'bore':{const L=megaSt('bore'),M=MEGA.bore;return lp?['warn','Low power · '+pct]:L>=M.stages?['ok','At the heart · '+boreRates().map(([k,r])=>fmtRate(r)+' '+ITEMS[k].s+'/s').join(' · ')]:['ok',`Stage ${L+1} of ${M.stages}${L?' · bringing up '+boreRates().map(([k])=>ITEMS[k].s).join(', '):''}`]}
     case 'elevator':{const L=megaSt('elevator'),M=MEGA.elevator;return L>=M.stages?['ok','Complete · '+M.eff(L)]:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of ${M.stages}${L?' · '+M.eff(L):''}`]}
@@ -2436,6 +2552,8 @@ function bufRow(b){
     case 'belt':return b.items.length?`<div class="flow">${cnt(b.items.map(i=>i.t))}</div>`:'';
     case 'market':return mkPanel();
     case 'elevator':return megaPanel('elevator');
+    case 'dock':return dockRow(b);
+    case 'starship':return megaPanel('starship')+(megaSt('starship')>=5?'<div class="actions"><button class="btn primary" data-voyopen>Prepare to Voyage</button></div>':'');
     case 'stock':return b.it?`<div class="flow"><span class="lbl">Holding</span>${chip(b.it,b.n.toLocaleString()+' / '+STOCK_CAP.toLocaleString())}</div>`:'';
     case 'bore':return boreRow(b)+megaPanel('bore');
     case 'compressor':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN+(b.mode===2?'':'/'+TIN[b.mode+1])):'<span class="lbl">empty</span>'}<span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`;
@@ -2471,6 +2589,7 @@ function renderSheet(){
     const so=[[0,'Forward'],[1,'Left'],[2,'Right']];
     ctrl=`<div class="sec-label">Chosen item leaves</div><div class="seg">${so.map(([v,n])=>`<button data-sd="${v}" class="${(b.sd||0)===v?'on':''}">${n}</button>`).join('')}</div><p class="desc">Everything else leaves through the other two sides, taking turns.</p><div class="sec-label">Chosen item</div><div class="grid items"><button class="opt${!b.filter?' on':''}" data-filter="" aria-label="Everything">All</button>${ITEM_ORDER.filter(k=>!BASE_OF[k]).map(k=>`<button class="opt${b.filter===k?' on':''}" data-filter="${k}" aria-label="${ITEMS[k].n}"><img src="${ICON[k]}" alt=""></button>`).join('')}</div>`;
   }
+  if(b.t==='dock')ctrl=dockCtrl(b);
   if(b.t==='spaceport'){const ms=Object.keys(MISSIONS);
     ctrl=`<div class="sec-label">Mission</div><div class="seg">${ms.map(m=>`<button data-mission="${m}" class="${b.m===m?'on':''}"${padOpen(m)?'':' style="opacity:.4"'}>${MISSIONS[m].n}</button>`).join('')}</div>${b.m?`<p class="desc">${MISSIONS[b.m].d} Every launch needs a rocket (${rocketParts().hull} Hull plates, ${ROCKET.guidance} Guidance units) and Aether fuel, all belted in.</p>${b.m==='kits'||b.m==='ark'?`<div class="actions"><button class="btn" data-act="padgo">${b.m==='ark'?'Launch once the module is in':'Launch when loaded'}</button></div>`:''}`:''}`}
   if(b.t==='railterm'){
@@ -2510,6 +2629,8 @@ elSheet.addEventListener('click',e=>{
   else if(el.dataset.mission){const m=el.dataset.mission;if(b.st){showToast('A rocket is being assembled');return}if(!padOpen(m)){showToast(missionWhy(m));return}if(b.m!==m){padUnload(b);b.m=m}renderSheet();sfx('tick')}
   else if(el.dataset.act==='padload'){const n=padLoad(b);showToast(n?`Loaded ${n.toLocaleString()} items from storage`:'Nothing in storage this mission still needs');refreshSheet()}
   else if(el.dataset.act==='padgo'){if(b.m==='kits'&&!kitN(b.h)){showToast('Load some kits first');return}b.go=true;showToast(b.m==='ark'?'It launches as soon as the module, rocket and fuel are in. Cargo loaded by then goes along.':'It launches as soon as the rocket and fuel are loaded')}
+  else if(el.dataset.ast){b.tg=+el.dataset.ast;renderSheet();sfx('tick')}
+  else if(el.hasAttribute('data-voyopen')){closeSheet();if(canVoyage())showStarPick()}
   else if(el.dataset.dn!==undefined){const v=+el.dataset.dn;if((b.dn|0)===v)return;setDense(b,v);renderSheet();sfx('tick')}
   else if(el.dataset.cmode!==undefined){const v=+el.dataset.cmode;if(b.mode===v)return;for(const t of contents(b))addInv(t);Object.assign(b,init('compressor'),{mode:v});renderSheet();sfx('tick')}
   else if(el.hasAttribute('data-mkacc')){const T=S.mk&&S.mk.timed;if(!T||T.on)return;T.on=true;T.due=S.time+3600;sfx('place');showToast('Accepted: you have an hour');refreshSheet()}
@@ -2699,6 +2820,9 @@ elCard.addEventListener('click',e=>{
   else if(b.hasAttribute('data-ascend')){if(canAscend())showGalaxy()}
   else if(b.hasAttribute('data-moonpick')){if(canAscend())showMoonPick()}
   else if(b.dataset.sl){const k=b.dataset.sl,u=STARLIGHT[k];if(!u)return;S.sl=S.sl||{};const L=S.sl[k]||0;if(L>=u.max)return;if((S.starlight||0)<L+1){showToast(`Needs ${L+1} Starlight. Close Dyson swarm shells to earn more.`);return}S.starlight-=L+1;S.sl[k]=L+1;save();showAscension();sfx('fanfare');showToast(u.n+' is now level '+S.sl[k])}
+  else if(b.dataset.helm){const k=b.dataset.helm,u=HELM[k];if(!u||!S.voy)return;const L=helmLv(k);if(L>=u.max)return;const c=u.cost(L);if((S.voy.charts||0)<c){showToast(`Needs ${c} Starcharts`);return}S.voy.charts-=c;S.voy.helm=S.voy.helm||{};S.voy.helm[k]=L+1;if(k==='packed'){S.ss=S.ss||{};S.ss.dense=Math.max(S.ss.dense||0,2)}save();sfx('fanfare');showAscension();showToast(u.n+(u.max>1?' is now level '+(L+1):' is yours'))}
+  else if(b.hasAttribute('data-voyopen')){if(canVoyage())showStarPick()}
+  else if(b.dataset.voy){if(Date.now()-(b._arm||0)<3000)doVoyage(b.dataset.voy);else{b._arm=Date.now();b.textContent='Tap again to leave this star'}}
   else if(b.dataset.gogo){if(canAscend())doAscend(+b.dataset.gogo)}
   else if(b.hasAttribute('data-galaxy'))showGalaxy()
   else if(b.dataset.moon!==undefined){if(canAscend())doAscend(b.dataset.moon||null)}
@@ -3497,20 +3621,20 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='stock')a.push({it:b.it,n:b.n});else if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dsrc:S.dsrc||{},dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
+  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,voy:S.voy||null,landed:S.landed||[],ast:S.ast||[],astT:S.astT,landT:S.landT,astId:S.astId||0,starOffer:S.starOffer||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dsrc:S.dsrc||{},dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
 function save(){if(CRASHED)return;try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
 function start(data,forceNew){
   let d=forceNew?null:(data&&data.v?data:load());
   const seed=d?d.seed:(Math.random()*1e9|0);
-  S=fresh(seed);if(d){if(d.asc&&typeof d.asc==='object')S.asc=d.asc;S.mode=d.mode||'campaign';S.mod=d.mod&&MODS[d.mod]?d.mod:null;S.mods=Array.isArray(d.mods)?d.mods.filter(k=>MODS[k]):[];S.moon=d.moon&&typeof d.moon==='object'?d.moon:null;S.ch=d.ch&&CHALLENGES[d.ch]?d.ch:null;S.daily=d.daily||null}genWorld(seed);
+  S=fresh(seed);if(d){if(d.asc&&typeof d.asc==='object')S.asc=d.asc;S.mode=d.mode||'campaign';S.mod=d.mod&&MODS[d.mod]?d.mod:null;S.mods=Array.isArray(d.mods)?d.mods.filter(k=>MODS[k]):[];S.moon=d.moon&&typeof d.moon==='object'?d.moon:null;S.ch=d.ch&&CHALLENGES[d.ch]?d.ch:null;S.daily=d.daily||null;S.voy=d.voy&&typeof d.voy==='object'?d.voy:null;S.landed=Array.isArray(d.landed)?d.landed.filter(q=>q&&ORE_KEYS[q.k]):[]}genWorld(seed);
   place('core',191,191,0,true);
   if(d){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;S.mega=ob(d.mega,{});S.past=Array.isArray(d.past)?d.past.filter(m=>m&&typeof m==='object'):[];S.ark=ob(d.ark,{});S.starlight=+d.starlight||0;S.sl=ob(d.sl,{});S.boreWins=+d.boreWins||0;S.arkN=+d.arkN||0;S.gal=d.gal&&typeof d.gal.seed==='number'&&Array.isArray(d.gal.vis)?d.gal:null;S.stormWon=+d.stormWon||0;S.stormLost=+d.stormLost||0;S.arrLv=+d.arrLv||0;GALP=null;S.banes=Array.isArray(d.banes)?d.banes.filter(k=>BANES[k]):[];S.banePick=Array.isArray(d.banePick)?d.banePick.filter(k=>BANES[k]):null;S.ach=ob(d.ach,{});S.mk=d.mk&&Array.isArray(d.mk.open)?d.mk:null;S.mkRep=ob(d.mkRep,{});S.mkTot=+d.mkTot||0;S.mkComm=+d.mkComm||0;S.mkCommSkip=+d.mkCommSkip||0;S.mkTimed=+d.mkTimed||0;S.mkHuge=+d.mkHuge||0;S.mkB=ob(d.mkB,{});S.mkSeed=+d.mkSeed||0;S.obj=d.obj&&Array.isArray(d.obj.list)?d.obj:null;S.objAll=+d.objAll||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;S.mega=ob(d.mega,{});S.past=Array.isArray(d.past)?d.past.filter(m=>m&&typeof m==='object'):[];S.ark=ob(d.ark,{});S.ast=Array.isArray(d.ast)?d.ast.filter(a=>a&&AST_KINDS[a.kind]):[];S.astT=d.astT;S.landT=d.landT;S.astId=+d.astId||0;S.starOffer=Array.isArray(d.starOffer)?d.starOffer.filter(k=>STARS[k]):null;S.starlight=+d.starlight||0;S.sl=ob(d.sl,{});S.boreWins=+d.boreWins||0;S.arkN=+d.arkN||0;S.gal=d.gal&&typeof d.gal.seed==='number'&&Array.isArray(d.gal.vis)?d.gal:null;S.stormWon=+d.stormWon||0;S.stormLost=+d.stormLost||0;S.arrLv=+d.arrLv||0;GALP=null;S.banes=Array.isArray(d.banes)?d.banes.filter(k=>BANES[k]):[];S.banePick=Array.isArray(d.banePick)?d.banePick.filter(k=>BANES[k]):null;S.ach=ob(d.ach,{});S.mk=d.mk&&Array.isArray(d.mk.open)?d.mk:null;S.mkRep=ob(d.mkRep,{});S.mkTot=+d.mkTot||0;S.mkComm=+d.mkComm||0;S.mkCommSkip=+d.mkCommSkip||0;S.mkTimed=+d.mkTimed||0;S.mkHuge=+d.mkHuge||0;S.mkB=ob(d.mkB,{});S.mkSeed=+d.mkSeed||0;S.obj=d.obj&&Array.isArray(d.obj.list)?d.obj:null;S.objAll=+d.objAll||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
     {const O=ob(d.orb,{}),F=orbFresh();S.orb={mods:Math.max(0,Math.min(4,+O.mods||0)),kits:ob(O.kits,{}),cur:typeof O.cur==='string'?O.cur:null,p:ob(O.p,{}),done:ob(O.done,{}),lv:ob(O.lv,{}),ring:Math.max(0,Math.min(12,+O.ring||0)),swarm:Math.max(0,Math.min(24,+O.swarm||0))}||F}
     for(const id in S.res.done){const N=TECH[id];if(!N)continue;(N.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(N.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(const id in S.orb.done)(ORB[id]&&ORB[id].unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dsrc=ob(d.dsrc,{});S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;S.chd=d.chd&&typeof d.chd==='object'?d.chd:{};refreshSeeds();
@@ -3557,7 +3681,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},batIn:(b,t)=>accept(b,t,3),sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},doVoyage,showStarPick,astTick,landfall,get ORE(){return ORE},voyCharts,batIn:(b,t)=>accept(b,t,3),sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 // If something throws, stop autosaving (so a half-loaded game never overwrites a good save), keep the game
 // drawing, and show what went wrong with a way to copy the save as it was on this device.

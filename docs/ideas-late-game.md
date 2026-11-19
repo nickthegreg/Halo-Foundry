@@ -393,3 +393,19 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
   terrain can be rebuilt from the seed; the factory layout isn't stored yet (size: blueprints of thousands of
   buildings would bloat saves and save codes; store a compressed layout at ascension, or let it start empty and
   pay off by depleted/regrown ore).
+
+### Voyage, the second tier (built 2026-11-19)
+- Data in `src/data/voyage.js`: `STARS` (solar, day, patches, rich, seeds, ast multipliers), `VOY_THIN` (.6 share of
+  patches kept after a Voyage; the 4 starter patches always stay), `HELM` (Starchart upgrades), `AST_KINDS`.
+- Gate: Starship (`B.starship`, `MEGA.starship`, one per moon) unlocks when `late()` and `voyReady()` (ringWins ≥ 1
+  and any Starlight earned). `doVoyage(star)` restarts at the main game keeping Relics, achievements, blueprints (own
+  localStorage) and `S.voy` {n, charts, total, helm, star, hist}. Helm keeps: crate, packed (ss.dense=2), novamem
+  (25%/level of NUP), command, ancestry (whole SS).
+- Starcharts = cbrt(lifetime Starseeds + this moon's) × (1 + 0.1·voyages) × star seeds. Starseeds × (1 + 0.5·voyages)
+  × (1 + 0.15·Old light) × star seeds.
+- Asteroids (`S.ast`, `astTick`): spawn every 360 s ÷ (survey, star.ast), up to 5, last 2 h. Barge Dock (`B.dock`,
+  3×3, dir): `bargeN` = 1 + Helm barges, hold 300 × (1 + 0.5·holds) × dense/packed factor, trip (30 + 25·AU) s ÷
+  thrust, 10 carbon per trip, output through 3 bright-edge slots. Iridium only from asteroids.
+- Landfall (after a Voyage): every 600 s ÷ (landfall, star.ast) a small rich patch lands inside the frontier;
+  saved in `S.landed` and re-applied in `genWorld`.
+- Not built: bigger moons (W/H are fixed at 384; saves index tiles by position), star map UI beyond the pick list.
