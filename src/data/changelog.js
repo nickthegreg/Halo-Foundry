@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:70,date:'2026-11-19',title:'Build the Starship, and hold a goal',items:[
+    'The Starship is a real build again. The Starseed shop now sells the Starship plans (300,000 Starseeds); they unlock the Starship, a 5×5 megaproject with five belt-fed stages of Iridium, Fusion cells, Quantum chips, Lattice cores and composite. When the last stage is in, choose your road and watch it launch for the new star.',
+    'Main-game goals can be held: on Progress, tap Hold this goal on Heavy Industry or the Grid Charter, and everything you deliver goes to storage until you resume, so you can spend those early parts first. Great on the Daily moon.'
+  ]},
   {n:69,date:'2026-11-19',title:'A bigger Helm',items:[
     'The Helm now has 21 upgrades in six branches, built to match what a Voyage costs. Foundry: Tempo (+25% machine speed per level), Bounty (+50% ore per tile), Dynamo (+50% power), all up to 10 levels; Current (+15% conveyor speed); and Echoes, which grows with every moon you’ve left this Voyage (+2% machine speed and Starseeds per moon per level).',
     'Road mastery: each level takes a fifth off your road’s penalty, down to nothing at level 5. On the Low-gravity moon, Dense drops from 5 inputs to 2; on the Heavy world, conveyors, drills and Uplinks stop being slowed and buildings stop costing extra. The road’s rewards stay.',

@@ -426,3 +426,8 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
   `roadPen()` and `applyGrav()`, wider/finer → `relicOffer`, absolve → `baneN` skips the oldest banes, stores →
   `startInv()`.
 - Iridium: `deliver` counts `S.irid` (kept through ascensions, reset by a Voyage); `iridCharts()` = irid / 5,000.
+
+### Starship build and launch, goal hold (2026-11-19)
+- `SS.starship` is now "Starship plans" and unlocks `B.starship` (isUnl); `canVoyage()` = plans + all 5 MEGA stages +
+  a built ship. Choosing a road runs `launchSeq(path)` (full-screen canvas, ~7 s, tap to skip) then `doVoyage`.
+- `S.msHold` / `msHeld()`: while a main-game goal is held, `deliver` skips milestone progress (items go to storage).
