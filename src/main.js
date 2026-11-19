@@ -59,8 +59,8 @@ const UPG={
 };
 function ssLv(k){const v=(S&&S.ss&&S.ss[k])||0;return k==='dense'&&S&&S.voy&&S.voy.path==='float'&&isCamp()?Math.max(v,1):v}
 function minDn(){return voyPath()==='float'?1:0}
-// Low gravity makes stacking free: a dense dig or craft takes 2 inputs (worth 2) in the normal time, instead of 5 in 1.5×
-function applyGrav(){const f=voyPath()==='float';TIN[1]=f?2:5;TT[1]=f?1:1.5}
+// Compression costs are the same on every road (kept as a hook)
+function applyGrav(){TIN[1]=5;TT[1]=1.5}
 function nupLv(k){return (S&&S.nup&&S.nup[k])||0}
 function relN(k){let n=0;for(const r of (S&&S.relics)||[])if(r===k)n++;return n}
 // ---------- late game (main game, from ascension 2) ----------
@@ -1176,7 +1176,7 @@ function voyTab(){const v=S.voy||{},L=megaSt('starship'),st=curStar();
   return h}
 function showStarPick(){
   openModal(`<span class="eyebrow">Voyage ${voyN()+1}</span><h1>Choose your road</h1><p>You’ll arrive with <strong>${voyCharts()} Starcharts</strong> and start the whole game over on a new moon. Your Relics, achievements and blueprints come with you; everything else stays behind. Moons out here are sparser than home, so you’ll be mining asteroids before long.</p>
-  <div class="ms" style="border:1px solid #ff9a5a"><div class="ms-unl"><b>Choose carefully.</b> Your road lasts the whole Voyage, every ascension, until you Voyage again. The Heavy world is <b>much harder</b>: pick it for double the rewards if you want a real challenge. For a gentler run, take the Low-gravity moon.</div></div>
+  <div class="ms" style="border:1px solid #ff9a5a"><div class="ms-unl"><b>Choose carefully.</b> Your road lasts the whole Voyage, every ascension, until you Voyage again. The Low-gravity moon is <b>much harder</b>: everything runs Dense at full cost, so it eats ore and parts 2.5× as fast. Pick it for double the rewards if you want a real challenge. For a gentler run, take the Heavy world.</div></div>
   <div class="ms-list">${Object.keys(PATHS).map(k=>{const P=PATHS[k];return `<div class="ms cur"><div class="ms-top"><h4><span style="color:${P.col}">●</span> ${P.n}</h4><span class="st">${P.hard?'Hard · ×2 rewards':'Gentler'}</span></div><div class="ms-unl">${P.d}</div><button class="btn${P.hard?'':' primary'}" data-voy="${k}">Set course</button></div>`}).join('')}</div>
   <div class="actions"><button class="btn" data-ascopen>Not yet</button></div>`)}
 function doVoyage(k){if(!canVoyage()||!PATHS[k])return;

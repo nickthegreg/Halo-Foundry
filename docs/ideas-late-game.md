@@ -413,9 +413,7 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 ### Voyage rework (2026-11-19, owner feedback)
 - Starship is `SS.starship` (300k Starseeds, minAsc 2, branch Voyage); `canVoyage()` checks it. The building/MEGA
   entries stay in data only so any placed one still loads. Iridium currently has no use besides Market value.
-- Star types replaced by `PATHS` (float = Low-gravity: `minDn()` 1, `ssLv('dense')` ≥ 1, `applyGrav()` makes dense
-  lossless: TIN[1]=2, TT[1]=1; heavy: BV and drills ×0.6, Uplinks half rate and 3× power, `costOf` ×1.5, charts and
-  seeds ×2). Old `STARS` kept for saves that voyaged before the rework.
+- Star types replaced by `PATHS` (float = Low-gravity: `minDn()` 1, `ssLv('dense')` ≥ 1, full dense cost, hard, charts and seeds ×2; heavy (gentler, ×1): BV and drills ×0.6, Uplinks half rate and 3× power, `costOf` ×1.5). Old `STARS` kept for saves that voyaged before the rework.
 - `refRatio` base 3000 (min 150) after any Voyage; `voyTime()` = 1 + 0.5·voyages on fab/assembler/smelt time.
 - `solarMul(b)` = (1 + 0.25·grid tier) × (1 + min(2, 0.2·touching solar)) × (1 + 0.01·Lattice cores).
 - Open: owner feels late outputs are too fast and one machine per item is enough. `voyTime` is the first knob;

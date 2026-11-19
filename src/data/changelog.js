@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:68,date:'2026-11-19',title:'Low gravity is the hard road',items:[
+    'The Low-gravity moon is now the harder Voyage road, with double Starseeds and Starcharts: Dense is the minimum mode and it has its full cost, so every dig and craft takes 5 inputs and 1.5× the time for an item worth 2.',
+    'The Heavy world is now the gentler road (normal rewards): slower conveyors and drills, half-speed Uplinks and 50% dearer buildings.'
+  ]},
   {n:67,date:'2026-11-19',title:'Fairer Voyage roads',items:[
     'The Low-gravity moon is now properly the gentler road: Dense mode costs nothing extra there. A dense dig or craft takes just 2 inputs in the normal time for an item worth 2 (instead of 5 inputs in 1.5× the time), so every conveyor and machine carries twice as much for free.',
     'Heavy world: Uplinks work again, but lift half as fast and draw three times the power. Slower conveyors and drills and 50% dearer buildings stay, as do the double rewards.'
