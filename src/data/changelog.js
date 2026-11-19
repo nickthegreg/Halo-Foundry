@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:66,date:'2026-11-19',title:'Voyage, reworked',items:[
+    'The Starship is now bought in the Starseed shop (Voyage, from your second ascension) for 300,000 Starseeds, instead of being built.',
+    'Instead of a star to pick, a Voyage now offers two roads, with a warning before you choose. The Low-gravity moon is the gentler one: Dense is the minimum mode for every drill and machine, and Compression is yours from the start. The Heavy world is much harder: conveyors and drills run 40% slower, Uplinks don’t work and every building costs 50% more, but it pays double Starseeds and double Starcharts.',
+    'After a Voyage, Refineries start at 3,000 ore per Aether instead of 1,000, and every craft and smelt takes 50% longer per Voyage, so a big factory needs a lot more machines.',
+    'Ground solar finally matters late: each Sun Leaf, Film Array and Prism Collector makes 25% more per grid tier, 20% more for every solar building touching it (up to +200%), and 1% more per Lattice core in orbit. Their panels show the multiplier.'
+  ]},
   {n:65,date:'2026-11-19',title:'Voyage: leave for a new star',items:[
     'A new tier above Ascending. Close a Halo Ring and a Dyson swarm shell, then build a Starship (5×5, five belt-fed stages that need Iridium, Fusion cells, Quantum chips, Lattice cores and composite). When it’s finished, choose a new star and Voyage.',
     'A Voyage starts the whole game over. You keep your Relics, achievements and blueprints; everything else resets, Starseeds and the Starseed shop included. In return you get Starcharts (the cube root of every Starseed you’ve earned since the last Voyage) and +50% to all Starseeds you earn from then on.',

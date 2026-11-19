@@ -65,13 +65,13 @@ const B={
   stock:{n:'Stockpile',cost:{steel:40,frame:6,gear:20},dir:1,w:2,d:'Somewhere to keep things until you need them. It takes one kind of item from any side but its bright edge, holds up to 2,000, and feeds them back out of its bright edge whenever something there will take them. Put one after a machine whose output you can’t use yet, or before one to smooth out its supply. Once it’s empty it takes whatever comes next.'},
   batcher:{n:'Batcher',cost:{iron:10,gear:6,circuit:2},dir:1,w:2,d:'Keeps a recipe fed in the right proportions. It holds up to 50 of each item and releases them in whole sets at the ratio you set, from two slots on its bright edge. Pick a recipe to copy its ratio.'},
   combustor:{n:'Combustor',cost:{iron:14,copper:6},gen:150,burn:6,dir:1,d:'Your first real power. Burns carbon for up to 150 kW, and only as much as the grid is asking for. About 1 in 50 carbon leaves an Ember shard, pushed out of its bright edge: catch them, they buy Deep Drills and upgrades.'},
-  solar:{n:'Sun Leaf',cost:{glass:6,circuit:3},gen:45,d:'A small solar leaf: up to 45 kW in daylight, nothing at night. Free power, as long as the sun is up.'},
+  solar:{n:'Sun Leaf',cost:{glass:6,circuit:3},gen:45,d:'A small solar leaf: up to 45 kW in daylight, nothing at night. Free power, as long as the sun is up. Solar adds up: +25% for every grid tier, +20% for every solar building touching it (up to +200%), and +1% for every Lattice core in orbit.'},
   uplink:{n:'Uplink',cost:{steel:8,circuit:6},pw:60,d:'Skips the long belt home: whatever you feed it is beamed straight to the Core. Up to 4 items a second beside the Core, slower and hungrier for power the farther away it stands.'},
   ring:{n:'Launch Ring',cost:{steel:30,motor:10,lens:20},pw:120,w:3,d:'Flings what you feed it into orbit around the star, for good. Each sail petal adds 8 kW of power, day and night; each Lattice core adds 1 MW. Petals also count toward Constellations, Lattice cores toward Crowns.'},
   turbine:{n:'Turbine Hall',cost:{steel:40,motor:10,circuit:30},gen:1200,burn:1.5,w:3,d:'A 3×3 power hall: burns carbon for up to 1.2 MW, twice as efficiently as a Combustor. Takes carbon from any side. Its Ember shards go straight to storage.'},
-  filmarray:{n:'Film Array',cost:{film:30,frame:6,circuit:15},gen:300,w:2,d:'Thin-film solar. Up to 300 kW in daylight and still 120 kW at night: the most power per tile of any solar, and the best after dark.'},
+  filmarray:{n:'Film Array',cost:{film:30,frame:6,circuit:15},gen:300,w:2,d:'Thin-film solar. Up to 300 kW in daylight and still 120 kW at night: the most power per tile of any solar, and the best after dark. Solar adds up: +25% for every grid tier, +20% for every solar building touching it (up to +200%), and +1% for every Lattice core in orbit.'},
   capacitor:{n:'Capacitor Bank',cost:{coil:30,composite:6,steel:20},w:2,cap:400,d:'Stores 400 MJ more Charge. A bigger bank means research can keep running through the night and bigger projects fit.'},
-  collector:{n:'Prism Collector',cost:{prism:12,lens:30,steel:20},gen:400,w:3,d:'A 3×3 field of prisms. Up to 400 kW in daylight and a quarter of that at night.'},
+  collector:{n:'Prism Collector',cost:{prism:12,lens:30,steel:20},gen:400,w:3,d:'A 3×3 field of prisms. Up to 400 kW in daylight and a quarter of that at night. Solar adds up: +25% for every grid tier, +20% for every solar building touching it (up to +200%), and +1% for every Lattice core in orbit.'},
   relay:{n:'Pulse Relay',cost:{steel:10,circuit:10,lens:4},pw:30,d:'A forward base for construction. Blueprints closer to this relay than to the Core are built by pulses launched from here. Pulses crawl at 40% speed outside the starting area, so relays out there save a lot of waiting.'},
   assembler:{n:'Assembler',cost:{frame:20,circuit:40,motor:10},pw:150,dir:1,w:3,d:'A 3×3 factory for the advanced parts a Fabricator can’t make, starting with Processors and Servos. Feed it from any side; output leaves its bright edge.'},
   refinery:{n:'Refinery',cost:{frame:30,steel:60,processor:10},pw:200,dir:1,w:3,d:'Crushes raw ore of any kind into Aether, the fuel of Reactors and rockets and the reason to Ascend. It starts at 1,000 ore per Aether and needs 1 ore less for every 1,000 Aether you have ever made, down to 50.'},
@@ -272,6 +272,8 @@ const SS={
   reroll:{br:'Fortune',n:'Reroll',req:'wide',max:2,cost:L=>[150,500][L],d:'Reroll a Relic offer once per pick, then twice.',eff:L=>`${L} per pick`},
   lucky:{br:'Fortune',n:'Lucky stars',req:'reroll',max:2,cost:L=>[400,1200][L],d:'Epic and Legendary Relics turn up 1.5×, then 2× as often.',eff:L=>`×${[1,1.5,2][L]}`},
   forge:{br:'Fortune',n:'Relic forge',req:'lucky',max:1,cost:()=>800,d:'Trade 3 Relics of one rarity for a random Relic one rarity higher, from the Relics list here.',eff:L=>L?'on':'off'},
+  // Voyage
+  starship:{br:'Voyage',n:'Starship',max:1,minAsc:2,cost:()=>300000,d:'A ship to leave this star. Once it’s bought, Powers → Ascension → Voyage lets you start the whole game over around a new star, with Starcharts for the Helm. Only Relics, achievements and blueprints come along.',eff:L=>L?'ready':'not built'},
   // Deep space (ascension 2+ content)
   vsight:{br:'Deep space',n:'Void sight',max:1,cost:()=>150,d:'Deep Drills mine Voidstone 50% faster.',eff:L=>L?'on':'off'},
   richsand:{br:'Deep space',n:'Rich sand',req:'vsight',max:3,cost:L=>[100,250,600][L],d:'Separators give 25% more Rare earth per level.',eff:L=>`+${25*L}%`},
@@ -401,7 +403,7 @@ function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486
   return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','stock','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','elevator','bore','dock','starship','separator','incinerator','railterm','rail','spaceport','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','stock','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','elevator','bore','dock','separator','incinerator','railterm','rail','spaceport','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
 const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits','petal','lattice'];
 // Packed (second level): 20 → 1 packed item worth 4
@@ -410,6 +412,6 @@ const DENSE_OF={},PACK_OF={},BASE_OF={};
   for(const k of base){const d='D_'+k;DENSE_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Dense '+low(k),s:'dense '+ITEMS[k].s,dense:k,tier:1};ITEM_ORDER.push(d)}
   for(const k of base){const d='P_'+k;PACK_OF[k]=d;BASE_OF[d]=k;ITEMS[d]={n:'Packed '+low(k),s:'packed '+ITEMS[k].s,dense:k,tier:2};ITEM_ORDER.push(d)}}
 // Late-game buildings stay out of the bar until ascension 2
-const LATE_T=['separator','incinerator','railterm','rail','spaceport','elevator','bore','starship'];
+const LATE_T=['separator','incinerator','railterm','rail','spaceport','elevator','bore'];
 
 export {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};

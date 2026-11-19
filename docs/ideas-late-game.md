@@ -409,3 +409,13 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 - Landfall (after a Voyage): every 600 s ÷ (landfall, star.ast) a small rich patch lands inside the frontier;
   saved in `S.landed` and re-applied in `genWorld`.
 - Not built: bigger moons (W/H are fixed at 384; saves index tiles by position), star map UI beyond the pick list.
+
+### Voyage rework (2026-11-19, owner feedback)
+- Starship is `SS.starship` (300k Starseeds, minAsc 2, branch Voyage); `canVoyage()` checks it. The building/MEGA
+  entries stay in data only so any placed one still loads. Iridium currently has no use besides Market value.
+- Star types replaced by `PATHS` (float = Low-gravity: `minDn()` 1, `ssLv('dense')` ≥ 1; heavy: BV and drills ×0.6,
+  no Uplinks, `costOf` ×1.5, charts and seeds ×2). Old `STARS` kept for saves that voyaged before the rework.
+- `refRatio` base 3000 (min 150) after any Voyage; `voyTime()` = 1 + 0.5·voyages on fab/assembler/smelt time.
+- `solarMul(b)` = (1 + 0.25·grid tier) × (1 + min(2, 0.2·touching solar)) × (1 + 0.01·Lattice cores).
+- Open: owner feels late outputs are too fast and one machine per item is enough. `voyTime` is the first knob;
+  next candidates are slowing the lifetime-Starseed ore/dupe curves after a Voyage, or scaling recipe input counts.

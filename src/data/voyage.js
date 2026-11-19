@@ -9,6 +9,11 @@ export const STARS={
   white:{n:'White dwarf',col:'#e8f0ff',solar:.35,day:1,patches:.8,rich:1.4,seeds:1.4,ast:1.3,d:'The cooling ember of a star. Solar makes 65% less, so burners and Reactors carry the grid. Pays 40% more Starseeds.'},
   rubble:{n:'Rubble star',col:'#c8a878',solar:.9,day:1,patches:.5,rich:1,seeds:1.3,ast:2.5,d:'A star wrapped in debris. Half the usual ore patches, but asteroids pass and land 2.5× as often.'}
 };
+// The two roads a Voyage can take. Chosen when you Voyage; lasts until the next one.
+export const PATHS={
+  float:{n:'Low-gravity moon',hard:0,col:'#9fe8ff',charts:1,seeds:1,d:'Everything floats a little. Drills and machines can’t run in Normal mode: Dense is the minimum, and Compression is yours from the start. Each dig and craft eats 5× the ore and parts, so patches drain quickly, but every conveyor carries twice as much.'},
+  heavy:{n:'Heavy world',hard:1,col:'#ff9a5a',charts:2,seeds:2,d:'Crushing gravity. Conveyors and drills run 40% slower, Uplinks can’t lift anything to the Core, and every building costs 50% more. Mag-rail and long conveyors are your lifeline. Pays double Starseeds, and double Starcharts when you next Voyage.'}
+};
 // After a Voyage, moons keep this share of their ore patches (times the star's own share); the 4 nearest always stay.
 export const VOY_THIN=.6;
 
