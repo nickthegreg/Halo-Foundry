@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:67,date:'2026-11-19',title:'Fairer Voyage roads',items:[
+    'The Low-gravity moon is now properly the gentler road: Dense mode costs nothing extra there. A dense dig or craft takes just 2 inputs in the normal time for an item worth 2 (instead of 5 inputs in 1.5× the time), so every conveyor and machine carries twice as much for free.',
+    'Heavy world: Uplinks work again, but lift half as fast and draw three times the power. Slower conveyors and drills and 50% dearer buildings stay, as do the double rewards.'
+  ]},
   {n:66,date:'2026-11-19',title:'Voyage, reworked',items:[
     'The Starship is now bought in the Starseed shop (Voyage, from your second ascension) for 300,000 Starseeds, instead of being built.',
     'Instead of a star to pick, a Voyage now offers two roads, with a warning before you choose. The Low-gravity moon is the gentler one: Dense is the minimum mode for every drill and machine, and Compression is yours from the start. The Heavy world is much harder: conveyors and drills run 40% slower, Uplinks don’t work and every building costs 50% more, but it pays double Starseeds and double Starcharts.',

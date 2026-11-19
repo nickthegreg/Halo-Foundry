@@ -11,8 +11,8 @@ export const STARS={
 };
 // The two roads a Voyage can take. Chosen when you Voyage; lasts until the next one.
 export const PATHS={
-  float:{n:'Low-gravity moon',hard:0,col:'#9fe8ff',charts:1,seeds:1,d:'Everything floats a little. Drills and machines can’t run in Normal mode: Dense is the minimum, and Compression is yours from the start. Each dig and craft eats 5× the ore and parts, so patches drain quickly, but every conveyor carries twice as much.'},
-  heavy:{n:'Heavy world',hard:1,col:'#ff9a5a',charts:2,seeds:2,d:'Crushing gravity. Conveyors and drills run 40% slower, Uplinks can’t lift anything to the Core, and every building costs 50% more. Mag-rail and long conveyors are your lifeline. Pays double Starseeds, and double Starcharts when you next Voyage.'}
+  float:{n:'Low-gravity moon',hard:0,col:'#9fe8ff',charts:1,seeds:1,d:'Everything floats a little, and stacks itself. Dense mode costs nothing extra here: a dense dig or craft takes just 2 inputs, in the normal time, for an item worth 2. Every drill and machine runs Dense at least, so every conveyor, Uplink and buffer carries twice as much for free. Compression is yours from the start.'},
+  heavy:{n:'Heavy world',hard:1,col:'#ff9a5a',charts:2,seeds:2,d:'Crushing gravity. Conveyors and drills run 40% slower, Uplinks lift half as fast for triple the power, and every building costs 50% more. Mag-rail and long conveyors carry the load. Pays double Starseeds, and double Starcharts when you next Voyage.'}
 };
 // After a Voyage, moons keep this share of their ore patches (times the star's own share); the 4 nearest always stay.
 export const VOY_THIN=.6;

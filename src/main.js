@@ -59,6 +59,8 @@ const UPG={
 };
 function ssLv(k){const v=(S&&S.ss&&S.ss[k])||0;return k==='dense'&&S&&S.voy&&S.voy.path==='float'&&isCamp()?Math.max(v,1):v}
 function minDn(){return voyPath()==='float'?1:0}
+// Low gravity makes stacking free: a dense dig or craft takes 2 inputs (worth 2) in the normal time, instead of 5 in 1.5×
+function applyGrav(){const f=voyPath()==='float';TIN[1]=f?2:5;TT[1]=f?1:1.5}
 function nupLv(k){return (S&&S.nup&&S.nup[k])||0}
 function relN(k){let n=0;for(const r of (S&&S.relics)||[])if(r===k)n++;return n}
 // ---------- late game (main game, from ascension 2) ----------
@@ -310,7 +312,7 @@ function accept(nb,t,side,p0){
     case 'combustor':case 'turbine':{const u=worth(t);if((BASE_OF[t]||t)!=='carbon'||nb.fuel+u>(nb.t==='combustor'?8:20))return false;nb.fuel+=u;return true;}
     case 'reactor':if(t!=='aether'||nb.fuel>=10)return false;nb.fuel++;return true;
     case 'refinery':{const u=worth(t);t=BASE_OF[t]||t;if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n+=u;stat('c',t,u);return true;}
-    case 'uplink':if(t==='husk'||nb.q.length>=6||voyPath()==='heavy')return false;nb.q.push(t);return true;
+    case 'uplink':if(t==='husk'||nb.q.length>=6)return false;nb.q.push(t);return true;
     case 'ring':if((t!=='petal'&&t!=='lattice')||nb.n+(nb.l||0)>=4)return false;if(t==='lattice')nb.l=(nb.l||0)+1;else nb.n++;return true;
     case 'compressor':{
       if(nb.mode===2){if(!BASE_OF[t]||(nb.inN>0&&nb.inT!==t)||nb.inN>=4)return false;nb.inT=t;nb.inN++;return true}
@@ -962,8 +964,8 @@ function goalTick(dt){goalAcc+=dt;if(goalAcc<1)return;goalAcc=0;objTick();achTic
 function pulseSpd(){let v=11*bm('pulse',.92)*rp('pulse')*(modOn('lowg')?2:1)*(orbDone('prefab')?1.5:1)*(orbDone('orelays')?2:1);for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].spd)v*=RUNGS[i].spd;return v}
 // Uplinks: 4 items/s beside the Core, slowing with distance, while power draw climbs 3 kW per tile
 function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
-function uplinkRate(b){return 4*rp('up')*(orbDone('bulk')?1.5:1)/(1+Math.max(0,coreDist(b)-3)/8)}
-function uplinkPw(b){return Math.round(60+3*coreDist(b))}
+function uplinkRate(b){return (voyPath()==='heavy'?.5:1)*4*rp('up')*(orbDone('bulk')?1.5:1)/(1+Math.max(0,coreDist(b)-3)/8)}
+function uplinkPw(b){return Math.round((60+3*coreDist(b))*(voyPath()==='heavy'?3:1))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)+ssLv('xpulse')}
 function rungSum(k){let n=0;for(let i=0;i<S.gt;i++)n+=rung(i)[k]||0;return n}
 function gridMul(){return (1+.02*nupLv('forge'))*(1+.1*slLv('forge'))*(1+galPerk('spd'))*bm('fab',.96)*(1+mkB('spd'))*(1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
@@ -2386,7 +2388,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>!(t==='uplink'&&voyPath()==='heavy')&&((t==='dock'&&isCamp()&&S.ms>=MS.length&&(late()||voyN()>0))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t)));
+const isUnl=t=>(t==='dock'&&isCamp()&&S.ms>=MS.length&&(late()||voyN()>0))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -3642,7 +3644,7 @@ function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):nul
 function start(data,forceNew){
   let d=forceNew?null:(data&&data.v?data:load());
   const seed=d?d.seed:(Math.random()*1e9|0);
-  S=fresh(seed);if(d){if(d.asc&&typeof d.asc==='object')S.asc=d.asc;S.mode=d.mode||'campaign';S.mod=d.mod&&MODS[d.mod]?d.mod:null;S.mods=Array.isArray(d.mods)?d.mods.filter(k=>MODS[k]):[];S.moon=d.moon&&typeof d.moon==='object'?d.moon:null;S.ch=d.ch&&CHALLENGES[d.ch]?d.ch:null;S.daily=d.daily||null;S.voy=d.voy&&typeof d.voy==='object'?d.voy:null;S.landed=Array.isArray(d.landed)?d.landed.filter(q=>q&&ORE_KEYS[q.k]):[]}genWorld(seed);
+  S=fresh(seed);if(d){if(d.asc&&typeof d.asc==='object')S.asc=d.asc;S.mode=d.mode||'campaign';S.mod=d.mod&&MODS[d.mod]?d.mod:null;S.mods=Array.isArray(d.mods)?d.mods.filter(k=>MODS[k]):[];S.moon=d.moon&&typeof d.moon==='object'?d.moon:null;S.ch=d.ch&&CHALLENGES[d.ch]?d.ch:null;S.daily=d.daily||null;S.voy=d.voy&&typeof d.voy==='object'?d.voy:null;S.landed=Array.isArray(d.landed)?d.landed.filter(q=>q&&ORE_KEYS[q.k]):[]}applyGrav();genWorld(seed);
   place('core',191,191,0,true);
   if(d){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
