@@ -19,19 +19,36 @@ export const VOY_THIN=.6;
 
 // The Helm: permanent upgrades bought with Starcharts. Level n costs cost(n).
 export const HELM={
-  barges:{n:'More barges',max:5,cost:L=>2+2*L,d:'Each Barge Dock flies one more barge per level. Docks start with one.'},
-  holds:{n:'Bigger holds',max:5,cost:L=>3+2*L,d:'Barges carry 50% more ore per level.'},
-  thrust:{n:'Thrusters',max:5,cost:L=>3+2*L,d:'Barge round trips are 20% quicker per level.'},
-  survey:{n:'Survey',max:4,cost:L=>4+3*L,d:'Asteroids pass 25% more often per level, and are 25% bigger.'},
-  landfall:{n:'Landfall',max:4,cost:L=>4+3*L,d:'Small asteroids land on your moon 25% more often per level.'},
-  oldlight:{n:'Old light',max:10,cost:L=>5+3*L,d:'+15% Starseeds when you Ascend, per level.'},
-  sense:{n:'Star sense',max:1,cost:()=>8,d:'Choose each new star from 4 instead of 3.'},
-  crate:{n:'Settler crate',max:1,cost:()=>6,d:'Every moon starts with 4 Drills, 4 Smelters and 2 Fabricators you can place for free.'},
-  packed:{n:'Packed memory',max:1,cost:()=>15,d:'Compression is yours from the start of every Voyage: Dense and Packed modes, no Starseeds or ascensions needed.'},
-  novamem:{n:'Nova memory',max:4,cost:L=>10+10*L,d:'Keep 25% of your Nova workshop levels per level when you Voyage.'},
-  command:{n:'Old command',max:1,cost:()=>30,d:'Keep your Commander levels when you Voyage.'},
-  ancestry:{n:'Ancestral shop',max:1,cost:()=>60,d:'Keep everything you bought in the Starseed shop when you Voyage.'}
+  // The foundry: big multipliers on every moon of the Voyage
+  tempo:{br:'Foundry',n:'Tempo',max:10,cost:L=>5+5*L,d:'Every machine works 25% faster per level.'},
+  bounty:{br:'Foundry',n:'Bounty',max:10,cost:L=>5+5*L,d:'Every ore tile holds 50% more ore per level.'},
+  dynamo:{br:'Foundry',n:'Dynamo',max:10,cost:L=>5+5*L,d:'Every power source makes 50% more per level.'},
+  current:{br:'Foundry',n:'Current',max:5,cost:L=>6+6*L,d:'Conveyors move 15% faster per level.'},
+  echoes:{br:'Foundry',n:'Echoes',max:5,cost:L=>8+8*L,d:'Every moon you’ve left this Voyage hums along with you: +2% machine speed and +2% Starseeds per moon left, per level (up to 40 moons).'},
+  // The road: soften the road you chose
+  mastery:{br:'The road',n:'Road mastery',max:5,cost:L=>10+10*L,d:'Each level takes a fifth off your road’s penalty. Heavy world: conveyors, drills and Uplinks less slowed, buildings less dear. Low-gravity moon: dense digs and crafts need fewer inputs and less time. The road’s rewards stay the same.'},
+  // Ascending
+  oldlight:{br:'Ascending',n:'Old light',max:10,cost:L=>5+3*L,d:'+15% Starseeds when you Ascend, per level.'},
+  wider:{br:'Ascending',n:'Wider choice',max:2,cost:L=>[12,30][L],d:'One more Relic to choose from every time you pick a Relic, per level.'},
+  finer:{br:'Ascending',n:'Finer Relics',max:1,cost:()=>40,d:'Every Relic you’re offered is Rare or better.'},
+  absolve:{br:'Ascending',n:'Absolution',max:3,cost:L=>15+15*L,d:'Your oldest bane stops counting, per level.'},
+  // Starting out
+  crate:{br:'Starting out',n:'Settler crate',max:1,cost:()=>6,d:'Every moon starts with 4 Drills, 4 Smelters and 2 Fabricators you can place for free.'},
+  stores:{br:'Starting out',n:'Ship’s stores',max:5,cost:L=>4+4*L,d:'Every moon starts with 2,000 iron, 2,000 copper, 500 gears and 500 wire more per level.'},
+  packed:{br:'Starting out',n:'Packed memory',max:1,cost:()=>15,d:'Compression is yours from the start of every Voyage: Dense and Packed modes, no Starseeds or ascensions needed.'},
+  // Asteroids
+  barges:{br:'Asteroids',n:'More barges',max:5,cost:L=>2+2*L,d:'Each Barge Dock flies one more barge per level. Docks start with one.'},
+  holds:{br:'Asteroids',n:'Bigger holds',max:5,cost:L=>3+2*L,d:'Barges carry 50% more ore per level.'},
+  thrust:{br:'Asteroids',n:'Thrusters',max:5,cost:L=>3+2*L,d:'Barge round trips are 20% quicker per level.'},
+  survey:{br:'Asteroids',n:'Survey',max:4,cost:L=>4+3*L,d:'Asteroids pass 25% more often per level, and are 25% bigger.'},
+  landfall:{br:'Asteroids',n:'Landfall',max:4,cost:L=>4+3*L,d:'Small asteroids land on your moon 25% more often per level.'},
+  // Carried into the next Voyage
+  novamem:{br:'Next Voyage',n:'Nova memory',max:4,cost:L=>10+10*L,d:'Keep 25% of your Nova workshop levels per level when you Voyage.'},
+  command:{br:'Next Voyage',n:'Old command',max:1,cost:()=>30,d:'Keep your Commander levels when you Voyage.'},
+  ancestry:{br:'Next Voyage',n:'Ancestral shop',max:1,cost:()=>60,d:'Keep everything you bought in the Starseed shop when you Voyage.'}
 };
+// Iridium delivered to the Core during a Voyage cycle adds Starcharts when you next Voyage
+export const IRID_PER_CHART=5000;
 
 // Asteroids that pass the moon, mined by Barge Docks. mix = ore weights.
 export const AST_KINDS={

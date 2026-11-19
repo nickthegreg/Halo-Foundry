@@ -2,7 +2,7 @@ import {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCK
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {genGalaxy,moonSeedMul,QUADS,BANDS,bandOf,SPECIALS,BIAS,GAL_RINGS} from './data/galaxy.js';
 import {FIRST_STEPS,HOWTO,FAQ} from './data/guide.js';
-import {STARS,PATHS,VOY_THIN,HELM,AST_KINDS} from './data/voyage.js';
+import {STARS,PATHS,VOY_THIN,HELM,AST_KINDS,IRID_PER_CHART} from './data/voyage.js';
 import {CLIENTS,TIMED_SIZES,OBJECTIVES,OBJ_BONUS,OBJ_ALL,BANES,ACH} from './data/goals.js';
 import {EV,CANDY_UP} from './data/event.js';
 import {makeDefense} from './defense.js';
@@ -43,7 +43,7 @@ function pay(c,sg){for(const k in c)S.inv[k]=(S.inv[k]||0)+sg*c[k]}
 function missing(c){const m=[];for(const k in c){const h=S.inv[k]||0;if(h<c[k])m.push((c[k]-h)+' '+ITEMS[k].s)}return m.join(', ')}
 function countOf(t){let n=0;for(const b of S.bs.values())if(b.t===t)n++;return n}
 // Anything priced in Ember shards climbs Fibonacci-style with each one you own: 1, 1, 2, 3, 5, 8…
-function costOf(t,n){const c0=costOf0(t,n),bc=bm('cost',1.06)*(voyPath()==='heavy'&&t!=='wreck'?1.5:1);if(t==='wreck'){const m=1+.5*Math.max(0,((S.moon&&S.moon.r)||1)-1);for(const k in c0)c0[k]=Math.round(c0[k]*m)}if(bc!==1)for(const k in c0)if(k!=='ember')c0[k]=Math.ceil(c0[k]*bc);return c0}
+function costOf(t,n){const c0=costOf0(t,n),bc=bm('cost',1.06)*(voyPath()==='heavy'&&t!=='wreck'?1+.5*roadPen():1);if(t==='wreck'){const m=1+.5*Math.max(0,((S.moon&&S.moon.r)||1)-1);for(const k in c0)c0[k]=Math.round(c0[k]*m)}if(bc!==1)for(const k in c0)if(k!=='ember')c0[k]=Math.ceil(c0[k]*bc);return c0}
 function costOf0(t,n){if(ssLv('lfit')&&(t==='splitter'||t==='sorter'||t==='junction'))return {};const c=Object.assign({},B[t].cost||{});if((t==='rail'||t==='railterm'||t==='pylon')&&ssLv('rails'))for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-.25*ssLv('rails'))));if(c.ember){let a=c.ember,b=c.ember;const k=n==null?countOf(t):n;for(let i=0;i<k;i++){const q=a+b;a=b;b=q}c.ember=a;if(t==='deepdrill'&&k<nupLv('grant'))delete c.ember}const off=Math.min(.5,.05*cmdLv('architect')+relStat('cost')/100);if(off)for(const q in c)c[q]=Math.max(1,Math.ceil(c[q]*(1-off)));return c}
 // Upgrade costs: hand-set early levels, then each further level costs the last one times `grow`
 function tierCost(T,grow,L){if(L<T.length)return T[L];const c={},m=Math.pow(grow,L-T.length+1),last=T[T.length-1];for(const k in last)c[k]=Math.round(last[k]*m/10)*10;return c}
@@ -59,8 +59,8 @@ const UPG={
 };
 function ssLv(k){const v=(S&&S.ss&&S.ss[k])||0;return k==='dense'&&S&&S.voy&&S.voy.path==='float'&&isCamp()?Math.max(v,1):v}
 function minDn(){return voyPath()==='float'?1:0}
-// Compression costs are the same on every road (kept as a hook)
-function applyGrav(){TIN[1]=5;TT[1]=1.5}
+// Low-gravity Road mastery makes its forced Dense cheaper; everywhere else Dense costs 5 inputs in 1.5× the time
+function applyGrav(){const L=voyPath()==='float'?hl('mastery'):0;TIN[1]=5-[0,1,1,2,2,3][L];TT[1]=1.5-.1*L}
 function nupLv(k){return (S&&S.nup&&S.nup[k])||0}
 function relN(k){let n=0;for(const r of (S&&S.relics)||[])if(r===k)n++;return n}
 // ---------- late game (main game, from ascension 2) ----------
@@ -100,10 +100,10 @@ const NO_DUP=['nova','ember'];
 function dupN(){const d=dupP();return Math.floor(d)+(Math.random()<d%1?1:0)}
 function coreKW(){return CORE_GEN*(1+.2*ascN())*rp('core')}
 function drillR(t){return B[t].r+(t==='deepdrill'?nupLv('reach'):0)}
-function drillMult(b){return (voyPath()==='heavy'?.6:1)*(B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)*(b.ore==='voidstone'&&ssLv('vsight')?1.5:1)*(b.ore==='voidstone'&&b.t==='deepdrill'&&nupLv('lens')?1.5:1)*(1+.1*orbLv('harvest'))*bm('drill',.95)*(1+mkB('drill'))}
+function drillMult(b){return (voyPath()==='heavy'?1-.4*roadPen():1)*(B[b.t].mult||1)*(b.t==='deepdrill'?1+.2*nupLv('bore'):1)*rp('drill')*(modOn('thin')?1.5:1)*(b.ore==='voidstone'&&ssLv('vsight')?1.5:1)*(b.ore==='voidstone'&&b.t==='deepdrill'&&nupLv('lens')?1.5:1)*(1+.1*orbLv('harvest'))*bm('drill',.95)*(1+mkB('drill'))}
 function oreUse(b){return (b.t==='deepdrill'?.5*Math.pow(.85,nupLv('thrift')):1)*(modOn('thin')?2:1)}
 // Deep veins doesn't apply to carbon
-function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+seedOreB())*rp('ore')*((o==='voidstone'||o==='starsand')&&orbDone('survey')?1.5:1)*(orbDone('surv2')?1.25:1)*bm('ore',.92)*(1+galPerk('ore'))}
+function veinMul(o){return Math.pow(1.5,o==='carbon'?0:(S.up&&S.up.vein)||0)*(1+seedOreB())*rp('ore')*((o==='voidstone'||o==='starsand')&&orbDone('survey')?1.5:1)*(orbDone('surv2')?1.25:1)*bm('ore',.92)*(1+galPerk('ore'))*(1+.5*hl('bounty'))}
 // Every Menu upgrade level compounds the halo: ×1.01 per level
 function upTotal(){let n=0;for(const k in (S.up||{}))n+=S.up[k]||0;return n}
 function haloMul(){return Math.pow(1.01,upTotal())}
@@ -347,6 +347,7 @@ function pushDir(b,t,d,p0){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||n
 function deliver(t,quiet){
   if(BASE_OF[t]){S.seen[t]=1;const n=worth(t);for(let i=0;i<n;i++)deliver(BASE_OF[t],quiet||i>0);return}
   stat('d',t);S.flags.del++;S.seen[t]=1;if(!quiet)sfx('core',CX,CY);
+  if(t==='iridium'&&isCamp())S.irid=(S.irid||0)+1;
   if(t==='nova')novaFound();
   dAdd(dVal(t),'d');
   if(S.ch==='handfed'&&EVERY_ITEMS.includes(t)){S.chd=S.chd||{};S.chd[t]=(S.chd[t]||0)+1}
@@ -386,7 +387,7 @@ function dayPhase(){return (S.time/(DAY_LEN*starP('day'))+0.18)%1}
 function daylight(){if(modOn('eternal'))return 1;return Math.max(0,Math.min(1,Math.sin(dayPhase()*Math.PI*2)*1.3+(modOn('longnight')?-.15:.5)))}
 
 function sim(dt){
-  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1)*(1+rungSum('belt'))*(1+.05*orbLv('flow'))*bm('belt',.95)*(1+mkB('belt'))*(voyPath()==='heavy'?.6:1);
+  S.time+=dt;statTick(dt);BV=BELT_V*(1+.2*((S.up&&S.up.belt)||0))*rp('belt')*(modOn('lowg')?1.5:1)*(1+rungSum('belt'))*(1+.05*orbLv('flow'))*bm('belt',.95)*(1+mkB('belt'))*(voyPath()==='heavy'?1-.4*roadPen():1)*(1+.15*hl('current'));
   const day=daylight();
   const sday=orbDone('tether')?Math.max(day,.5):day;
   let demand=0,solar=S.petals*petalKW()+(S.lat||0)*latticeKW(),cap=0;const comb=[];
@@ -401,7 +402,7 @@ function sim(dt){
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)&&!(b.t==='reactor'&&(b.husk||0)>=4)){cap+=B[b.t].gen*(b.t==='reactor'?reactorMul(b):1);comb.push(b)}
   }
   demand*=bm('pow',1.08);solar*=bm('sun',.94);
-  const gridOn=S.ms>=MS.length,gmul=(1+.05*swarmN())*(1+.25*slLv('sun'))*(1+galPerk('pow'))*(1+mkB('pow'))*(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1)*(1+.1*ringN())*(1+.1*orbLv('yield'));const solarG=gmul*stellarMul()*(moonSp('storm')?.7:1)*starP('solar')*bm('sun',.94);solar*=gmul*stellarMul()*(moonSp('storm')?.7:1)*starP('solar');cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
+  const gridOn=S.ms>=MS.length,gmul=(1+.5*hl('dynamo'))*(1+.05*swarmN())*(1+.25*slLv('sun'))*(1+galPerk('pow'))*(1+mkB('pow'))*(1+.1*repLv('harmonics'))*(modOn('embermoon')?.8:1)*(1+.1*ringN())*(1+.1*orbLv('yield'));const solarG=gmul*stellarMul()*(moonSp('storm')?.7:1)*starP('solar')*bm('sun',.94);solar*=gmul*stellarMul()*(moonSp('storm')?.7:1)*starP('solar');cap*=gmul*burnPow()*fuelMul();const base=coreKW()*gmul*(modOn('unstable')?day:1)+solar;
   const need=Math.max(0,demand-base),load=cap?(gridOn?1:Math.min(1,need/cap)):0,gen=base+cap*load;
   const sat0=demand>0?Math.min(1,gen/demand):1;
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load,solarG};
@@ -768,7 +769,7 @@ function railTick(b,dt,sat){
   b.active=sh.ph>0;b.ang+=dt*(b.active?2:.1);
 }
 // ================= goals: banes, Market contracts, Moon objectives, achievements =================
-function baneN(k){let n=0;for(const b of (S&&S.banes)||[])if(b===k)n++;return n}
+function baneN(k){let n=0;for(const b of ((S&&S.banes)||[]).slice(S?hl('absolve'):0))if(b===k)n++;return n}
 function bm(k,p){return Math.pow(p,baneN(k))}
 // Recipe inputs and outputs after banes
 function recIn(k){const r=RECIPES[k].in,g=k==='gear'?baneN('gear'):k==='circuit'?baneN('circuit'):k==='steel'?baneN('steel'):0;if(!g)return r;const o=Object.assign({},r);if(k==='gear')o.iron+=g;else if(k==='circuit')o.wire+=g;else o.carbon+=g;return o}
@@ -964,11 +965,11 @@ function goalTick(dt){goalAcc+=dt;if(goalAcc<1)return;goalAcc=0;objTick();achTic
 function pulseSpd(){let v=11*bm('pulse',.92)*rp('pulse')*(modOn('lowg')?2:1)*(orbDone('prefab')?1.5:1)*(orbDone('orelays')?2:1);for(let i=0;i<Math.min(S.gt,RUNGS.length);i++)if(RUNGS[i].spd)v*=RUNGS[i].spd;return v}
 // Uplinks: 4 items/s beside the Core, slowing with distance, while power draw climbs 3 kW per tile
 function coreDist(b){return Math.hypot(b.x+.5-CX,b.y+.5-CY)}
-function uplinkRate(b){return (voyPath()==='heavy'?.5:1)*4*rp('up')*(orbDone('bulk')?1.5:1)/(1+Math.max(0,coreDist(b)-3)/8)}
-function uplinkPw(b){return Math.round((60+3*coreDist(b))*(voyPath()==='heavy'?3:1))}
+function uplinkRate(b){return (voyPath()==='heavy'?1-.5*roadPen():1)*4*rp('up')*(orbDone('bulk')?1.5:1)/(1+Math.max(0,coreDist(b)-3)/8)}
+function uplinkPw(b){return Math.round((60+3*coreDist(b))*(voyPath()==='heavy'?1+2*roadPen():1))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)+ssLv('xpulse')}
 function rungSum(k){let n=0;for(let i=0;i<S.gt;i++)n+=rung(i)[k]||0;return n}
-function gridMul(){return (1+.02*nupLv('forge'))*(1+.1*slLv('forge'))*(1+galPerk('spd'))*bm('fab',.96)*(1+mkB('spd'))*(1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
+function gridMul(){return (1+.25*hl('tempo'))*echoMul()*(1+.02*nupLv('forge'))*(1+.1*slLv('forge'))*(1+galPerk('spd'))*bm('fab',.96)*(1+mkB('spd'))*(1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -1050,7 +1051,7 @@ function ascMin(){const n=(S.asc&&S.asc.n)||0;return 20*n*n}
 function canAscend(){return hasAether()&&ascSeeds()>=ascMin()}
 function modSeedMul(){if(S.moon)return moonSeedMul({r:S.moon.r||0,mods:modList()});let m=1;for(const k of modList())m*=MODS[k].seeds;return m}
 function seedTierMul(){return 1+.05*((S.gt||0)+(S.ft||0))}
-function ascSeeds(){return Math.floor((1+.5*voyN())*(1+.15*helmLv('oldlight'))*starP('seeds')*Math.sqrt((S.inv.aether||0)+3*(S.inv.husk||0))*seedTierMul()*rp('seeds')*modSeedMul()*ringSeedMul()*(1+.05*orbLv('bloom'))*bm('seeds',.95)*objMul()*(1+(S.mkSeed||0)/100)*(S.stormWon?1.25:1)*(1+galPerk('seeds'))*(1+.04*swarmN())*(1+.15*slLv('bloom'))*(1+.03*nupLv('prism')))}
+function ascSeeds(){return Math.floor(echoMul()*(1+.5*voyN())*(1+.15*helmLv('oldlight'))*starP('seeds')*Math.sqrt((S.inv.aether||0)+3*(S.inv.husk||0))*seedTierMul()*rp('seeds')*modSeedMul()*ringSeedMul()*(1+.05*orbLv('bloom'))*bm('seeds',.95)*objMul()*(1+(S.mkSeed||0)/100)*(S.stormWon?1.25:1)*(1+galPerk('seeds'))*(1+.04*swarmN())*(1+.15*slLv('bloom'))*(1+.03*nupLv('prism')))}
 function ascMenu(){
   const A=S.asc||{n:0,seeds:0};if(!canAscend()&&!A.n&&!lifeSeeds())return '';
   return `<div class="sec-label">Ascension${A.n?' · '+A.n+' so far':''}</div>
@@ -1104,7 +1105,7 @@ function showAscension(){
 function relicTitle(k){return `<span style="color:${RARITY[RELICS[k].r].col}">${RELICS[k].n}</span>`}
 // Three different Relics, weighted by rarity; challenge relics never come from here
 function relicW(k){const r=RELICS[k].r;return RARITY[r].w*((r==='e'||r==='l')?[1,1.5,2][ssLv('lucky')]:1)*(r!=='c'&&nupLv('keystone')?1.25:1)}
-function relicOffer(rar,n,rare){const ks=Object.keys(RELICS).filter(k=>!RELICS[k].sig&&!RELICS[k].ring&&(!rar||RELICS[k].r===rar)&&(!rare||RELICS[k].r!=='c')),o=[],want=n||3+ssLv('wide')+(orbDone('attune')?1:0);
+function relicOffer(rar,n,rare){rare=rare||hl('finer')>0;const ks=Object.keys(RELICS).filter(k=>!RELICS[k].sig&&!RELICS[k].ring&&(!rar||RELICS[k].r===rar)&&(!rare||RELICS[k].r!=='c')),o=[],want=n||3+ssLv('wide')+(orbDone('attune')?1:0)+hl('wider');
   while(o.length<want&&o.length<ks.length){let tot=0;const pool=ks.filter(k=>!o.includes(k));for(const k of pool)tot+=relicW(k);let x=Math.random()*tot;for(const k of pool){x-=relicW(k);if(x<=0){o.push(k);break}}}return o}
 function relicCard(k,btn){return `<div class="ms cur"><div class="ms-top"><h4>${relicTitle(k)}</h4><span class="st" style="color:${RARITY[RELICS[k].r].col}">${RARITY[RELICS[k].r].n}${relN(k)?' · owned ×'+relN(k):''}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${relicText(k)}</div>${btn}</div></div>`}
 // Relic forge: 3 of one rarity (from this game's Relics) for a random one a rarity higher
@@ -1133,7 +1134,7 @@ function doAscend(mod){
   let mods=[],moon=null,gal=S.gal?Object.assign({},S.gal):null;
   if(typeof mod==='number'){const g=galState(),N=galNodes(),n=N[mod];if(!n||!galReach().includes(mod))return;
     mods=n.mods.slice();moon={id:n.id,n:n.n,r:n.r,q:n.q,sp:n.sp,bias:n.bias};gal={seed:g.seed,vis:[...g.vis,n.id],at:n.id};mod=mods[0]||null}
-  const A=S.asc||{n:0,seeds:0,total:0},got=ascSeeds(),inv={iron:400,copper:200};mod=mod&&MODS[mod]?mod:null;
+  const A=S.asc||{n:0,seeds:0,total:0},got=ascSeeds(),inv=startInv();mod=mod&&MODS[mod]?mod:null;
   for(const k of ['ember','nova'])if(S.inv[k]>0)inv[k]=S.inv[k];
   const ark=S.ark||{};let arkN=0;for(const k in ark)if(ITEMS[k]&&ark[k]>0){const bk=BASE_OF[k]||k;inv[bk]=(inv[bk]||0)+ark[k]*(BASE_OF[k]?worth(k):1);arkN+=ark[k]}
   const past=pastMoons().concat([{n:S.moon?S.moon.n:ascN()?'Moon '+(ascN()+1):'Home',id:S.moon?S.moon.id:S.gal?S.gal.at:0,petals:S.petals,lat:S.lat||0,ring:ringN(),swarm:swarmN(),asc:ascN(),seed:S.seed,mods:modList(),bias:S.moon?S.moon.bias:0,seeds:got}]);
@@ -1142,7 +1143,7 @@ function doAscend(mod){
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv,ms:TUT,prog:{},petals:0,gt:warm,gavg:0,ft:warm,favg:0,rsh:{done,cur:null,p:{},lv:{}},free:ssLv('crate')?{drill:4,smelter:4,fab:2}:{},ringWins:S.ringWins||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,relicRR:ssLv('reroll'),
     cmd:S.cmd||{},cmdBank:(S.cmdBank||0)+constN(S.petals),cmdSpent:S.cmdSpent||0,crown:S.crown||{},crownBank:(S.crownBank||0)+crownN(),crownSpent:S.crownSpent||0,asc:{n:A.n+1,seeds:(A.seeds||0)+got,total:(A.total||0)+got},
     up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,nova:S.flags.nova,ascHint:1},refined:S.refined||0,seen:S.seen,bs:[],fromCode:1,
-    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod,mods,moon,gal,past,voy:S.voy||null,starOffer:S.starOffer||null,arrLv:S.arrLv||0,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,banes:S.banes||[],banePick:baneOffer(),ach:S.ach||{},mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,objAll:S.objAll||0};if(S.relicPick)d.relicExtra++;if(moon&&moon.sp==='anomaly')d.relicExtraR++;
+    ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||relicOffer(),mod,mods,moon,gal,past,irid:S.irid||0,voy:S.voy||null,starOffer:S.starOffer||null,arrLv:S.arrLv||0,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,banes:S.banes||[],banePick:baneOffer(),ach:S.ach||{},mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,objAll:S.objAll||0};if(S.relicPick)d.relicExtra++;if(moon&&moon.sp==='anomaly')d.relicExtraR++;
   start(d);GALP=null;if(moon&&moon.sp==='derelict')placeWrecks();cam.x=CX;cam.y=CY;save();closeModal();burst(CX,CY,'#d8b4ff',60);sfx('fanfare');
   setTimeout(()=>openModal(`<span class="eyebrow">Ascension ${S.asc.n}</span><h1>A new moon</h1><p>The foundry wakes on fresh ground. You brought <strong>+${got} Starseed${got===1?'':'s'}</strong> (${S.asc.seeds} banked)${arkN?`, ${arkN.toLocaleString()} items from your Seed Ark`:''}${inv.ember?`, ${inv.ember.toLocaleString()} Ember shards${ddRefund?` (${ddRefund.toLocaleString()} refunded from your Deep Drills)`:''}`:''}${inv.nova?`, ${inv.nova} Nova shard${inv.nova===1?'':'s'}`:''} and your Commander. Core power is now ${fmtW(coreKW())}${S.asc.n?' and you have +'+S.asc.n+' Commander point'+(S.asc.n===1?'':'s')+' from ascending':''}.</p>${moon?`<p>You land on <strong>${moon.n}</strong>. ${moonTraits({mods,bias:moon.bias,sp:moon.sp}).join(' ')}</p>`:mod?`<p>This moon: <strong>${MODS[mod].n}</strong>. ${MODS[mod].d}</p>`:''}<p>The tutorial is behind you: everything up to the main game is unlocked. Next up is <strong>${MS[TUT].n}</strong>.</p>${S.relicPick?'<button class="btn primary" data-relicshow>Choose your Relic</button>':'<button class="btn primary" data-close>Begin</button>'}`),500);
 }
@@ -1151,7 +1152,14 @@ function doAscend(mod){
 
 // ================= Voyage: the second tier =================
 // Build a Starship, leave the star, and start the whole game again with Starcharts to spend in the Helm.
+function startInv(){const L=hl('stores');return {iron:400+2000*L,copper:200+2000*L,...(L?{gear:500*L,wire:500*L}:{})}}
 function voyN(){return (S&&S.voy&&S.voy.n)||0}
+// Helm effects that apply only in the main game
+function hl(k){return isCamp()?helmLv(k):0}
+function echoN(){return Math.min(40,pastMoons().length)}
+function echoMul(){return 1+.02*hl('echoes')*echoN()}
+// Road mastery: each level takes a fifth off the road's penalty (pen=1 at no mastery, 0 at full)
+function roadPen(){return 1-.2*hl('mastery')}
 // Each Voyage makes every craft and smelt take 50% longer, so a late factory needs more machines
 function voyTime(){return isCamp()?1+.5*voyN():1}
 function helmLv(k){return (S&&S.voy&&S.voy.helm&&S.voy.helm[k])||0}
@@ -1160,18 +1168,20 @@ function starP(k){const st=isCamp()?curStar():null;return st&&st[k]!=null?st[k]:
 function voyPath(){return isCamp()&&S.voy&&PATHS[S.voy.path]?S.voy.path:null}
 // Starship unlocks once you've closed a Halo Ring and a Dyson shell, on any moon
 function voyReady(){return (S.ringWins||0)>=1&&((S.starlight||0)>0||Object.values(S.sl||{}).some(v=>v>0))}
-function voyCharts(){return Math.floor(Math.cbrt(lifeSeeds()+ascSeeds())*(1+.1*voyN())*starP('charts'))}
+function voyCharts(){return Math.floor(Math.cbrt(lifeSeeds()+ascSeeds())*(1+.1*voyN())*starP('charts'))+iridCharts()}
+function iridCharts(){return Math.floor((S.irid||0)/IRID_PER_CHART)}
 function canVoyage(){return isCamp()&&ssLv('starship')>=1}
 function starOffer(){if(S.starOffer&&S.starOffer.length)return S.starOffer;const ks=Object.keys(STARS),o=[];const n=3+helmLv('sense');
   while(o.length<Math.min(n,ks.length)){const k=ks[Math.floor(Math.random()*ks.length)];if(!o.includes(k))o.push(k)}S.starOffer=o;save();return o}
 function starCard(k,btn){const st=STARS[k];return `<div class="ms cur"><div class="ms-top"><h4><span style="color:${st.col}">●</span> ${st.n}</h4><span class="st">Starseeds ×${st.seeds}</span></div><div class="ms-unl">${st.d}</div><div class="ms-unl" style="font-size:12.5px;opacity:.8">Solar ×${st.solar} · ore patches ×${(VOY_THIN*st.patches).toFixed(2)} · ore ×${st.rich} · asteroids ×${st.ast}${st.day!==1?` · days ×${st.day}`:''}</div>${btn||''}</div>`}
-function helmMenu(){const v=S.voy||{charts:0},have=v.charts||0;
-  return `<div class="sec-label">The Helm · ${have} Starchart${have===1?'':'s'} to spend</div><div class="ms-list">${Object.keys(HELM).map(k=>{const u=HELM[k],L=helmLv(k),mx=L>=u.max,c=mx?0:u.cost(L),ok=!mx&&have>=c;
-    return `<div class="ms cur"><div class="ms-top"><h4>${u.n}${u.max>1?' · level '+L:''}</h4><span class="st">${mx?(u.max>1?'Maxed':'Owned'):c+' chart'+(c===1?'':'s')}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-helm="${k}">${u.max>1?'+1':'Buy'}</button>`}</div></div>`}).join('')}</div>`}
+function helmMenu(){const v=S.voy||{charts:0},have=v.charts||0,brs=[...new Set(Object.values(HELM).map(u=>u.br))];
+  return `<div class="sec-label">The Helm · ${have} Starchart${have===1?'':'s'} to spend</div><p class="guide">Permanent. Everything here works on every moon of every Voyage.</p>`+brs.map(br=>`<div class="sec-label">${br}</div><div class="ms-list">${Object.keys(HELM).filter(k=>HELM[k].br===br).map(k=>{const u=HELM[k],L=helmLv(k),mx=L>=u.max,c=mx?0:u.cost(L),ok=!mx&&have>=c;
+    return `<div class="ms cur"><div class="ms-top"><h4>${u.n}${u.max>1?' · level '+L+' of '+u.max:''}</h4><span class="st">${mx?(u.max>1?'Maxed':'Owned'):c+' chart'+(c===1?'':'s')}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-helm="${k}">${u.max>1?'+1':'Buy'}</button>`}</div></div>`}).join('')}</div>`).join('')}
 function voyTab(){const v=S.voy||{},L=megaSt('starship'),st=curStar();
   let h=`<p class="guide">${voyN()?`Voyage ${voyN()}${st?`, on a <strong>${st.n}</strong>`:''}. `:''}A Voyage leaves this star for a new one and starts the whole game over: Starseeds, the Starseed shop, Nova, Commander and Starlight all reset. You keep your <strong>Relics</strong>, achievements and blueprints, and you’re paid <strong>Starcharts</strong> for the Helm. Every Voyage also adds +50% to all Starseeds you earn afterwards.</p>`;
-  if(canVoyage())h+=`<div class="ms cur"><div class="ms-top"><h4>The Starship is ready</h4><span class="st">+${voyCharts()} Starcharts</span></div><div class="ms-unl">Starcharts come from every Starseed you’ve earned since the last Voyage (cube root), counting this moon’s${starP('charts')>1?`, doubled for the ${curStar().n}`:''}.</div><button class="btn primary" data-voyopen>Choose your road →</button></div>`;
+  if(canVoyage())h+=`<div class="ms cur"><div class="ms-top"><h4>The Starship is ready</h4><span class="st">+${voyCharts()} Starcharts</span></div><div class="ms-unl">Starcharts come from every Starseed you’ve earned since the last Voyage (cube root), counting this moon’s${starP('charts')>1?`, doubled for the ${curStar().n}`:''}, plus 1 for every ${IRID_PER_CHART.toLocaleString()} Iridium delivered to the Core (${iridCharts()} so far).</div><button class="btn primary" data-voyopen>Choose your road →</button></div>`;
   else h+=`<div class="ms cur"><div class="ms-top"><h4>The Starship</h4><span class="st">${ascN()>=2?'300,000 Starseeds':'Locked'}</span></div><div class="ms-unl">${ascN()>=2?'Buy the Starship in the Starseed shop (Shop tab, Voyage) to unlock your first Voyage.':'Opens from your second ascension, in the Starseed shop.'} A Voyage now would pay about ${voyCharts()} Starcharts.</div></div>`;
+  h+=`<p class="guide">Iridium delivered to the Core: <strong>${(S.irid||0).toLocaleString()}</strong>, worth ${iridCharts()} extra Starchart${iridCharts()===1?'':'s'} (1 per ${IRID_PER_CHART.toLocaleString()}).${hl('echoes')?` Echoes: ${echoN()} moon${echoN()===1?'':'s'} left this Voyage, ×${echoMul().toFixed(2)} machine speed and Starseeds.`:''}</p>`;
   if(voyN()||(v.charts||0))h+=helmMenu();
   return h}
 function showStarPick(){
@@ -1183,7 +1193,7 @@ function doVoyage(k){if(!canVoyage()||!PATHS[k])return;
   const v=S.voy||{n:0,charts:0,total:0,helm:{}},got=voyCharts(),H=v.helm||{},hl=x=>H[x]||0;
   const nup={};if(hl('novamem'))for(const q in S.nup||{})nup[q]=Math.floor((S.nup[q]||0)*.25*hl('novamem'));
   const ss=hl('ancestry')?Object.assign({},S.ss||{}):{};delete ss.starship;if(hl('packed'))ss.dense=Math.max(ss.dense||0,2);
-  const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv:{iron:400,copper:200},ms:TUT,prog:{},petals:0,gt:0,gavg:0,ft:0,favg:0,
+  const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv:startInv(),ms:TUT,prog:{},petals:0,gt:0,gavg:0,ft:0,favg:0,
     free:hl('crate')?{drill:4,smelter:4,fab:2}:{},relics:S.relics||[],relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,
     cmd:hl('command')?S.cmd||{}:{},cmdBank:hl('command')?(S.cmdBank||0)+constN(S.petals):0,cmdSpent:hl('command')?S.cmdSpent||0:0,
     asc:{n:0,seeds:0,total:0},up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,ascHint:1},seen:{},bs:[],fromCode:1,ss,nup,ach:S.ach||{},
@@ -2836,7 +2846,7 @@ elCard.addEventListener('click',e=>{
   else if(b.hasAttribute('data-ascend')){if(canAscend())showGalaxy()}
   else if(b.hasAttribute('data-moonpick')){if(canAscend())showMoonPick()}
   else if(b.dataset.sl){const k=b.dataset.sl,u=STARLIGHT[k];if(!u)return;S.sl=S.sl||{};const L=S.sl[k]||0;if(L>=u.max)return;if((S.starlight||0)<L+1){showToast(`Needs ${L+1} Starlight. Close Dyson swarm shells to earn more.`);return}S.starlight-=L+1;S.sl[k]=L+1;save();showAscension();sfx('fanfare');showToast(u.n+' is now level '+S.sl[k])}
-  else if(b.dataset.helm){const k=b.dataset.helm,u=HELM[k];if(!u||!S.voy)return;const L=helmLv(k);if(L>=u.max)return;const c=u.cost(L);if((S.voy.charts||0)<c){showToast(`Needs ${c} Starcharts`);return}S.voy.charts-=c;S.voy.helm=S.voy.helm||{};S.voy.helm[k]=L+1;if(k==='packed'){S.ss=S.ss||{};S.ss.dense=Math.max(S.ss.dense||0,2)}save();sfx('fanfare');showAscension();showToast(u.n+(u.max>1?' is now level '+(L+1):' is yours'))}
+  else if(b.dataset.helm){const k=b.dataset.helm,u=HELM[k];if(!u||!S.voy)return;const L=helmLv(k);if(L>=u.max)return;const c=u.cost(L);if((S.voy.charts||0)<c){showToast(`Needs ${c} Starcharts`);return}S.voy.charts-=c;S.voy.helm=S.voy.helm||{};S.voy.helm[k]=L+1;if(k==='packed'){S.ss=S.ss||{};S.ss.dense=Math.max(S.ss.dense||0,2)}applyGrav();GALP=null;dirty=true;save();sfx('fanfare');showAscension();showToast(u.n+(u.max>1?' is now level '+(L+1):' is yours'))}
   else if(b.hasAttribute('data-voyopen')){if(canVoyage())showStarPick()}
   else if(b.dataset.voy){if(Date.now()-(b._arm||0)<3000)doVoyage(b.dataset.voy);else{b._arm=Date.now();b.textContent='Tap again to leave this star'}}
   else if(b.dataset.gogo){if(canAscend())doAscend(+b.dataset.gogo)}
@@ -3637,7 +3647,7 @@ function tap(sx,sy){
 // ================= save / load =================
 function serialize(){
   const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='stock')a.push({it:b.it,n:b.n});else if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
-  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,voy:S.voy||null,landed:S.landed||[],ast:S.ast||[],astT:S.astT,landT:S.landT,astId:S.astId||0,starOffer:S.starOffer||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dsrc:S.dsrc||{},dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
+  return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,irid:S.irid||0,voy:S.voy||null,landed:S.landed||[],ast:S.ast||[],astT:S.astT,landT:S.landT,astId:S.astId||0,starOffer:S.starOffer||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dsrc:S.dsrc||{},dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
 function save(){if(CRASHED)return;try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
 function load(){try{const s=localStorage.getItem(CUR);return s?JSON.parse(s):null}catch(_){return null}}
@@ -3650,7 +3660,7 @@ function start(data,forceNew){
     Object.assign(S,{inv:d.inv||{},ms:d.ms||0,prog:d.prog||{},petals:d.petals||0,gt:d.gt||0,gavg:d.gavg||0,up:d.up||{belt:0,vein:0},time:d.time||0,flags:d.flags||{del:0},unl:d.unl||S.unl,rec:d.rec||[],seen:d.seen||{},newT:d.newT||[]});
     for(let i=0;i<Math.min(S.ms,MS.length);i++){MS[i].unl.forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});MS[i].rec.forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(let i=0;i<S.gt;i++){const q=rung(i);(q.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(q.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
-    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;S.mega=ob(d.mega,{});S.past=Array.isArray(d.past)?d.past.filter(m=>m&&typeof m==='object'):[];S.ark=ob(d.ark,{});S.ast=Array.isArray(d.ast)?d.ast.filter(a=>a&&AST_KINDS[a.kind]):[];S.astT=d.astT;S.landT=d.landT;S.astId=+d.astId||0;S.starOffer=Array.isArray(d.starOffer)?d.starOffer.filter(k=>STARS[k]):null;S.starlight=+d.starlight||0;S.sl=ob(d.sl,{});S.boreWins=+d.boreWins||0;S.arkN=+d.arkN||0;S.gal=d.gal&&typeof d.gal.seed==='number'&&Array.isArray(d.gal.vis)?d.gal:null;S.stormWon=+d.stormWon||0;S.stormLost=+d.stormLost||0;S.arrLv=+d.arrLv||0;GALP=null;S.banes=Array.isArray(d.banes)?d.banes.filter(k=>BANES[k]):[];S.banePick=Array.isArray(d.banePick)?d.banePick.filter(k=>BANES[k]):null;S.ach=ob(d.ach,{});S.mk=d.mk&&Array.isArray(d.mk.open)?d.mk:null;S.mkRep=ob(d.mkRep,{});S.mkTot=+d.mkTot||0;S.mkComm=+d.mkComm||0;S.mkCommSkip=+d.mkCommSkip||0;S.mkTimed=+d.mkTimed||0;S.mkHuge=+d.mkHuge||0;S.mkB=ob(d.mkB,{});S.mkSeed=+d.mkSeed||0;S.obj=d.obj&&Array.isArray(d.obj.list)?d.obj:null;S.objAll=+d.objAll||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
+    {const R0=d.rsh&&d.rsh.done?d.rsh:d.res&&d.res.done?d.res:null;S.res=R0||{done:{},cur:null,p:{},lv:{}};S.res.p=S.res.p||{};S.res.lv=S.res.lv||{}}S.dr=d.dr||{};S.dch=d.dch||0;S.lr=+d.lr||0;S.charge=d.charge||0;S.ft=d.ft||0;S.favg=d.favg||0;S.cmd=d.cmd&&typeof d.cmd==='object'?d.cmd:{};S.cmdBank=+d.cmdBank||0;S.lat=+d.lat||0;S.aburn=+d.aburn||0;S.crown=d.crown&&typeof d.crown==='object'?d.crown:{};S.crownBank=+d.crownBank||0;S.crownSpent=+d.crownSpent||0;S.llr=+d.llr||0;S.cmdSpent=d.cmdSpent!=null?+d.cmdSpent:cmdLevels(S.cmd);S.asc=d.asc&&typeof d.asc==='object'?d.asc:{n:0,seeds:0,total:0};const ob=(v,f)=>v&&typeof v==='object'?v:f;S.ss=ob(d.ss,{});S.nup=ob(d.nup,{});S.relics=Array.isArray(d.relics)?d.relics.filter(k=>RELICS[k]):[];S.relicPick=Array.isArray(d.relicPick)?d.relicPick.filter(k=>RELICS[k]):null;S.relicRR=+d.relicRR||0;S.relicExtra=+d.relicExtra||0;S.relicExtraR=+d.relicExtraR||0;S.mega=ob(d.mega,{});S.past=Array.isArray(d.past)?d.past.filter(m=>m&&typeof m==='object'):[];S.ark=ob(d.ark,{});S.irid=+d.irid||0;S.ast=Array.isArray(d.ast)?d.ast.filter(a=>a&&AST_KINDS[a.kind]):[];S.astT=d.astT;S.landT=d.landT;S.astId=+d.astId||0;S.starOffer=Array.isArray(d.starOffer)?d.starOffer.filter(k=>STARS[k]):null;S.starlight=+d.starlight||0;S.sl=ob(d.sl,{});S.boreWins=+d.boreWins||0;S.arkN=+d.arkN||0;S.gal=d.gal&&typeof d.gal.seed==='number'&&Array.isArray(d.gal.vis)?d.gal:null;S.stormWon=+d.stormWon||0;S.stormLost=+d.stormLost||0;S.arrLv=+d.arrLv||0;GALP=null;S.banes=Array.isArray(d.banes)?d.banes.filter(k=>BANES[k]):[];S.banePick=Array.isArray(d.banePick)?d.banePick.filter(k=>BANES[k]):null;S.ach=ob(d.ach,{});S.mk=d.mk&&Array.isArray(d.mk.open)?d.mk:null;S.mkRep=ob(d.mkRep,{});S.mkTot=+d.mkTot||0;S.mkComm=+d.mkComm||0;S.mkCommSkip=+d.mkCommSkip||0;S.mkTimed=+d.mkTimed||0;S.mkHuge=+d.mkHuge||0;S.mkB=ob(d.mkB,{});S.mkSeed=+d.mkSeed||0;S.obj=d.obj&&Array.isArray(d.obj.list)?d.obj:null;S.objAll=+d.objAll||0;if(!S.relicPick&&isCamp())nextPick();S.free=ob(d.free,{});S.ringWins=+d.ringWins||0;
     {const O=ob(d.orb,{}),F=orbFresh();S.orb={mods:Math.max(0,Math.min(4,+O.mods||0)),kits:ob(O.kits,{}),cur:typeof O.cur==='string'?O.cur:null,p:ob(O.p,{}),done:ob(O.done,{}),lv:ob(O.lv,{}),ring:Math.max(0,Math.min(12,+O.ring||0)),swarm:Math.max(0,Math.min(24,+O.swarm||0))}||F}
     for(const id in S.res.done){const N=TECH[id];if(!N)continue;(N.unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});(N.rec||[]).forEach(k=>{if(!S.rec.includes(k))S.rec.push(k)})}
     for(const id in S.orb.done)(ORB[id]&&ORB[id].unl||[]).forEach(t=>{if(!S.unl.includes(t))S.unl.push(t)});S.trk=ob(d.trk,{});S.dscore=+d.dscore||0;S.dsrc=ob(d.dsrc,{});S.dEnd=!!d.dEnd;S.chWon=!!d.chWon;S.chFail=!!d.chFail;S.chOffer=Array.isArray(d.chOffer)?d.chOffer.filter(k=>RELICS[k]):null;S.chd=d.chd&&typeof d.chd==='object'?d.chd:{};refreshSeeds();
@@ -3697,7 +3707,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},refRatio,costOf,solarMul,isUnl,doVoyage,showStarPick,astTick,landfall,get ORE(){return ORE},voyCharts,batIn:(b,t)=>accept(b,t,3),sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},gridMul,relicOffer,baneN,deliver,get TIN(){return TIN},refRatio,costOf,solarMul,isUnl,doVoyage,showStarPick,astTick,landfall,get ORE(){return ORE},voyCharts,batIn:(b,t)=>accept(b,t,3),sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 // If something throws, stop autosaving (so a half-loaded game never overwrites a good save), keep the game
 // drawing, and show what went wrong with a way to copy the save as it was on this device.

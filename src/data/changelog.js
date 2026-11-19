@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:69,date:'2026-11-19',title:'A bigger Helm',items:[
+    'The Helm now has 21 upgrades in six branches, built to match what a Voyage costs. Foundry: Tempo (+25% machine speed per level), Bounty (+50% ore per tile), Dynamo (+50% power), all up to 10 levels; Current (+15% conveyor speed); and Echoes, which grows with every moon you’ve left this Voyage (+2% machine speed and Starseeds per moon per level).',
+    'Road mastery: each level takes a fifth off your road’s penalty, down to nothing at level 5. On the Low-gravity moon, Dense drops from 5 inputs to 2; on the Heavy world, conveyors, drills and Uplinks stop being slowed and buildings stop costing extra. The road’s rewards stay.',
+    'Ascending: Wider choice (one more Relic to choose from, twice), Finer Relics (every Relic offered is Rare or better) and Absolution (your oldest bane stops counting, up to 3). Starting out: Ship’s stores (iron, copper, gears and wire on every new moon).',
+    'Iridium has a purpose: every 5,000 delivered to the Core adds a Starchart to your next Voyage. The Voyage tab shows your running total.',
+    'Star sense is gone, since Voyages no longer offer stars.'
+  ]},
   {n:68,date:'2026-11-19',title:'Low gravity is the hard road',items:[
     'The Low-gravity moon is now the harder Voyage road, with double Starseeds and Starcharts: Dense is the minimum mode and it has its full cost, so every dig and craft takes 5 inputs and 1.5× the time for an item worth 2.',
     'The Heavy world is now the gentler road (normal rewards): slower conveyors and drills, half-speed Uplinks and 50% dearer buildings.'

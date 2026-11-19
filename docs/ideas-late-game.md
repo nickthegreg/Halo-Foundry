@@ -418,3 +418,11 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 - `solarMul(b)` = (1 + 0.25·grid tier) × (1 + min(2, 0.2·touching solar)) × (1 + 0.01·Lattice cores).
 - Open: owner feels late outputs are too fast and one machine per item is enough. `voyTime` is the first knob;
   next candidates are slowing the lifetime-Starseed ore/dupe curves after a Voyage, or scaling recipe input counts.
+
+### Helm v2 (2026-11-19)
+- `HELM` entries have `br` (Foundry, The road, Ascending, Starting out, Asteroids, Next Voyage); 21 upgrades, ~1,980
+  charts to max. Effects via `hl(k)` (main game only): tempo → `gridMul`, bounty → `veinMul`, dynamo → `gmul`,
+  current → BV, echoes → `echoMul()` (pastMoons this Voyage, max 40) on `gridMul` and `ascSeeds`, mastery →
+  `roadPen()` and `applyGrav()`, wider/finer → `relicOffer`, absolve → `baneN` skips the oldest banes, stores →
+  `startInv()`.
+- Iridium: `deliver` counts `S.irid` (kept through ascensions, reset by a Voyage); `iridCharts()` = irid / 5,000.
