@@ -139,6 +139,8 @@ const DM=['drill','deepdrill','smelter','foundry','fab','fab2','assembler'];
 function dIn(b,t){return b.dn?(BASE_OF[t]||null):(BASE_OF[t]?null:t)}
 // ore used by one dig: 1, or the dense/packed amount (less for Deep Drills with Nova press)
 function digOre(b){const m=b.dn|0;return m&&b.t==='deepdrill'?Math.ceil(TIN[m]*(1-.15*nupLv('press'))):TIN[m]}
+// A machine's effective mode: Dense or Packed only counts if its product has that form (kits never compress)
+function fabDn(b){const m=b.dn|0;return m===2?(PACK_OF[b.rec]?2:0):m===1?(DENSE_OF[b.rec]?1:0):0}
 function dOut(b,t){return b.dn===2&&PACK_OF[t]?PACK_OF[t]:b.dn&&DENSE_OF[t]?DENSE_OF[t]:t}
 // Switching mode sends whatever the machine holds to storage, then it starts clean
 function setDense(b,v){v=Math.max(v|0,minDn());if(b.t==='dock'){b.dn=v;return}for(const t of contents(b))addInv(t);
@@ -313,7 +315,8 @@ function accept(nb,t,side,p0){
     case 'reactor':if(t!=='aether'||nb.fuel>=10)return false;nb.fuel++;return true;
     case 'refinery':{const u=worth(t);t=BASE_OF[t]||t;if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n+=u;stat('c',t,u);return true;}
     case 'uplink':if(t==='husk'||nb.q.length>=6)return false;nb.q.push(t);return true;
-    case 'ring':if((t!=='petal'&&t!=='lattice')||nb.n+(nb.l||0)>=4)return false;if(t==='lattice')nb.l=(nb.l||0)+1;else nb.n++;return true;
+    case 'ring':{const bt=BASE_OF[t]||t;if(bt!=='petal'&&bt!=='lattice')return false;ringQ(nb);if(nb.pq.length+nb.lq.length>=4)return false;
+      const u=worth(t);if(bt==='lattice'){nb.lq.push(u);nb.l=(nb.l||0)+u}else{nb.pq.push(u);nb.n+=u}return true}
     case 'compressor':{
       if(nb.mode===2){if(!BASE_OF[t]||(nb.inN>0&&nb.inT!==t)||nb.inN>=4)return false;nb.inT=t;nb.inN++;return true}
       const bt=BASE_OF[t]||t,tg=nb.mode?2:1,need=TIN[tg],u=worth(t);
@@ -371,6 +374,8 @@ function checkMs(){
   else showBanner('Milestone complete · '+m.n,names.length?('Unlocked: '+names.join(', ')+'.'):'Keep going. The next step is in the top bar.');
   buildDock();save();
 }
+// Launch Ring queues: the worth of each loaded item (1, or 2 and 4 for dense and packed); rebuilt from counts on old saves
+function ringQ(b){if(!b.pq)b.pq=Array(b.n|0).fill(1);if(!b.lq)b.lq=Array(b.l|0).fill(1)}
 function launchLattice(b){
   const c0=crownN();S.lat=(S.lat||0)+1;LAUNCHED_L++;dAdd(2*dVal('lattice'),'l');sfx('launch',b.x+1.5,b.y+1.5);
   PARTS.push({k:'lattice',x:b.x+1.5,y:b.y+1.5,vx:(Math.random()-.5)*.4,vy:-1.2,life:3.2,max:3.2});
@@ -443,11 +448,11 @@ function sim(dt){
       case 'fab':case 'fab2':case 'assembler':{
         const r=b.rec&&RECIPES[b.rec];
         if(r&&!b.run&&b.outN+r.out<=Math.max(4,r.out*2)){
-          const m=TIN[b.dn|0],ri=recIn(b.rec);let ok=true;for(const k in ri)if((b.buf[k]||0)<ri[k]*m){ok=false;break}
+          const m=TIN[fabDn(b)],ri=recIn(b.rec);let ok=true;for(const k in ri)if((b.buf[k]||0)<ri[k]*m){ok=false;break}
           if(ok){for(const k in ri){b.buf[k]-=ri[k]*m;stat('c',k,ri[k]*m)}b.run=true;b.prog=0}
         }
         b.active=b.run;
-        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')*recSpd(b.rec)/(r.t*TT[b.dn|0]*voyTime());b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;const ro=recOut(b.rec);b.outN+=ro;stat('p',dOut(b,b.rec),ro);{const x=dupN();if(x){b.outN+=ro*x;stat('p',dOut(b,b.rec),ro*x)}}if(b.rec==='lattice'&&Math.random()<.05*orbLv('reclaim')){addInv('husk');stat('p','husk')}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
+        if(b.run){b.prog+=dt*sat*(B[b.t].mult||1)*rp('fab')*recSpd(b.rec)/(r.t*TT[fabDn(b)]*voyTime());b.ang+=dt*sat*2;if(b.prog>=1){b.run=false;const ro=recOut(b.rec);b.outN+=ro;stat('p',dOut(b,b.rec),ro);{const x=dupN();if(x){b.outN+=ro*x;stat('p',dOut(b,b.rec),ro*x)}}if(b.rec==='lattice'&&Math.random()<.05*orbLv('reclaim')){addInv('husk');stat('p','husk')}sfx('craft',b.x+b.w/2,b.y+b.w/2)}}
         if(r&&b.outN>0&&pushDir(b,dOut(b,b.rec),b.d))b.outN--;
         break;}
       case 'batcher':{
@@ -485,8 +490,11 @@ function sim(dt){
         if(b.active){b.prog+=dt*sat*uplinkRate(b);while(b.prog>=1&&b.q.length){const t=b.q.shift();deliver(t);if(!NO_DUP.includes(t))for(let k=dupN();k>0;k--)deliver(t,true);b.prog-=1}if(!b.q.length)b.prog=0}
         break;
       case 'ring':
-        {const need=modOn('lowg')?2:1,lat=(b.l||0)>=need;b.active=lat||b.n>=need;b.ang+=dt*(b.active?sat*1.2:0.15);
-        if(b.active){b.prog+=dt*sat*(orbDone('cadence')?2:1)/(lat?5:2.5);if(b.prog>=1){b.prog=0;if(lat){b.l-=need;stat('c','lattice',need);launchLattice(b)}else{b.n-=need;stat('c','petal',need);launch(b)}}}}
+        {ringQ(b);const need=modOn('lowg')?2:1,lat=(b.l||0)>=need;b.active=lat||b.n>=need;b.ang+=dt*(b.active?sat*1.2:0.15);
+        if(b.active){b.prog+=dt*sat*(orbDone('cadence')?2:1)/(lat?5:2.5);if(b.prog>=1){b.prog=0;
+          // a dense or packed bundle goes up whole: 2 or 4 at once
+          const q=lat?b.lq:b.pq;let u=0;while(q.length&&u<need)u+=q.shift();
+          if(lat){b.l-=u;stat('c','lattice',u);for(let i=0;i<u;i+=need)launchLattice(b)}else{b.n-=u;stat('c','petal',u);for(let i=0;i<u;i+=need)launch(b)}}}}
         break;
       case 'refinery':{
         const ratio=refRatio();b.active=b.n>0||b.run;
@@ -2508,7 +2516,7 @@ let banT=0;
 function showBanner(h,p){if(elBanner.dataset.reload)return;elBanner.innerHTML=`<h3></h3><p></p>`;elBanner.querySelector('h3').textContent=h;elBanner.querySelector('p').textContent=p;elBanner.hidden=false;clearTimeout(banT);banT=setTimeout(()=>elBanner.hidden=true,5200)}
 elBanner.addEventListener('click',()=>{if(elBanner.dataset.reload){save();location.reload();return}elBanner.hidden=true});
 
-function fabRate(b,k){return (b?1/TT[b.dn|0]:1)/voyTime()*gridMul()*(B[b.t].mult||1)*rp('fab')*recSpd(k)/RECIPES[k].t}
+function fabRate(b,k){return (b?1/TT[fabDn(b)]:1)/voyTime()*gridMul()*(B[b.t].mult||1)*rp('fab')*recSpd(k)/RECIPES[k].t}
 function recSpd(k){return k==='voidlens'&&orbDone('temper')?1.5:1}
 // Kit lines: kits come out 2 at a time
 function recOut(k){return Math.max(1,(RECIPES[k].out-(k==='wire'?baneN('wire'):0)))*((k==='kitf'&&orbDone('kitf2'))||(k==='kitv'&&orbDone('kitv2'))||(k==='kits'&&orbDone('kits2'))?2:1)}
@@ -2616,7 +2624,7 @@ function bufRow(b){
     case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore),m=TIN[b.dn|0];return rateLine([[ore,c*m]],[[dOut(b,SMELT[ore]),c]],rateNote())})();
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">${fmtW(B.reactor.gen*reactorMul(b))} at full output${b.nb?` (+${25*b.nb}% from ${b.nb} touching reactor${b.nb===1?'':'s'})`:''}</span></div><div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/10')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
-    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+recIn(b.rec)[k]*TIN[b.dn|0])).join('')}<span class="arrow">→</span>${chip(dOut(b,b.rec),b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${+(r.t*TT[b.dn|0]).toFixed(2)}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*recIn(b.rec)[k]*TIN[b.dn|0]]),[[dOut(b,b.rec),c*recOut(b.rec)*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
+    case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+recIn(b.rec)[k]*TIN[fabDn(b)])).join('')}<span class="arrow">→</span>${chip(dOut(b,b.rec),b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${+(r.t*TT[b.dn|0]).toFixed(2)}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*recIn(b.rec)[k]*TIN[fabDn(b)]]),[[dOut(b,b.rec),c*recOut(b.rec)*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
     case 'batcher':{const ks=Object.keys(b.st).filter(k=>b.st[k]>0);return ks.length?`<div class="flow"><span class="lbl">Stored</span>${ks.map(k=>chip(k,b.st[k]+'/'+batCap())).join('')}</div>`:'<div class="flow"><span class="lbl">Empty</span></div>'}
     case 'splitter':case 'sorter':return b.hold?`<div class="flow"><span class="lbl">Holding</span>${chip(b.hold,1)}</div>`:'';
     case 'turbine':return `<div class="flow"><span class="lbl">Fuel</span>${chip('carbon',b.fuel+'/20')}</div>`;

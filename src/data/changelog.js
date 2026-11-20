@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:71,date:'2026-11-20',title:'Compressed petals and Lattice cores',items:[
+    'Sail petals and Lattice cores can now be made Dense or Packed. A Launch Ring sends a dense or packed one up whole, as 2 or 4 at once, so compressed launches go 2× or 4× as fast.',
+    'Fixed: a machine in Dense or Packed mode making something that can’t be compressed (like Experiment kits) used to eat 5 or 20 times the inputs for a single plain item. It now works at the normal cost for those recipes.'
+  ]},
   {n:70,date:'2026-11-19',title:'Build the Starship, and hold a goal',items:[
     'The Starship is a real build again. The Starseed shop now sells the Starship plans (300,000 Starseeds); they unlock the Starship, a 5×5 megaproject with five belt-fed stages of Iridium, Fusion cells, Quantum chips, Lattice cores and composite. When the last stage is in, choose your road and watch it launch for the new star.',
     'Main-game goals can be held: on Progress, tap Hold this goal on Heavy Industry or the Grid Charter, and everything you deliver goes to storage until you resume, so you can spend those early parts first. Great on the Daily moon.'
