@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:72,date:'2026-11-20',title:'Compressed barge holds have a cost',items:[
+    'Barges on Dense or Packed still carry 2× or 4× as much per trip at the same speed, but now pay the usual compression cost: each dense item takes 5 ore from the asteroid and each packed one 20, and every trip burns 2× or 4× the carbon. Asteroids drain faster when you compress.'
+  ]},
   {n:71,date:'2026-11-20',title:'Compressed petals and Lattice cores',items:[
     'Sail petals and Lattice cores can now be made Dense or Packed. A Launch Ring sends a dense or packed one up whole, as 2 or 4 at once, so compressed launches go 2× or 4× as fast.',
     'Fixed: a machine in Dense or Packed mode making something that can’t be compressed (like Experiment kits) used to eat 5 or 20 times the inputs for a single plain item. It now works at the normal cost for those recipes.'

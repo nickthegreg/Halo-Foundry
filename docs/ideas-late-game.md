@@ -431,3 +431,6 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 - `SS.starship` is now "Starship plans" and unlocks `B.starship` (isUnl); `canVoyage()` = plans + all 5 MEGA stages +
   a built ship. Choosing a road runs `launchSeq(path)` (full-screen canvas, ~7 s, tap to skip) then `doVoyage`.
 - `S.msHold` / `msHeld()`: while a main-game goal is held, `deliver` skips milestone progress (items go to storage).
+
+- Barge compression (2026-11-20): dense/packed holds take `TIN[mode]` ore per item from the asteroid and burn
+  `bargeFuel` = 10 × 1/2/4 carbon; trip time unchanged (owner's choice).

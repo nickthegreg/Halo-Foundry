@@ -1281,26 +1281,28 @@ function landfall(){const lim=mapLim(),R=Math.random;
 
 // ---------- Barge Dock ----------
 function bargeN(){return 1+helmLv('barges')}
+// Compressed holds cost what compression costs anywhere: 5 or 20 ore per item from the asteroid, and 2× or 4× the fuel
+function bargeFuel(b){return 10*[1,2,4][b.dn|0]}
 function bargeCap(){return Math.round(300*(1+.5*helmLv('holds')))}
 function tripT(a){return (30+25*a.d)/(1+.2*helmLv('thrust'))}
 function dockAst(b){S.ast=S.ast||[];let a=S.ast.find(q=>q.id===b.tg);if(!a&&S.ast.length){a=S.ast.slice().sort((p,q)=>p.d-q.d)[0];b.tg=a.id}return a||null}
 function dockHeld(b){let n=0;for(const k in b.ob)n+=b.ob[k];return n}
 function dockTick(b,dt,sat){b.bar=b.bar||[];while(b.bar.length<bargeN())b.bar.push({t:0});
   for(const g of b.bar){
-    if(g.t>0){g.t-=dt*sat;if(g.t<=0){g.t=0;const a=S.ast&&S.ast.find(q=>q.id===g.a);if(a){const m=AST_KINDS[a.kind].mix,tot=Object.values(m).reduce((p,q)=>p+q,0),load=Math.min(a.left,bargeCap()*[1,2,4][b.dn|0]);a.left-=load;
+    if(g.t>0){g.t-=dt*sat;if(g.t<=0){g.t=0;const a=S.ast&&S.ast.find(q=>q.id===g.a);if(a){const m=AST_KINDS[a.kind].mix,tot=Object.values(m).reduce((p,q)=>p+q,0),dm=b.dn|0,w=[1,2,4][dm],per=TIN[dm],n=Math.min(bargeCap(),Math.floor(a.left/per)),load=n*w;a.left-=n*per;
         for(const k in m){const it=k;b.ob[it]=(b.ob[it]||0)+load*m[k]/tot}S.flags.barge=1}}}
-    else{const a=dockAst(b);if(a&&a.left>0&&b.fuel>=10&&dockHeld(b)<bargeCap()*[1,2,4][b.dn|0]*2){b.fuel-=10;g.t=tripT(a);g.a=a.id}}}
+    else{const a=dockAst(b);const fu=bargeFuel(b);if(a&&a.left>=TIN[b.dn|0]&&b.fuel>=fu&&dockHeld(b)<bargeCap()*[1,2,4][b.dn|0]*2){b.fuel-=fu;g.t=tripT(a);g.a=a.id}}}
   // three slots on the bright edge; dense or packed if the dock is set to it
   for(let k=0;k<3;k++){const ks=Object.keys(b.ob).filter(q=>b.ob[q]>=1);if(!ks.length)break;const base=ks[(b.rr++)%ks.length],w=[1,2,4][b.dn|0],key=w===1?base:w===2?DENSE_OF[base]:PACK_OF[base];
     const it=key||base,u=key?w:1;if(b.ob[base]<u)continue;if(pushPorts(b,it,[[b.d,0],[b.d,1],[b.d,2]])){b.ob[base]-=u;stat('p',base)}}}
 function dockStatus(b){const a=dockAst(b),fl=(b.bar||[]).filter(g=>g.t>0).length;
-  if(!a)return['warn','No asteroid in range · one passes every few minutes'];if(b.fuel<10&&!fl)return['warn','Needs carbon for fuel'];
+  if(!a)return['warn','No asteroid in range · one passes every few minutes'];if(b.fuel<bargeFuel(b)&&!fl)return['warn','Needs carbon for fuel'];
   return[fl?'ok':'idle',`${fl} of ${bargeN()} barge${bargeN()>1?'s':''} out · ${a.n}`]}
 function dockRow(b){const a=dockAst(b),held=Object.keys(b.ob||{}).filter(k=>b.ob[k]>=1);
-  return `<div class="flow"><span class="lbl">Fuel ${b.fuel|0}/200 carbon · ${bargeCap().toLocaleString()} ore per hold${b.dn?` (×${[1,2,4][b.dn]} ${['','dense','packed'][b.dn]})`:''}</span></div>${(b.bar||[]).map((g,i)=>`<div class="flow"><span class="lbl">Barge ${i+1}: ${g.t>0?'back in '+Math.ceil(g.t)+' s':'docked'}</span></div>`).join('')}${held.length?`<div class="flow"><span class="lbl">Unloading</span>${held.map(k=>chip(k,Math.floor(b.ob[k]).toLocaleString())).join('')}</div>`:''}${a?`<p class="desc">Target: <strong>${a.n}</strong>, ${AST_KINDS[a.kind].n.toLowerCase()}, ${Math.round(a.left/a.size*100)}% left, drifts away in ${fmtDur(a.exp-S.time)}.</p>`:''}`}
+  return `<div class="flow"><span class="lbl">Fuel ${b.fuel|0}/200 carbon (${bargeFuel(b)} a trip) · ${bargeCap().toLocaleString()} ${['ore','dense items','packed items'][b.dn|0]} per hold</span></div>${(b.bar||[]).map((g,i)=>`<div class="flow"><span class="lbl">Barge ${i+1}: ${g.t>0?'back in '+Math.ceil(g.t)+' s':'docked'}</span></div>`).join('')}${held.length?`<div class="flow"><span class="lbl">Unloading</span>${held.map(k=>chip(k,Math.floor(b.ob[k]).toLocaleString())).join('')}</div>`:''}${a?`<p class="desc">Target: <strong>${a.n}</strong>, ${AST_KINDS[a.kind].n.toLowerCase()}, ${Math.round(a.left/a.size*100)}% left, drifts away in ${fmtDur(a.exp-S.time)}.</p>`:''}`}
 function dockCtrl(b){const as=S.ast||[],m=b.dn|0;
   return `<div class="sec-label">Asteroids in range · ${as.length}</div>${as.length?`<div class="ms-list">${as.map(a=>{const mx=AST_KINDS[a.kind].mix;return `<div class="ms${a.id===b.tg?' cur':''}"><div class="ms-top"><h4>${a.n} · ${AST_KINDS[a.kind].n}</h4><span class="st">${a.d} AU · ${fmtN(a.left)}</span></div><div class="ms-req">${Object.keys(mx).map(k=>`<span class="req"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${Math.round(mx[k]/Object.values(mx).reduce((p,q)=>p+q,0)*100)}%</span>`).join('')}</div>${a.id===b.tg?'':`<button class="btn" data-ast="${a.id}">Send barges here</button>`}</div>`}).join('')}</div>`:'<p class="desc">None right now. One passes every few minutes and stays for up to two hours.</p>'}
-  ${ssLv('dense')?`<div class="sec-label">Hold</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Loose</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">Barges pack their holds, carrying 2× or 4× as much ore, and it comes out dense or packed.</p>`:''}`}
+  ${ssLv('dense')?`<div class="sec-label">Hold</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Loose</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">Packed holds carry 2× or 4× as much, out as dense or packed items, at the usual compression cost: each item takes ${TIN[1]} or ${TIN[2]} ore from the asteroid, and each trip burns 2× or 4× the carbon. Trips take the same time.</p>`:''}`}
 
 // ================= galaxy map =================
 // Moons in rings around home. You travel to any unvisited moon next to one you've been to; you can see traits
