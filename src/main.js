@@ -323,7 +323,7 @@ function accept(nb,t,side,p0){
       if(!(nb.mode?PACK_OF[bt]:DENSE_OF[bt])||(ITEMS[t].tier||0)>=tg||(nb.inN>0&&nb.inT!==bt)||nb.inN+u>need*2)return false;nb.inT=bt;nb.inN+=u;return true}
     case 'separator':{const u=worth(t);if((BASE_OF[t]||t)!=='starsand'||nb.n+u>1200)return false;nb.n+=u;return true;}
     case 'incinerator':stat('c',t);nb.heat=1;return true;
-    case 'spaceport':if(BASE_OF[t]){const bt=BASE_OF[t],u=worth(t),n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)>=n)return nb.m==='ark'&&padAccept(nb,t);nb.h[bt]=Math.min(n,(nb.h[bt]||0)+u);return true}return padAccept(nb,t);
+    case 'spaceport':if(BASE_OF[t]){if(nb.m==='kits'&&KITS.includes(BASE_OF[t]))return padAccept(nb,t);const bt=BASE_OF[t],u=worth(t),n=padNeed(nb.m||'lab')[bt];if(!nb.m||nb.st||!n||(nb.h[bt]||0)>=n)return nb.m==='ark'&&padAccept(nb,t);nb.h[bt]=Math.min(n,(nb.h[bt]||0)+u);return true}return padAccept(nb,t);
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
     case 'market':return isCamp()&&!!S.mk&&mkAccept(t);
     case 'elevator':return late()&&megaAccept('elevator',t);
@@ -565,7 +565,7 @@ function missionWhy(m){const M=MISSIONS[m];
   return `All ${M.max||''} ${M.n.toLowerCase()}s are done${m==='array'?'':' on this moon'}.`}
 function padOpen(m){if(m==='lab')return (S.orb.mods||0)<labMax();if(m==='array')return arrayLv()<MISSIONS.array.max;if(m==='ark')return (S.arkN||0)<MISSIONS.ark.max;if(m==='swarm')return swarmOpen();if(m==='ring')return orbDone('ringdesign')&&ringN()<MISSIONS.ring.max;return !!MISSIONS[m]}
 function padAccept(b,t){const m=b.m;if(!m||b.st)return false;
-  if(m==='kits'&&KITS.includes(t)){if(kitN(b.h)>=kitCap())return false;b.h[t]=(b.h[t]||0)+1;return true}
+  {const bt=BASE_OF[t]||t;if(m==='kits'&&KITS.includes(bt)){if(kitN(b.h)>=kitCap())return false;b.h[bt]=(b.h[bt]||0)+worth(t);return true}}
   const n=padNeed(m)[t];if(!n||(b.h[t]||0)>=n){if(m==='ark'&&!NO_CARGO.includes(BASE_OF[t]||t)&&cargoN(b)<arkCap()){b.h[t]=(b.h[t]||0)+1;return true}return false}b.h[t]=(b.h[t]||0)+1;return true}
 function padReady(b){const m=b.m;if(!m||!padOpen(m))return false;const n=padNeed(m);for(const k in n)if((b.h[k]||0)<n[k])return false;return m==='ark'?(cargoN(b)>=arkCap()||b.go):m!=='kits'||kitN(b.h)>=kitCap()||(b.go&&kitN(b.h)>0)}
 function padLoad(b){const m=b.m;if(!m||b.st)return 0;let moved=0;const n=padNeed(m);

@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:73,date:'2026-11-20',title:'Compressed Experiment kits',items:[
+    'Field, Void and Stellar kits can now be made Dense or Packed. A Kit run counts a dense kit as 2 and a packed one as 4 toward its hold, so the same belts load a Spaceport 2× or 4× faster.'
+  ]},
   {n:72,date:'2026-11-20',title:'Compressed barge holds have a cost',items:[
     'Barges on Dense or Packed still carry 2× or 4× as much per trip at the same speed, but now pay the usual compression cost: each dense item takes 5 ore from the asteroid and each packed one 20, and every trip burns 2× or 4× the carbon. Asteroids drain faster when you compress.'
   ]},

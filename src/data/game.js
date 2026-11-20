@@ -405,7 +405,7 @@ function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).to
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
 const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','stock','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','market','elevator','bore','dock','starship','separator','incinerator','railterm','rail','spaceport','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
-const DENSE_EX=['aether','ember','nova','husk','kitf','kitv','kits'];
+const DENSE_EX=['aether','ember','nova','husk'];
 // Packed (second level): 20 → 1 packed item worth 4
 const DENSE_OF={},PACK_OF={},BASE_OF={};
 {const base=ITEM_ORDER.filter(k=>!DENSE_EX.includes(k)),low=k=>ITEMS[k].n.charAt(0).toLowerCase()+ITEMS[k].n.slice(1);
