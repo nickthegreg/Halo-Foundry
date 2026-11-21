@@ -434,3 +434,7 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 
 - Barge compression (2026-11-20): dense/packed holds take `TIN[mode]` ore per item from the asteroid and burn
   `bargeFuel` = 10 × 1/2/4 carbon; trip time unchanged (owner's choice).
+
+- Docks (2026-11-20): must overhang the frontier (some tiles inside, some outside; or touch the map border once the
+  frontier is the whole map). Asteroids have `dir` (N/E/S/W); `astPos` puts them past the frontier; `drawSpace` draws
+  asteroids and barges in world space.

@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:76,date:'2026-11-20',title:'Asteroids in sight',items:[
+    'Asteroids now drift past on all four sides of the moon, and you can see them out beyond the frontier: north, east, south or west, farther out for more distant ones. Iridium-bearing rocks glint.',
+    'Barge Docks now hang off the edge: place one partly past the frontier line, half on the moon and half over open space. Barges fly all the way out to the asteroid you picked and back.',
+    'The dock’s asteroid list shows which side each one is on.'
+  ]},
   {n:75,date:'2026-11-20',title:'Nova shards go straight to storage again',items:[
     'Nova shards from Reactors no longer come out onto conveyors: they go straight to storage again. Any shards waiting inside a Reactor are banked right away, and any still on a belt are banked when they reach the Core.'
   ]},
