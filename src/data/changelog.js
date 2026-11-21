@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:77,date:'2026-11-20',title:'Docks on the edge of the moon',items:[
+    'Barge Docks now hang off the moon’s real edge, part on the ground and part over open space, with a gantry reaching out into the dark. Their ports turn to face the moon on their own.',
+    'A dock beyond the frontier, where conveyors can’t reach, lifts its hauls straight to the Core. Docks you’ve already built keep working where they are.',
+    'Closer is quicker: a barge’s trip now depends on how far the dock is from its asteroid. A dock on the same side as a rock makes short hops; one across the moon makes long hauls. The asteroid list shows each trip’s time, and new docks pick the nearest rock.',
+    'Barges now stop at the asteroid and mine it for a while: a cutting beam, and chips of ore drifting up into the hold, before they turn for home.',
+    'The map has a Whole moon view showing the asteroids around all four edges, your docks and barges in flight. With docks open you can also pan past the edge of the moon to watch them.'
+  ]},
   {n:76,date:'2026-11-20',title:'Asteroids in sight',items:[
     'Asteroids now drift past on all four sides of the moon, and you can see them out beyond the frontier: north, east, south or west, farther out for more distant ones. Iridium-bearing rocks glint.',
     'Barge Docks now hang off the edge: place one partly past the frontier line, half on the moon and half over open space. Barges fly all the way out to the asteroid you picked and back.',
