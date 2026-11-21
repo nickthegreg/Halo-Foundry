@@ -1,6 +1,14 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:80,date:'2026-11-21',title:'A painted foundry',items:[
+    'Every building has new painted art, each with its own look and colours, so you can tell a Refinery from a Reactor at a glance. The biggest builds got the most care: the Spaceport, Deep Core Bore, Space Elevator, Starship and Market.',
+    'The Core has a new look for every size. It grows from a compact heart into a crystal-ringed citadel, with more turning rings, more power flowing in and more sparks at each size.',
+    'Ore patches are now painted rock and crystal clusters: rusty iron, green copper, quartz, coal, glowing voidstone and golden starsand.',
+    'The halo view has a real star, a nebula behind it, painted moons, golden sail petals and Lattice crystals.',
+    'Everything that moves or tells you something still works the same: ports, recipes, progress rings, heat, fuel, charge and build stages are drawn on top of the art.',
+    'Prefer the old shapes? Settings → Art → Classic.'
+  ]},
   {n:79,date:'2026-11-20',title:'Asteroids up close',items:[
     'Each asteroid now shows how much ore is left under its name, with a bar that empties as your barges mine it.',
     'Tap an asteroid to see what’s in it, how long until it drifts away and which docks are working it, and send every dock there at once.'
