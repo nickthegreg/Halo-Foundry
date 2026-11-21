@@ -39,7 +39,7 @@ export const HELM={
   // Asteroids
   barges:{br:'Asteroids',n:'More barges',max:5,cost:L=>2+2*L,d:'Each Barge Dock flies one more barge per level. Docks start with one.'},
   holds:{br:'Asteroids',n:'Bigger holds',max:5,cost:L=>3+2*L,d:'Barges carry 50% more ore per level.'},
-  thrust:{br:'Asteroids',n:'Thrusters',max:5,cost:L=>3+2*L,d:'Barge round trips are 20% quicker per level.'},
+  thrust:{br:'Asteroids',n:'Thrusters',max:5,cost:L=>3+2*L,d:'Barges fly 20% faster per level. Mining time stays the same.'},
   survey:{br:'Asteroids',n:'Survey',max:4,cost:L=>4+3*L,d:'Asteroids pass 25% more often per level, and are 25% bigger.'},
   landfall:{br:'Asteroids',n:'Landfall',max:4,cost:L=>4+3*L,d:'Small asteroids land on your moon 25% more often per level.'},
   // Carried into the next Voyage

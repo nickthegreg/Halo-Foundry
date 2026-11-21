@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:78,date:'2026-11-20',title:'Barges, polished',items:[
+    'Mining now takes a set time for each kind of asteroid (Carbonaceous 6 s, Glassy 8 s, Metallic 10 s, Void 14 s). Only the flight depends on how far the dock is. Thrusters speed up the flight.',
+    'Barges now fly to a spot just off the asteroid’s near face and mine from there, instead of flying into its middle first.',
+    'Dense and Packed holds get fancier mining beams: a braided violet twin beam for Dense, and a wide golden lance with rings running down it for Packed.',
+    'The Barge Dock’s description is much shorter. The details are in the Guide’s Questions tab.',
+    'Docks are easier to select: tap any part of one, including the part over space, or just beside it. Tapping a dock while the Dock tool is held opens it instead of turning it.'
+  ]},
   {n:77,date:'2026-11-20',title:'Docks on the edge of the moon',items:[
     'Barge Docks now hang off the moon’s real edge, part on the ground and part over open space, with a gantry reaching out into the dark. Their ports turn to face the moon on their own.',
     'A dock beyond the frontier, where conveyors can’t reach, lifts its hauls straight to the Core. Docks you’ve already built keep working where they are.',
