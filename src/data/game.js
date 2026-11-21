@@ -84,7 +84,7 @@ const B={
   pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed for you as you lay track. To remove one, remove the rail above it first.'},
   elevator:{n:'Space Elevator',cost:{slagcrete:4000,magnet:1000,composite:1500,frame:800},pw:200000,w:5,d:'A tether from the ground to orbit, raised in 8 stages. Belt in each stage’s materials from any side. Every finished stage cuts the Aether that Spaceport launches burn by 6%, so nearly half by the top. One per moon.'},
   bore:{n:'Deep Core Bore',cost:{steel:5000,slagcrete:3000,motor:800,servo:500},pw:300000,w:5,dir:1,d:'A shaft into the moon’s mantle, sunk in 6 stages. Belt in each stage’s materials on any side but its bright edge. As it goes down it brings up things found nowhere else, each from its own colour-marked slot on the bright edge: Heavy metal, then Magma glass (stage 3) and Helium-3 (stage 5), faster with each stage. The last stage reaches the moon’s heart. One per moon.'},
-  dock:{n:'Barge Dock',cost:{steel:300,motor:60,frame:40,circuit:200},pw:2000,w:3,dir:1,d:'Your reach beyond the moon. Pick an asteroid passing overhead and the dock’s barges fly out, fill their holds and bring the ore home, out of three slots on its bright edge. Each round trip burns 10 carbon, belted in on the other sides; farther rocks take longer. Some asteroids carry Iridium, found nowhere else: every 5,000 delivered to the Core adds a Starchart to your next Voyage.'},
+  dock:{n:'Barge Dock',cost:{steel:300,motor:60,frame:40,circuit:200},pw:2000,w:3,dir:1,d:'Your reach beyond the moon. Built at the very edge of the frontier, where barges can launch straight out. Pick an asteroid passing overhead and the dock’s barges fly out, fill their holds and bring the ore home, out of three slots on its bright edge. Each round trip burns 10 carbon, belted in on the other sides; farther rocks take longer. Some asteroids carry Iridium, found nowhere else: every 5,000 delivered to the Core adds a Starchart to your next Voyage.'},
   starship:{n:'Starship',cost:{composite:3000,slagcrete:3000,frame:1500,processor:800},pw:500000,w:5,d:'The ship that leaves this star behind. Built on a launch pad in 5 belt-fed stages: Iridium from asteroids, Fusion cells, Quantum chips, Lattice cores and composite, more for each stage. When the last stage is in, choose your road and launch. Only your Relics, achievements and blueprints come along. One per moon; unlocked by the Starship plans in the Starseed shop.'},
   wreck:{n:'Wreck',cost:{steel:150,gear:200,circuit:120,motor:40,processor:20,frame:10},w:2,nobuild:1,d:'What’s left of someone else’s foundry. Remove it to salvage its parts.'},
   market:{n:'Market Uplink',cost:{frame:40,circuit:200,motor:30},pw:500,w:5,d:'Your link to buyers across the system. Clients post contracts here: belt in what they ask for, from any side, and they pay in Starseeds plus a bonus. Now and then the Patron offers a commission: a huge order of top-tier parts, often dense, that pays a Relic. Regulars remember you and come back with bigger orders, and a timed contract turns up every hour. Anything the contracts don’t need goes on to the Core. One per moon.'},
@@ -181,7 +181,7 @@ const ORB={
   deepcore:{n:'Deep core',kits:{kitf:10000,kitv:10000,kits:10000},d:'The Deep Drill power climb grows half as fast.'}
 };
 const ORB_REP={
-  orbover:{n:'Orbital overcharge',kits:{kitf:1000,kitv:1000,kits:1000},grow:1.5,d:'Every machine works 10% faster per level.'},
+  orbover:{n:'Orbital overcharge',kits:{kitf:1000,kitv:1000,kits:1000},grow:1.5,d:'Every machine works 5% faster per level.'},
   reclaim:{n:'Husk reclaim',kits:{kitv:2000,kits:1000},grow:1.4,max:20,d:'Each Lattice core made has a 5% chance per level to send its Aether husk back to storage, up to 100%.'},
   flow:{n:'Orbital flow',kits:{kitf:2000,kits:1000},grow:1.5,d:'Conveyors move items 5% faster per level.'},
   harvest:{n:'Deep harvest',kits:{kitf:2000,kitv:1000},grow:1.5,d:'Every drill mines 10% faster per level.'},
@@ -210,7 +210,7 @@ const BORE_OUT=[['heavy',1,.4],['magma',3,.25],['he3',5,.15]];
 // Starlight: earned for every full shell (8 nodes) of the Dyson swarm. Permanent perks.
 const STARLIGHT={
   sun:{n:'Captured sun',max:4,d:'+25% power from every source per level.'},
-  forge:{n:'Star forge',max:4,d:'Every machine works 10% faster per level.'},
+  forge:{n:'Star forge',max:4,d:'Every machine works 5% faster per level.'},
   bloom:{n:'Stellar bloom',max:4,d:'+15% Starseeds when you Ascend per level.'},
   hold:{n:'Deep holds',max:3,d:'Seed Ark modules carry 5,000 more items per level.'}
 };
@@ -236,14 +236,14 @@ const CROWN={
   resonance:{n:'Resonance',d:'Lattice cores in orbit make 25% more power per point.'},
   forge:{n:'Forge',d:'Combustors, Turbine Halls and Aether Reactors make 10% more power per point.'},
   weave:{n:'Weave',d:'Solar and the halo make 10% more power per point.'},
-  overdrive:{n:'Overdrive',d:'Every machine works 5% faster per point.'},
+  overdrive:{n:'Overdrive',d:'Every machine works 3% faster per point.'},
   distill:{n:'Distill',max:5,d:'Refineries need 5% less ore per point, up to 25%.'}
 };
 // Constellations: tiers for sail petals in orbit. Each one earns a Commander point.
 const CONST_REQ=[10,25,50,100,200];
 function constReq(i){return i<CONST_REQ.length?CONST_REQ[i]:200*Math.pow(2,i-CONST_REQ.length+1)}
 const CMD={
-  industrialist:{n:'Industrialist',d:'Every machine works 5% faster per point. Candy Defense: your commander moves and attacks 8% faster.'},
+  industrialist:{n:'Industrialist',d:'Every machine works 3% faster per point. Candy Defense: your commander moves and attacks 8% faster.'},
   stellar:{n:'Stellar',d:'Sun Leaves, Film Arrays, Prism Collectors and the halo make 10% more power per point. Candy Defense: your commander hits 15% harder.'},
   ember:{n:'Ember',d:'Burners run 10% hotter per point: 10% more power, burning carbon and Aether 10% faster. Candy Defense: your commander has 15% more health.'},
   architect:{n:'Architect',max:10,d:'Buildings cost 5% less per point, up to 50% off. Candy Defense: your commander and grunts carry 10% more sugar.'}
@@ -389,7 +389,7 @@ const NUP={
   sparks:{n:'Nova sparks',max:3,cost:L=>[10,20,40][L],d:'Nova shards drop 25% more often per level.',eff:L=>`+${25*L}%`},
   haul:{n:'Nova haul',max:3,cost:L=>[8,16,24][L],d:'Mag-rail shuttles carry 10% more and move 10% faster per level.',eff:L=>`+${10*L}%`},
   silo:{n:'Nova silo',max:3,cost:L=>[8,16,24][L],d:'Rockets assemble 10% faster per level.',eff:L=>`−${10*L}% time`},
-  forge:{n:'Nova forge',max:25,cost:L=>10+5*L,d:'Every machine works 2% faster per level.',eff:L=>`+${2*L}%`},
+  forge:{n:'Nova forge',max:25,cost:L=>10+5*L,d:'Every machine works 1% faster per level.',eff:L=>`+${L}%`},
   prism:{n:'Nova prism',max:20,cost:L=>15+5*L,d:'+3% Starseeds when you Ascend, per level.',eff:L=>`+${3*L}%`},
   // one-offs
   heart:{n:'Nova heart',max:1,cost:()=>60,d:'With Core size maxed, the Core grows once more, to 9×9.',eff:L=>L?'9×9':'off'},

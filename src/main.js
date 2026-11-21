@@ -187,6 +187,7 @@ function place(t,x,y,d,free,oreForce){
   for(let j=0;j<w;j++)for(let i=0;i<w;i++){const xx=x+i,yy=y+j;if(xx<0||yy<0||xx>=W||yy>=H||S.grid[yy*W+xx])return 'blocked';if(!free&&!inLim(xx,yy))return 'frontier';if(!free&&SEEDT&&SEEDT[yy*W+xx])return 'seed'}
   if(!free&&banned(t))return 'banned';
   if(ONE_OF.includes(t)&&countOf(t)>=1)return 'one';
+  if(t==='dock'&&!atEdge(x,y,B.dock.w))return 'edge';
   if(!free&&chal()&&chal().cap&&t!=='belt'&&t!=='junction'&&bCount()>=chal().cap)return 'cap';
   let ore=null;if(B[t].r){ore=oreForce||drillType(x,y,drillR(t),w);if(!ore)return 'ore';if(!oreForce&&ORE_P[ore].deep&&t!=='deepdrill')return 'deep'}
   let fr=false;if(!free&&B[t].cost){if(S.free&&S.free[t]>0){S.free[t]--;fr=true}else{const c=costOf(t);if(!canAfford(c))return 'cost';pay(c,-1)}}
@@ -617,7 +618,7 @@ function ringSeedMul(){const r=ringN();return (1+.1*r)*(r>=9?2:1)}
 function ringUp(){
   const O=S.orb;O.ring=(O.ring||0)+1;const r=O.ring,ms=RING_MS.find(q=>q[0]===r);
   burst(CX,CY,'#fff4c4',70);sfx('fanfare');
-  showBanner(`Halo Ring · segment ${r} of 12`,(ms?ms[1]+' ':'')+(r<12?`Each segment: +10% power, +3% machine speed, +10% Starseeds.`:''));
+  showBanner(`Halo Ring · segment ${r} of 12`,(ms?ms[1]+' ':'')+(r<12?`Each segment: +10% power, +2% machine speed, +10% Starseeds.`:''));
   if(r>=12)ringClosed();
 }
 function newPick(rare){S.relicPick=relicOffer(null,null,rare);S.relicRR=ssLv('reroll')}
@@ -979,7 +980,7 @@ function uplinkRate(b){return (voyPath()==='heavy'?1-.5*roadPen():1)*4*rp('up')*
 function uplinkPw(b){return Math.round((60+3*coreDist(b))*(voyPath()==='heavy'?1+2*roadPen():1))}
 function pulseSlots(){return 1+(S.ms>=TUT?1:0)+(S.gt>=5?1:0)+ssLv('xpulse')}
 function rungSum(k){let n=0;for(let i=0;i<S.gt;i++)n+=rung(i)[k]||0;return n}
-function gridMul(){return (1+.25*hl('tempo'))*echoMul()*(1+.02*nupLv('forge'))*(1+.1*slLv('forge'))*(1+galPerk('spd'))*bm('fab',.96)*(1+mkB('spd'))*(1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.05*cmdLv('industrialist'))*(1+.05*(S.ft||0))*(1+.05*crownLv('overdrive'))*rp('spd')*(1+.03*ringN())*(1+.1*orbLv('orbover'))}
+function gridMul(){return (1+.15*hl('tempo'))*echoMul()*(1+.01*nupLv('forge'))*(1+.05*slLv('forge'))*(1+galPerk('spd'))*bm('fab',.96)*(1+mkB('spd'))*(1+rungSum('oc'))*(1+.05*repLv('overcharge'))*(1+.03*cmdLv('industrialist'))*(1+.03*(S.ft||0))*(1+.03*crownLv('overdrive'))*rp('spd')*(1+.02*ringN())*(1+.05*orbLv('orbover'))}
 // Pulses travel like circuit traces: right-angle steps with only a faint wobble
 function makePulse(ids,ox,oy){
   const T=ids.map(id=>{const b=S.bs.get(id);return[b.x+b.w/2,b.y+b.w/2]});
@@ -1280,6 +1281,8 @@ function landfall(){const lim=mapLim(),R=Math.random;
     showBanner('An asteroid has landed',`A rich patch of ${ITEMS[ORE_KEYS[k]].s} now lies ${Math.round(dd)} tiles from the Core, to the ${['east','south-east','south','south-west','west','north-west','north','north-east'][Math.round(a/0.785)%8]}.`);save();return}}
 
 // ---------- Barge Dock ----------
+// Barge Docks are built at the frontier's edge, so their barges launch straight out into space
+function atEdge(x,y,w){for(let j=0;j<w;j++)for(let i=0;i<w;i++)for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])if(!inLim(x+i+dx,y+j+dy))return true;return false}
 function bargeN(){return 1+helmLv('barges')}
 // Compressed holds cost what compression costs anywhere: 5 or 20 ore per item from the asteroid, and 2× or 4× the fuel
 function bargeFuel(b){return 10*[1,2,4][b.dn|0]}
@@ -1291,7 +1294,7 @@ function dockTick(b,dt,sat){b.bar=b.bar||[];while(b.bar.length<bargeN())b.bar.pu
   for(const g of b.bar){
     if(g.t>0){g.t-=dt*sat;if(g.t<=0){g.t=0;const a=S.ast&&S.ast.find(q=>q.id===g.a);if(a){const m=AST_KINDS[a.kind].mix,tot=Object.values(m).reduce((p,q)=>p+q,0),dm=b.dn|0,w=[1,2,4][dm],per=TIN[dm],n=Math.min(bargeCap(),Math.floor(a.left/per)),load=n*w;a.left-=n*per;
         for(const k in m){const it=k;b.ob[it]=(b.ob[it]||0)+load*m[k]/tot}S.flags.barge=1}}}
-    else{const a=dockAst(b);const fu=bargeFuel(b);if(a&&a.left>=TIN[b.dn|0]&&b.fuel>=fu&&dockHeld(b)<bargeCap()*[1,2,4][b.dn|0]*2){b.fuel-=fu;g.t=tripT(a);g.a=a.id}}}
+    else{const a=dockAst(b);const fu=bargeFuel(b);if(a&&a.left>=TIN[b.dn|0]&&b.fuel>=fu&&dockHeld(b)<bargeCap()*[1,2,4][b.dn|0]*2){b.fuel-=fu;g.t=g.T=tripT(a);g.a=a.id;g.d=a.d}}}
   // three slots on the bright edge; dense or packed if the dock is set to it
   for(let k=0;k<3;k++){const ks=Object.keys(b.ob).filter(q=>b.ob[q]>=1);if(!ks.length)break;const base=ks[(b.rr++)%ks.length],w=[1,2,4][b.dn|0],key=w===1?base:w===2?DENSE_OF[base]:PACK_OF[base];
     const it=key||base,u=key?w:1;if(b.ob[base]<u)continue;if(pushPorts(b,it,[[b.d,0],[b.d,1],[b.d,2]])){b.ob[base]-=u;stat('p',base)}}}
@@ -2103,7 +2106,15 @@ function drawMachine(g,b,x,y,s){
       const out=(b.bar||[]).filter(q=>q.t>0).length,home=(b.bar||[]).length-out;
       for(let k=0;k<Math.min(home,3);k++){const a=k*2.1+.4;g.save();g.translate(cx3+Math.cos(a)*s*.5,cy3+Math.sin(a)*s*.5);g.rotate(a);g.fillStyle='#c8d4f0';g.beginPath();g.moveTo(s*.32,0);g.lineTo(-s*.22,-s*.18);g.lineTo(-s*.22,s*.18);g.closePath();g.fill();g.restore()}
       g.beginPath();g.arc(cx3,cy3,s*.14,0,7);g.fillStyle=`rgba(255,180,90,${.5+.5*Math.sin(T*4)})`;g.fill();
-      port(g,b,x,y,s,'#c8d4f0',0);port(g,b,x,y,s,'#c8d4f0',1);port(g,b,x,y,s,'#c8d4f0',2);break;}
+      port(g,b,x,y,s,'#c8d4f0',0);port(g,b,x,y,s,'#c8d4f0',1);port(g,b,x,y,s,'#c8d4f0',2);
+      // barges out on a trip: fly away from the Core and back again
+      {let dx=b.x+1.5-CX,dy=b.y+1.5-CY;const dl=Math.hypot(dx,dy)||1;dx/=dl;dy/=dl;const ang=Math.atan2(dy,dx);
+      (b.bar||[]).forEach((q,i)=>{if(!(q.t>0&&q.T))return;const f=1-q.t/q.T,out=f<.5,D=(6+3*(q.d||1))*s,dd=(out?f*2:(1-f)*2)*D,side=(i-(b.bar.length-1)/2)*s*.5;
+        const px=cx3+dx*dd-dy*side,py=cy3+dy*dd+dx*side,al=Math.max(0,1-Math.pow(dd/D,3));if(al<=.02)return;
+        g.save();g.globalAlpha=al;g.translate(px,py);g.rotate(out?ang:ang+Math.PI);
+        const fl=s*(.25+.15*Math.sin(T*30+i));g.fillStyle='rgba(255,180,90,.85)';g.beginPath();g.moveTo(-s*.25,-s*.08);g.lineTo(-s*.25-fl,0);g.lineTo(-s*.25,s*.08);g.fill();
+        g.fillStyle='#e8ecff';g.beginPath();g.moveTo(s*.35,0);g.lineTo(-s*.25,-s*.2);g.lineTo(-s*.25,s*.2);g.closePath();g.fill();g.fillStyle='#7fd7ff';g.fillRect(-s*.05,-s*.05,s*.12,s*.1);g.restore()})}
+      break;}
     case 'starship':{
       const S5=s*5,c5x=x+S5/2,L=S?megaSt('starship'):0;
       rr(g,x+s*.1,y+s*.1,S5-s*.2,S5-s*.2,s*.4);g.fillStyle='#1f1c33';g.fill();g.lineWidth=s*.06;g.strokeStyle='#8a83b8';g.stroke();
@@ -2771,7 +2782,7 @@ function showMilestones(){
     h+=`<div class="ms ${cls}"><div class="ms-top"><h4>Tier ${i+1} · ${r.n}</h4><span class="st">${done?'Reached':cur?'In progress':'Locked'}</span></div><div class="ms-req"><span class="req${done?' done':''}">${BOLT}${cur?fmtW(S.gavg)+' / ':''}${fmtW(r.kw)} sustained<i style="width:${f*100}%"></i></span></div><div class="ms-unl">${r.d}</div></div>`;
   }
   h+=sec('Furnace ladder · coal and Aether');
-  h+='<p style="font-size:14px">Every furnace tier also makes machines 5% faster. Grid and furnace tiers each add 5% to the Starseeds you get when you Ascend.</p>';
+  h+='<p style="font-size:14px">Every furnace tier also makes machines 3% faster. Grid and furnace tiers each add 5% to the Starseeds you get when you Ascend.</p>';
   const ft=S.ft||0,ftop=ft+3;
   for(let i=0;i<ftop;i++){
     const r=frung(i),done=i<ft,cur=i===ft&&S.ms>=MS.length,cls=done?'done':cur?'cur':'future',f=done?1:cur?Math.min(1,(S.favg||0)/r.kw):0;
@@ -3694,6 +3705,7 @@ function tap(sx,sy){
   if(r==='blocked')showToast('No room here');
   else if(r==='ore')showToast('Drills need ore within reach');
   else if(r==='one')showToast('You can only have one '+B[tool].n);
+  else if(r==='edge')showToast('Barge Docks hang off the edge: build one touching the edge of the frontier');
   else if(r==='deep')showToast('Voidstone is too deep for a basic Drill. Use a Deep Drill.');
   else if(r==='banned')showToast(`${B[tool].n} can’t be used ${chal()?'in this challenge':'on this moon'}`);
   else if(r==='cap')showToast(`Building limit reached: ${chal().cap} buildings, not counting conveyors`);

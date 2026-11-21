@@ -168,7 +168,7 @@ Every launch needs a rocket (30 Hull plate + 4 Guidance unit, assembled in 60 s)
 | Launch cadence | 4,000 Field kit + 4,000 Stellar kit | Launch Rings fling petals and Lattice cores twice as fast. |
 | Relic attunement | 15,000 Field kit + 15,000 Void kit + 15,000 Stellar kit | Every Relic choice shows one more option. |
 | Deep core | 10,000 Field kit + 10,000 Void kit + 10,000 Stellar kit | The Deep Drill power climb grows half as fast. |
-| Orbital overcharge (repeats) | 1,000 Field kit + 1,000 Void kit + 1,000 Stellar kit ×1.5 per level | Every machine works 10% faster per level. |
+| Orbital overcharge (repeats) | 1,000 Field kit + 1,000 Void kit + 1,000 Stellar kit ×1.5 per level | Every machine works 5% faster per level. |
 | Husk reclaim (repeats) | 2,000 Void kit + 1,000 Stellar kit ×1.4 per level | Each Lattice core made has a 5% chance per level to send its Aether husk back to storage, up to 100%. |
 | Orbital flow (repeats) | 2,000 Field kit + 1,000 Stellar kit ×1.5 per level | Conveyors move items 5% faster per level. |
 | Deep harvest (repeats) | 2,000 Field kit + 1,000 Void kit ×1.5 per level | Every drill mines 10% faster per level. |
@@ -176,7 +176,7 @@ Every launch needs a rocket (30 Hull plate + 4 Guidance unit, assembled in 60 s)
 | Starseed bloom (repeats) | 3,000 Field kit + 3,000 Void kit + 3,000 Stellar kit ×1.8 per level | +5% Starseeds when you Ascend, per level. |
 
 ### Halo Ring
-Each segment: +10% power from every source, +3% machine speed, +10% Starseeds when you Ascend.
+Each segment: +10% power from every source, +2% machine speed, +10% Starseeds when you Ascend.
 
 | Segments | Reward |
 |---|---|
@@ -201,7 +201,7 @@ Deep Core Bore output from all sides (before machine speed bonuses):
 | Magma glass | 3 | 0.25 |
 | Helium-3 | 5 | 0.15 |
 
-Starlight (1 per 8-node Dyson swarm shell; level n costs n): Captured sun (max 4): +25% power from every source per level. Star forge (max 4): Every machine works 10% faster per level. Stellar bloom (max 4): +15% Starseeds when you Ascend per level. Deep holds (max 3): Seed Ark modules carry 5,000 more items per level.
+Starlight (1 per 8-node Dyson swarm shell; level n costs n): Captured sun (max 4): +25% power from every source per level. Star forge (max 4): Every machine works 5% faster per level. Stellar bloom (max 4): +15% Starseeds when you Ascend per level. Deep holds (max 3): Seed Ark modules carry 5,000 more items per level.
 
 ## Power and fuel
 

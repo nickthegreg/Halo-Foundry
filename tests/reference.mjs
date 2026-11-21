@@ -63,7 +63,7 @@ ${table(['Mission','Payload','Aether fuel','Notes'],Object.keys(MISSIONS).map(k=
 
 ${table(['Research','Kits','Effect'],[...Object.keys(ORB).map(k=>[ORB[k].n,kits(ORB[k].kits),ORB[k].d]),...Object.keys(ORB_REP).map(k=>[ORB_REP[k].n+' (repeats)',kits(ORB_REP[k].kits)+` ×${ORB_REP[k].grow} per level`,ORB_REP[k].d])])}
 ### Halo Ring
-Each segment: +10% power from every source, +3% machine speed, +10% Starseeds when you Ascend.
+Each segment: +10% power from every source, +2% machine speed, +10% Starseeds when you Ascend.
 
 ${table(['Segments','Reward'],RING_MS.map(([k,t])=>[String(k),t]))}`);
 

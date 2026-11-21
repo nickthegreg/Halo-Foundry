@@ -20,7 +20,7 @@ export const VOY_THIN=.6;
 // The Helm: permanent upgrades bought with Starcharts. Level n costs cost(n).
 export const HELM={
   // The foundry: big multipliers on every moon of the Voyage
-  tempo:{br:'Foundry',n:'Tempo',max:10,cost:L=>5+5*L,d:'Every machine works 25% faster per level.'},
+  tempo:{br:'Foundry',n:'Tempo',max:10,cost:L=>5+5*L,d:'Every machine works 15% faster per level.'},
   bounty:{br:'Foundry',n:'Bounty',max:10,cost:L=>5+5*L,d:'Every ore tile holds 50% more ore per level.'},
   dynamo:{br:'Foundry',n:'Dynamo',max:10,cost:L=>5+5*L,d:'Every power source makes 50% more per level.'},
   current:{br:'Foundry',n:'Current',max:5,cost:L=>6+6*L,d:'Conveyors move 15% faster per level.'},

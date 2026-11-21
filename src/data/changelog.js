@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:74,date:'2026-11-20',title:'Barges take flight, and speed bonuses trimmed',items:[
+    'Barge Docks must now be built touching the edge of the frontier, so barges launch straight out into space. You can watch each barge fly off toward its asteroid and come back. Docks you’ve already built stay where they are.',
+    'Machine speed bonuses trimmed, since they stacked up to silly levels: Helm Tempo 25% → 15% per level, furnace tiers 5% → 3%, Commander Industrialist and Crown Overdrive 5% → 3% per point, Halo Ring segments 3% → 2%, Orbital overcharge 10% → 5%, Star forge 10% → 5%, Nova forge 2% → 1%.'
+  ]},
   {n:73,date:'2026-11-20',title:'Compressed Experiment kits',items:[
     'Field, Void and Stellar kits can now be made Dense or Packed. A Kit run counts a dense kit as 2 and a packed one as 4 toward its hold, so the same belts load a Spaceport 2× or 4× faster.'
   ]},
