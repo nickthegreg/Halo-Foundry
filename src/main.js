@@ -416,7 +416,7 @@ function sim(dt){
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load,solarG};
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
-  for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');c.nova=(c.nova||0)+1}}if(c.energy<0)c.energy=0}
+  for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
   if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt);astTick(dt)}
   goalTick(dt);
   stepPulses(dt);seedTick(dt);trickleTick(dt);
@@ -438,7 +438,7 @@ function sim(dt){
         }
         break;
       case 'combustor':if(b.ember>0&&pushDir(b,'ember',b.d))b.ember--;break;
-      case 'reactor':if(b.nova>0&&pushDir(b,'nova',b.d))b.nova--;else if(b.husk>0&&pushDir(b,'husk',b.d))b.husk--;break;
+      case 'reactor':if(b.nova>0){addInv('nova',b.nova);b.nova=0;novaFound()}if(b.husk>0&&pushDir(b,'husk',b.d))b.husk--;break;
       case 'smelter':case 'foundry':
         if(!b.run&&b.inN>=TIN[b.dn|0]&&b.outN<(b.t==='foundry'?16:4)&&(b.outN===0||b.outT===SMELT[b.inT])){b.run=true;b.prog=0;b.cur=SMELT[b.inT];b.ct=voyTime()*TT[b.dn|0]*SMELT_T[b.inT]*(b.inT==='voidstone'?(orbDone('zerog')?.5:1)*(orbDone('temper')?1/1.5:1):1);stat('c',b.inT,TIN[b.dn|0]);b.inN-=TIN[b.dn|0];if(!b.inN)b.inT=null}
         b.active=b.run;
@@ -1075,7 +1075,7 @@ function crownMenu(){
 }
 function novaMenu(){
   const have=S.inv.nova||0;if(!have&&!S.flags.nova&&!Object.keys(S.nup||{}).length)return '';
-  return `<div class="sec-label">Nova workshop · ${have} Nova shard${have===1?'':'s'}</div><p style="font-size:14px">Permanent upgrades, kept when you Ascend. Reactors push Nova shards out of their bright edge with the husks: belt or Uplink them to the Core to bank them.</p><div class="ms-list">${Object.keys(NUP).filter(k=>!NUP[k].req||ssLv(NUP[k].req)).map(k=>{const u=NUP[k],L=nupLv(k),mx=L>=u.max,c=mx?0:u.cost(L),ok=!mx&&have>=c;
+  return `<div class="sec-label">Nova workshop · ${have} Nova shard${have===1?'':'s'}</div><p style="font-size:14px">Permanent upgrades, kept when you Ascend. Nova shards come from burning Aether in Reactors and go straight to storage.</p><div class="ms-list">${Object.keys(NUP).filter(k=>!NUP[k].req||ssLv(NUP[k].req)).map(k=>{const u=NUP[k],L=nupLv(k),mx=L>=u.max,c=mx?0:u.cost(L),ok=!mx&&have>=c;
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${u.eff(L)}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'<span class="st">Maxed</span>':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-nup="${k}"><img src="${ICON.nova}" alt="Nova shards" style="width:18px;height:18px;vertical-align:-4px"> ${c}</button>`}</div></div>`}).join('')}</div>`;
 }
 function showAscension(){
