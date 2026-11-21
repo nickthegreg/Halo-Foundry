@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:79,date:'2026-11-20',title:'Asteroids up close',items:[
+    'Each asteroid now shows how much ore is left under its name, with a bar that empties as your barges mine it.',
+    'Tap an asteroid to see what’s in it, how long until it drifts away and which docks are working it, and send every dock there at once.'
+  ]},
   {n:78,date:'2026-11-20',title:'Barges, polished',items:[
     'Mining now takes a set time for each kind of asteroid (Carbonaceous 6 s, Glassy 8 s, Metallic 10 s, Void 14 s). Only the flight depends on how far the dock is. Thrusters speed up the flight.',
     'Barges now fly to a spot just off the asteroid’s near face and mine from there, instead of flying into its middle first.',

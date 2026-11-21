@@ -1313,7 +1313,11 @@ function drawSpace(g,z){if(!isCamp()||!(S.ast&&S.ast.length)&&!countOf('dock'))r
     g.fillStyle=c[1];for(let k=0;k<3;k++){const an=a.id+k*2.2;g.beginPath();g.arc(Math.cos(an)*R*.4,Math.sin(an)*R*.35,R*(.12+.06*k),0,7);g.fill()}
     if(AST_KINDS[a.kind].mix.iridium){g.fillStyle='#e8ecff';for(let k=0;k<3;k++){const an=a.id*2+k*2.1;g.fillRect(Math.cos(an)*R*.55,Math.sin(an)*R*.5,R*.12,R*.12)}}
     g.restore();g.globalAlpha=1;
-    if(z>=14){g.font=`600 ${Math.max(10,z*.32)|0}px system-ui,sans-serif`;g.textAlign='center';g.fillStyle='rgba(232,236,255,.7)';g.fillText(a.n,sx,sy+R+Math.max(12,z*.45))}}
+    // name, ore left and a bar that empties as it's mined
+    if(z>=12){const fs=Math.max(10,z*.32)|0,ly=sy+R+Math.max(12,z*.45),fr=Math.max(0,a.left/Math.max(1,a.size)),bw=Math.max(44,z*2.4),bh=Math.max(3,z*.12);
+      g.font=`600 ${fs}px system-ui,sans-serif`;g.textAlign='center';g.fillStyle='rgba(232,236,255,.8)';g.fillText(a.n,sx,ly);
+      g.font=`500 ${Math.max(9,fs*.85)|0}px system-ui,sans-serif`;g.fillStyle='rgba(232,236,255,.6)';g.fillText(`${fmtN(a.left)} ore left`,sx,ly+fs*1.15);
+      const by=ly+fs*1.15+bh+3;g.fillStyle='rgba(255,255,255,.12)';g.fillRect(sx-bw/2,by,bw,bh);g.fillStyle=(AST_COL[a.kind]||AST_COL.metal)[2];g.fillRect(sx-bw/2,by,bw*Math.min(1,fr),bh)}}
   // barges: out to their asteroid, a spell mining it, then home again
   for(const b of S.bs.values()){if(b.t!=='dock'||b.bp)continue;
     (b.bar||[]).forEach((q,i)=>{if(!(q.t>0&&q.T))return;const p=bargeAt(b,q,i),sx=w2sx(p.x),sy=w2sy(p.y);
@@ -1342,6 +1346,15 @@ function dockSpot(x,y){const w=B.dock.w;let inW=0;for(let j=0;j<w;j++)for(let i=
 function dockIn(x,y){const w=B.dock.w;return x<0?1:x+w>W?3:y<0?2:y+w>H?0:null}
 // a dock under a tap: its tiles over space aren't on the grid, and a near miss still counts
 function dockNear(x,y){for(const b of S.bs.values())if(b.t==='dock'&&x>=b.x-1&&y>=b.y-1&&x<=b.x+b.w&&y<=b.y+b.w)return b;return null}
+// tapping an asteroid out in space shows what's in it and lets you send every dock there
+function astAt(x,y){for(const a of S.ast||[]){const [ax,ay]=astPos(a);if(Math.hypot(x+.5-ax,y+.5-ay)<=astRad(a)+1.2)return a}return null}
+function showAst(a){const mx=AST_KINDS[a.kind].mix,tot=Object.values(mx).reduce((p,q)=>p+q,0),ds=[...S.bs.values()].filter(b=>b.t==='dock'&&!b.bp),on=ds.filter(b=>b.tg===a.id).length;
+  openModal(`<div class="card-head"><h3>${a.n}</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
+  <p class="desc">${AST_KINDS[a.kind].n} asteroid, off the ${['north','east','south','west'][astDir(a)]} edge, ${a.d} AU out. Drifts away in ${fmtDur(a.exp-S.time)}.</p>
+  <div class="ms cur"><div class="ms-top"><h4>${fmtN(a.left)} ore left</h4><span class="st">${Math.round(a.left/Math.max(1,a.size)*100)}% of ${fmtN(a.size)}</span></div>
+  <div class="ms-req">${Object.keys(mx).map(k=>`<span class="req"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${ITEMS[k].n} ~${fmtN(a.left*mx[k]/tot)}</span>`).join('')}</div></div>
+  <p class="desc">Mining takes ${mineT(a)} s a trip.${!ds.length?' Build a Barge Dock on the moon’s edge to mine it.':ds.length===1?(on?' Your dock is sending barges here.':' Your dock is working another asteroid.'):` ${on} of your ${ds.length} docks ${on===1?'is':'are'} sending barges here.`}</p>
+  ${ds.length&&on<ds.length?`<button class="btn" data-astall="${a.id}">Send every dock here</button>`:''}`)}
 function dockOver(b){return b.x<0||b.y<0||b.x+b.w>W||b.y+b.w>H}
 // past the frontier its conveyors couldn't reach anything, so the haul is lifted straight to the Core
 function dockDirect(b){const o=edgeTile(b,b.d,1);return !inLim(o[0],o[1])}
@@ -3002,6 +3015,7 @@ elCard.addEventListener('click',e=>{
   else if(b.dataset.bpuse!=null){const x=loadBPS()[+b.dataset.bpuse];if(x)startPaste(x.L)}
   else if(b.dataset.bpdel!=null){if(Date.now()-(b._arm||0)<3000){const a=loadBPS();a.splice(+b.dataset.bpdel,1);storeBPS(a);showBlueprints()}else{b._arm=Date.now();b.textContent='Tap again'}}
   else if(b.hasAttribute('data-next')){musicNext();setTimeout(showMenu,60)}
+  else if(b.dataset.astall){const id=+b.dataset.astall;for(const q of S.bs.values())if(q.t==='dock')q.tg=id;sfx('tick');const a=(S.ast||[]).find(v=>v.id===id);if(a)showAst(a)}
   else if(b.dataset.tab){const [g,k]=b.dataset.tab.split(':');if(TAB_SHOW[g]){TAB[g]=k;sfx('tick');TAB_SHOW[g]()}}
   else if(b.hasAttribute('data-help')){TAB.help='how';showHelp()}
   else if(b.hasAttribute('data-faq')){TAB.help='faq';showHelp()}
@@ -3560,7 +3574,7 @@ function showSaveCode(){
 function showMap(){
   const sp=isCamp()&&(isUnl('dock')||countOf('dock')||(S.ast&&S.ast.length));if(sp&&!TAB.map)TAB.map=countOf('dock')?'moon':'front';
   const moon=sp&&TAB.map==='moon',L=mapLim(),M=moon?56:0,lo=moon?-M:192-L,n=moon?W+2*M:2*L;
-  openModal(`<div class="card-head"><h3>Map</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${sp?tabs('map',[['front','Frontier'],['moon','Whole moon']]):''}<canvas id="mm" width="${n}" height="${n}"></canvas><p>${moon?'Tap anywhere to jump there. Asteroids drift past all four edges of the moon; build Barge Docks hanging off the edge nearest the ones you want, and their trips are shorter. The dashed box is your frontier, the teal box your view.':'Tap anywhere to jump there. The teal box is your current view.'}</p>`);
+  openModal(`<div class="card-head"><h3>Map</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>${sp?tabs('map',[['front','Frontier'],['moon','Whole moon']]):''}<canvas id="mm" width="${n}" height="${n}"></canvas><p>${moon?'Tap anywhere to jump there. Asteroids drift past all four edges of the moon (tap one out in space to see what’s left in it); build Barge Docks hanging off the edge nearest the ones you want, and their trips are shorter. The dashed box is your frontier, the teal box your view.':'Tap anywhere to jump there. The teal box is your current view.'}</p>`);
   const c=$('#mm'),g=c.getContext('2d'),img=g.createImageData(n,n),d=img.data,hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
   const OC={};ORE_KEYS.forEach((k,i)=>{if(k)OC[i]=hex(ORE_COL[k][0])});const ground=hex(BI().base),spent=hex(BI().spent),core=hex('#f3c25a'),dockC=hex('#7fd7ff'),cache={},sky=[8,7,18];
   for(let y=0;y<n;y++)for(let x=0;x<n;x++){const wx=lo+x,wy=lo+y,k=(y*n+x)*4;let col;
@@ -3771,6 +3785,7 @@ function drawOverlays(g,z){
 }
 
 function tap(sx,sy){
+  {const [x,y]=tileAt(sx,sy);if((x<0||y<0||x>=W||y>=H)&&tool!=='paste'&&isCamp()){const a=astAt(x,y);if(a){showAst(a);sfx('tick');return}}}
   const [x,y]=tileAt(sx,sy),b=at(x,y)||(x<0||y<0||x>=W||y>=H||tool==='inspect'||tool==='dock'||tool==='select'?dockNear(x,y):null);
   if(tool==='paste'&&PASTE){PASTE.ax=x-Math.floor(PASTE.L.w/2);PASTE.ay=y-Math.floor(PASTE.L.h/2);updatePasteBar();sfx('tick');return}
   if(tool==='select'){if(b&&b.t!=='core'){SELB=[b.id];openSelSheet();sfx('tick')}else closeSheet();return}
