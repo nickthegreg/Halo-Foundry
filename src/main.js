@@ -2,7 +2,8 @@ import {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCK
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {genGalaxy,moonSeedMul,QUADS,BANDS,bandOf,SPECIALS,BIAS,GAL_RINGS} from './data/galaxy.js';
 import {FIRST_STEPS,HOWTO,FAQ} from './data/guide.js';
-import {STARS,PATHS,VOY_THIN,HELM,AST_KINDS,IRID_PER_CHART} from './data/voyage.js';
+import {STARS,PATHS,VOY_THIN,HELM,AST_KINDS,IRID_PER_CHART,DOCK_UP} from './data/voyage.js';
+import {LB_URL} from './data/leaderboard.js';
 import {CLIENTS,TIMED_SIZES,OBJECTIVES,OBJ_BONUS,OBJ_ALL,BANES,ACH} from './data/goals.js';
 import {EV,CANDY_UP} from './data/event.js';
 import {makeDefense} from './defense.js';
@@ -418,7 +419,7 @@ function sim(dt){
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
   for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
-  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt);astTick(dt)}
+  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt)}if(gridOn||modOn('belt'))astTick(dt);
   goalTick(dt);
   stepPulses(dt);seedTick(dt);trickleTick(dt);
 
@@ -1265,15 +1266,16 @@ function launchSeq(k){if(!canVoyage()||!PATHS[k])return;
 
 // ---------- asteroids ----------
 // Big ones pass overhead and are mined by Barge Docks; small ones (after a Voyage) land on the moon as ore.
-function astOn(){return isCamp()&&(voyN()>0||countOf('dock')>0)}
+function astOn(){return isCamp()&&(voyN()>0||countOf('dock')>0||modOn('belt'))}
+const beltK=()=>modOn('belt')?10:1;
 function astName(){const L='ABCDEFGHJKLMNPRSTVXZ';return L[Math.random()*20|0]+L[Math.random()*20|0]+'-'+(10+Math.random()*90|0)}
 function newAst(){const ks=Object.keys(AST_KINDS).filter(k=>k!=='void'||late()||voyN()),kind=ks[Math.random()*ks.length|0],sz=(1+.25*helmLv('survey'))*(30000+Math.random()*90000);
   return {id:(S.astId=(S.astId||0)+1),n:astName(),dir:Math.random()*4|0,lat:40+Math.random()*304|0,kind,d:1+Math.floor(Math.random()*5),left:Math.round(sz),size:Math.round(sz),exp:S.time+7200}}
 function astTick(dt){if(!astOn())return;S.ast=S.ast||[];
   S.ast=S.ast.filter(a=>a.left>0&&a.exp>S.time);
   S.astT=(S.astT==null?60:S.astT)-dt*(1+.25*helmLv('survey'))*starP('ast');
-  if(S.astT<=0){S.astT=360;if(S.ast.length<5){const a=newAst();S.ast.push(a);if(countOf('dock'))showToast(`Asteroid ${a.n} (${AST_KINDS[a.kind].n}) is passing the moon`)}}
-  if(voyN()>0&&S.ms>=1){S.landT=(S.landT==null?240:S.landT)-dt*(1+.25*helmLv('landfall'))*starP('ast');if(S.landT<=0){S.landT=600;landfall()}}}
+  if(S.astT<=0){S.astT=360/beltK();if(S.ast.length<(modOn('belt')?10:5)){const a=newAst();S.ast.push(a);if(countOf('dock'))showToast(`Asteroid ${a.n} (${AST_KINDS[a.kind].n}) is passing the moon`)}}
+  if((voyN()>0||modOn('belt'))&&S.ms>=1){S.landT=(S.landT==null?240/beltK():S.landT)-dt*(1+.25*helmLv('landfall'))*starP('ast');if(S.landT<=0){S.landT=600/beltK();landfall()}}}
 // a small asteroid lands somewhere open inside the frontier and leaves a rich patch of ore
 function landBlob(L){for(let y=Math.floor(L.y-L.r-1);y<=L.y+L.r+1;y++)for(let x=Math.floor(L.x-L.r-1);x<=L.x+L.r+1;x++){if(x<1||y<1||x>=W-1||y>=H-1)continue;
   const d=Math.hypot(x+.5-L.x,y+.5-L.y);if(d<L.r){const i=y*W+x;if(ORE[i]&&ORE[i]!==L.k)continue;ORE[i]=L.k;RES[i]=Math.round(L.v*(1.2-.4*d/L.r))}}}
@@ -1363,15 +1365,16 @@ function showAst(a){const mx=AST_KINDS[a.kind].mix,tot=Object.values(mx).reduce(
 function dockOver(b){return b.x<0||b.y<0||b.x+b.w>W||b.y+b.w>H}
 // past the frontier its conveyors couldn't reach anything, so the haul is lifted straight to the Core
 function dockDirect(b){const o=edgeTile(b,b.d,1);return !inLim(o[0],o[1])}
-function bargeN(){return 1+helmLv('barges')}
+function dku(k){return (S.dku&&S.dku[k])||0}
+function bargeN(){return 1+helmLv('barges')+dku('bar')}
 // Compressed holds cost what compression costs anywhere: 5 or 20 ore per item from the asteroid, and 2× or 4× the fuel
 function bargeFuel(b){return 10*[1,2,4][b.dn|0]}
-function bargeCap(){return Math.round(300*(1+.5*helmLv('holds')))}
+function bargeCap(){return Math.round(300*(1+.5*helmLv('holds'))*(1+.25*dku('hold')))}
 // round trip: a short hop for a dock on the asteroid's side of the moon, a long haul for one across it
 function astDist(a,b){if(!b)return 60+50*a.d;const [tx,ty]=astPos(a);return Math.hypot(tx-b.x-1.5,ty-b.y-1.5)}
 const AST_MINE={metal:10,carbon:6,glass:8,void:14};
 function mineT(a){return AST_MINE[a.kind]||10}
-function flyT(a,b){return (8+.45*astDist(a,b))/(1+.2*helmLv('thrust'))}
+function flyT(a,b){return (8+.45*astDist(a,b))/((1+.2*helmLv('thrust'))*(1+.15*dku('eng')))}
 function tripT(a,b){return flyT(a,b)+mineT(a)}
 function dockAst(b){S.ast=S.ast||[];let a=S.ast.find(q=>q.id===b.tg);if(!a&&S.ast.length){a=S.ast.slice().sort((p,q)=>astDist(p,b)-astDist(q,b))[0];b.tg=a.id}return a||null}
 function dockHeld(b){let n=0;for(const k in b.ob)n+=b.ob[k];return n}
@@ -1391,8 +1394,13 @@ function dockStatus(b){const a=dockAst(b),fl=(b.bar||[]).filter(g=>g.t>0).length
   return[fl?'ok':'idle',`${fl} of ${bargeN()} barge${bargeN()>1?'s':''} out · ${a.n}`]}
 function dockRow(b){const a=dockAst(b),held=Object.keys(b.ob||{}).filter(k=>b.ob[k]>=1);
   return `<div class="flow"><span class="lbl">Fuel ${b.fuel|0}/200 carbon (${bargeFuel(b)} a trip) · ${bargeCap().toLocaleString()} ${['ore','dense items','packed items'][b.dn|0]} per hold</span></div>${dockDirect(b)?'<p class="desc">This dock stands beyond the frontier, where conveyors can’t reach, so its hauls are lifted straight to the Core.</p>':''}${(b.bar||[]).map((g,i)=>`<div class="flow"><span class="lbl">Barge ${i+1}: ${g.t>0&&g.T?['flying out','mining','heading home'][bargePh(g)[0]]+' · back in '+Math.ceil(g.t)+' s':'docked'}</span></div>`).join('')}${held.length?`<div class="flow"><span class="lbl">Unloading</span>${held.map(k=>chip(k,Math.floor(b.ob[k]).toLocaleString())).join('')}</div>`:''}${a?`<p class="desc">Target: <strong>${a.n}</strong>, ${AST_KINDS[a.kind].n.toLowerCase()}, ${Math.round(a.left/a.size*100)}% left, drifts away in ${fmtDur(a.exp-S.time)}.</p>`:''}`}
+// Iridium refits: spend Iridium from storage to improve every dock on this moon (they don't carry to the next one)
+function dockRefits(){const ir=Math.floor(S.inv.iridium||0);
+  return `<div class="sec-label">Iridium refits · every dock on this moon</div><p class="desc">You have ${ir.toLocaleString()} Iridium in storage. Refits stay with this moon.</p><div class="ms-list">${Object.keys(DOCK_UP).map(k=>{const u=DOCK_UP[k],L=dku(k),mx=L>=u.max,c=mx?0:u.cost(L);
+    return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · ${L}/${u.max}</h4>${mx?'<span class="st">Maxed</span>':''}</div><div class="ms-unl">${u.d}</div>${mx?'':`<div class="actions"><button class="btn${ir>=c?' primary':''}" data-dku="${k}">Refit · ${c.toLocaleString()} Iridium</button></div>`}</div>`}).join('')}</div>`}
 function dockCtrl(b){const as=S.ast||[],m=b.dn|0;
   return `<div class="sec-label">Asteroids in range · ${as.length}</div>${as.length?`<div class="ms-list">${as.map(a=>{const mx=AST_KINDS[a.kind].mix;return `<div class="ms${a.id===b.tg?' cur':''}"><div class="ms-top"><h4>${a.n} · ${AST_KINDS[a.kind].n}</h4><span class="st">${['N','E','S','W'][astDir(a)]} · ${a.d} AU · ${fmtN(a.left)} · ${Math.round(flyT(a,b))} s flying + ${mineT(a)} s mining</span></div><div class="ms-req">${Object.keys(mx).map(k=>`<span class="req"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${Math.round(mx[k]/Object.values(mx).reduce((p,q)=>p+q,0)*100)}%</span>`).join('')}</div>${a.id===b.tg?'':`<button class="btn" data-ast="${a.id}">Send barges here</button>`}</div>`}).join('')}</div>`:'<p class="desc">None right now. One passes every few minutes and stays for up to two hours.</p>'}
+  ${dockRefits()}
   ${ssLv('dense')?`<div class="sec-label">Hold</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Loose</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">Packed holds carry 2× or 4× as much, out as dense or packed items, at the usual compression cost: each item takes ${TIN[1]} or ${TIN[2]} ore from the asteroid, and each trip burns 2× or 4× the carbon. Trips take the same time.</p>`:''}`}
 
 // ================= galaxy map =================
@@ -1473,7 +1481,7 @@ function costVal(c){let v=0;for(const k in c||{})v+=(VAL[k]||1)*c[k];return v}
 function whenIdle(fn){const go=()=>{if(!elModal.hidden){setTimeout(go,800);return}fn()};setTimeout(go,600)}
 function fmtClock(s){s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')}
 function hashStr(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function dailyToday(){const n=new Date(),date=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`,seed=hashStr('halo-daily-'+date),ks=Object.keys(MODS);return{date,seed:seed%1e9,mod:ks[seed%ks.length]}}
+function dailyToday(){const n=new Date(),date=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`,seed=hashStr('halo-daily-'+date),ks=Object.keys(MODS).filter(k=>!MODS[k].rare);return{date,seed:seed%1e9,mod:ks[seed%ks.length]}}
 function runData(o){return{v:1,wv:3,dd2:1,seed:o.seed!=null?o.seed:(Math.random()*1e9|0),inv:Object.assign(o.ms===0?{iron:160,copper:80}:{iron:400,copper:200},o.inv||{}),ms:o.ms!=null?o.ms:TUT,unl:o.unl?['belt','junction','drill','smelter',...o.unl]:undefined,prog:{},petals:0,gt:0,gavg:0,up:{belt:0,vein:0,night:0,haul:0},time:0,flags:{del:0,ascHint:1},seen:{},bs:[],fromCode:1,mode:o.mode,mod:o.mod||null,ch:o.ch||null,daily:o.daily||null}}
 function dailyData(){const T=dailyToday();return runData({mode:'daily',daily:T.date,seed:T.seed,mod:T.mod})}
 function chData(id){const c=CHALLENGES[id];return runData({mode:'challenge',ch:id,ms:0,inv:c.inv,unl:c.unl})}
@@ -1493,7 +1501,7 @@ function showTitle(){
   <div class="actions"><button class="btn primary" data-mm="cont">Continue · ${slotLabel(CUR)}</button></div>
   <div class="sec-label">Main game</div><div class="ms-list">${SLOT_KEYS.map((k,i)=>{const d=readSlot(k);return row(`Slot ${i+1}${k===CUR?' · current':''}`,'',slotSummary(d),(d?`<button class="btn${k===CUR?'':' primary'}" data-slot="${i}">Play</button>`:'')+`<button class="btn${d?' danger':' primary'}" data-slotnew="${i}">${d?'New game':'Start'}</button>`)}).join('')}</div>
   ${evOn()&&testerOK()?`<div class="sec-label">🎃 Event · ${EV.n} · testers</div><div class="ms-list">${row('Defend the candy box',`Best wave ${META.dfBest||0} · ${META.candy||0} Candy`,'A floating island in a thunderstorm. Mine candy geysers, bridge out across the sky, and hold off skeletons, bats, ghosts and worse with sun towers. Your Commander levels make your commander stronger here.',`<button class="btn primary" data-mm="defense">Play</button>`)}</div>`:''}
-  <div class="sec-label">Daily moon · ${T.date}</div><div class="ms-list">${row(MODS[T.mod].n,best?'Best '+Math.floor(best).toLocaleString():'No score yet',`Everyone gets the same moon today. Start at the main game and score as much as you can in ${DAILY_LEN/60} minutes of play. Everything delivered to the Core scores its ore value, with a bonus for parts deep in the recipe tree; petals and Lattice cores launched score double; and every upgrade, research and tier you buy scores what it cost. ${MODS[T.mod].d}${dToday?` In progress: ${Math.floor(dd.dscore||0).toLocaleString()} points, ${fmtClock(Math.max(0,DAILY_LEN-(dd.time||0)))} left.`:''}`,`<button class="btn primary" data-daily>${dToday?'Continue':'Play today’s moon'}</button>`)}</div>
+  <div class="sec-label">Daily moon · ${T.date}</div><div class="ms-list">${row(MODS[T.mod].n,best?'Best '+Math.floor(best).toLocaleString():'No score yet',`Everyone gets the same moon today. Start at the main game and score as much as you can in ${DAILY_LEN/60} minutes of play. Everything delivered to the Core scores its ore value, with a bonus for parts deep in the recipe tree; petals and Lattice cores launched score double; and every upgrade, research and tier you buy scores what it cost. ${MODS[T.mod].d}${dToday?` In progress: ${Math.floor(dd.dscore||0).toLocaleString()} points, ${fmtClock(Math.max(0,DAILY_LEN-(dd.time||0)))} left.`:''}`,`<button class="btn primary" data-daily>${dToday?'Continue':'Play today’s moon'}</button>${LB_URL?`<button class="btn" data-lb="${T.date}">Leaderboard</button>`:''}`)}</div>
   <div class="sec-label">Challenges</div><p style="font-size:14px">Start from the tutorial with no bonuses and reach the goal under one rule. The first win in each earns that challenge’s own Legendary Relic, which works in every main game.</p><div class="ms-list">${Object.keys(CHALLENGES).map(id=>{const c=CHALLENGES[id],m=META.ch[id],cur=cd&&cd.ch===id;
     const sig=Object.keys(RELICS).find(k=>RELICS[k].sig===id);
     return row(c.n,m&&m.done?`Won${m.best?' · best '+fmtClock(m.best):''}`:cur?'In progress':'',c.d+` <strong>Goal:</strong> ${chGoalText(c)} Reward: <span style="color:${RARITY.l.col}">${RELICS[sig].n}</span> (${relicText(sig).replace(/\.$/,'').toLowerCase()})${m&&m.done?' ✓':''}.`,`<button class="btn${cur?' primary':''}" data-chal="${id}">${cur?'Continue':'Start'}</button>`)}).join('')}</div>
@@ -1515,6 +1523,33 @@ function runTick(){
     if(!S.dEnd&&S.time>=DAILY_LEN){S.dEnd=true;dLock();save();whenIdle(()=>showDailyEnd(true))}
   }
 }
+// ---------- Daily moon leaderboard (server/ holds the Worker; LB_URL in data/leaderboard.js turns it on) ----------
+// Only your first attempt each day is posted: the same score that sets the day's prizes.
+function lbCid(){if(!META.cid){const a='abcdefghijklmnopqrstuvwxyz0123456789';let s='';for(let i=0;i<20;i++)s+=a[Math.random()*36|0];META.cid=s;saveMeta()}return META.cid}
+function lbPosted(day){return (META.lbSent||{})[day]}
+function lbSection(){if(!LB_URL||S.mode!=='daily'||!S.daily)return '';const day=S.daily,pz=dPrize(day),sent=lbPosted(day);
+  const see=`<button class="btn" data-lb="${day}">See the board</button>`;
+  if(sent!=null)return `<div class="sec-label">Leaderboard</div><p>Posted <strong>${sent.toLocaleString()}</strong> points as <strong>${escHtml(META.lbName||'')}</strong>.</p><div class="actions">${see}</div>`;
+  if(pz==null)return `<div class="sec-label">Leaderboard</div><p>Finish this run to post your score.</p><div class="actions">${see}</div>`;
+  return `<div class="sec-label">Leaderboard</div><p>Post your first attempt, <strong>${pz.toLocaleString()}</strong> points, to today’s public board.</p>
+  <div class="seg"><input id="lbName" maxlength="16" autocomplete="nickname" placeholder="Your name" aria-label="Name on the leaderboard" value="${escHtml(META.lbName||'')}" style="flex:2;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--raise);color:var(--text);padding:0 12px;font:inherit"></div>
+  <div class="actions"><button class="btn primary" data-lbpost>Post score</button>${see}</div>`}
+let lbBusy=false;
+async function lbPost(){if(lbBusy)return;const day=S.daily,pz=dPrize(day),el=$('#lbName'),name=((el&&el.value)||'').trim();
+  if(pz==null)return;if(name.length<2){showToast('Pick a name of 2 to 16 letters');return}
+  META.lbName=name.slice(0,16);saveMeta();lbBusy=true;
+  try{const r=await fetch(LB_URL.replace(/\/$/,'')+'/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day,name:META.lbName,score:pz,cid:lbCid(),mod:S.mod||'',ver:LATEST})});
+    const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok){showToast(j.error||'Couldn’t post the score, try again later');return}
+    META.lbSent=META.lbSent||{};META.lbSent[day]=pz;const ks=Object.keys(META.lbSent).sort();while(ks.length>30)delete META.lbSent[ks.shift()];saveMeta();sfx('fanfare');showBoard(day)}
+  catch(_){showToast('Couldn’t reach the leaderboard. Check your connection.')}finally{lbBusy=false}}
+function dayShift(day,n){const d=new Date(day+'T12:00:00');d.setDate(d.getDate()+n);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+async function showBoard(day){const today=dailyToday().date;
+  const head=`<div class="card-head"><h3>Daily moon · ${day}</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div><div class="seg"><button data-lb="${dayShift(today,-1)}" class="${day!==today?'on':''}">Yesterday</button><button data-lb="${today}" class="${day===today?'on':''}">Today</button></div>`;
+  openModal(head+'<p>Loading the board…</p>');
+  try{const r=await fetch(`${LB_URL.replace(/\/$/,'')}/daily/${day}?cid=${lbCid()}`),j=await r.json();
+    const me=j.me,rows=(j.top||[]).map((e,i)=>`<div class="flow" style="justify-content:space-between${me&&me.rank===i+1?';font-weight:700':''}"><span class="lbl">${i+1}. ${escHtml(e.name)}</span><span class="st">${Number(e.score).toLocaleString()}</span></div>`).join('');
+    openModal(head+`<p>${j.total?`${j.total.toLocaleString()} player${j.total===1?'':'s'} posted a score.`:'No scores yet. Be the first.'}${me?` You’re <strong>#${me.rank}</strong> with ${Number(me.score).toLocaleString()}.`:''}</p>${rows?`<div class="ms cur">${rows}</div>`:''}<p class="desc">Each player’s first attempt of the day counts.</p>`)}
+  catch(_){openModal(head+'<p>Couldn’t reach the leaderboard. Check your connection and try again.</p>')}}
 // ---------- daily moon rewards: claimed once per day, tiers stack; replaying only adds tiers not yet reached ----------
 const DTIERS=[{at:0,n:'Played',h:1},{at:100000,n:'100k points',h:1},{at:250000,n:'250k points',h:1,nova:1},{at:500000,n:'500k points',relic:1},{at:1000000,n:'1M points',relic:'rare'}];
 // Only the first attempt each day counts for prizes: it locks when that run finishes or is restarted
@@ -1530,7 +1565,7 @@ function showDailyEnd(auto){
   if(!dSend||!slots.some(q=>q.k===dSend))dSend=(slots.find(q=>q.k===META.lastCamp)||slots[0]||{}).k||null;
   const rows=DTIERS.map((q,i)=>`<div class="ms ${cl>=0&&i<=t?'done':i<=t?'cur':'future'}"><div class="ms-top"><h4>${q.n}</h4><span class="st">${cl>=0&&i<=t?'Claimed':i<=t?'Ready':'Not reached'}</span></div><div class="ms-unl">${dTierText(q)}</div></div>`).join('');
   openModal(`<span class="eyebrow">Daily moon · ${S.daily}</span><h1>${auto?'Time’s up':'Run finished'}</h1><p>You scored <strong>${sc.toLocaleString()}</strong> points${S.dsrc?`: ${Math.floor(S.dsrc.d||0).toLocaleString()} from deliveries, ${Math.floor(S.dsrc.l||0).toLocaleString()} from launches and ${Math.floor(S.dsrc.u||0).toLocaleString()} from upgrades, research and tiers`:''}. Today’s best: ${Math.floor(META.daily[S.daily]||0).toLocaleString()}.</p>${pz!=null&&pz!==sc?`<p>Today’s prize is set by your first attempt: <strong>${pz.toLocaleString()}</strong> points. Later runs are practice.</p>`:''}
-  <div class="sec-label">Rewards · first attempt each day, every tier it reaches</div><div class="ms-list">${rows}</div>
+  ${lbSection()}<div class="sec-label">Rewards · first attempt each day, every tier it reaches</div><div class="ms-list">${rows}</div>
   ${fresh?(slots.length?`<div class="sec-label">Send rewards to</div><div class="seg">${slots.map(q=>`<button data-dsend="${q.k}" class="${dSend===q.k?'on':''}">Slot ${q.i+1}</button>`).join('')}</div><p style="font-size:13px">${escHtml(slotSummary(slots.find(q=>q.k===dSend).d))}</p><div class="actions"><button class="btn primary" data-dclaim>Claim rewards</button></div>`:'<p>Start a main game in a save slot to receive rewards. They’ll wait here for today.</p>'):cl>=0?'<p>Today’s prize is claimed. Come back tomorrow for a new moon.</p>':'<p>Finish this run to lock in today’s prize.</p>'}
   <div class="actions"><button class="btn" data-close>Keep building</button><button class="btn" data-mm="title">Main menu</button></div>`);
 }
@@ -1590,7 +1625,7 @@ function genWorld(seed){
   };
   // Inner 128×128 starting region (kept identical to earlier versions so saves line up)
   // After a Voyage, moons are sparser: each patch past the first four is kept with chance keep
-  const vy=S&&isCamp()&&voyN()>0,keep=vy?VOY_THIN*starP('patches'):1;let nb=0;const thin=f=>(...a)=>{const n=nb++;if(vy&&n>=4&&((Math.imul(seed^0x9e3779b9,n+1)>>>8)%1000)/1000>=keep)return;f(...a)};
+  const vy=S&&isCamp()&&voyN()>0,bt=S&&modOn('belt'),keep=bt?0:vy?VOY_THIN*starP('patches'):1;let nb=0;const thin=f=>(...a)=>{const n=nb++;if((vy||bt)&&n>=4&&((Math.imul(seed^0x9e3779b9,n+1)>>>8)%1000)/1000>=keep)return;f(...a)};
   const R=mulberry(seed),O=128,LW=128,LC=64.5,blob=thin(mkBlob(R,O,O,LW,LC,LC,1));
   const tryBlob=(k,dmin,dmax,rmin,rmax,ang)=>{
     for(let n=0;n<60;n++){
@@ -2711,7 +2746,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&S.ms>=MS.length&&(late()||voyN()>0))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||S.ms>=MS.length&&(late()||voyN()>0)))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -2969,6 +3004,8 @@ elSheet.addEventListener('click',e=>{
   else if(el.dataset.act==='padload'){const n=padLoad(b);showToast(n?`Loaded ${n.toLocaleString()} items from storage`:'Nothing in storage this mission still needs');refreshSheet()}
   else if(el.dataset.act==='padgo'){if(b.m==='kits'&&!kitN(b.h)){showToast('Load some kits first');return}b.go=true;showToast(b.m==='ark'?'It launches as soon as the module, rocket and fuel are in. Cargo loaded by then goes along.':'It launches as soon as the rocket and fuel are loaded')}
   else if(el.dataset.ast){b.tg=+el.dataset.ast;renderSheet();sfx('tick')}
+  else if(el.dataset.dku){const k=el.dataset.dku,u=DOCK_UP[k],L=dku(k);if(!u||L>=u.max)return;const c=u.cost(L);if((S.inv.iridium||0)<c){showToast(`Needs ${c.toLocaleString()} Iridium in storage`);return}
+    S.inv.iridium-=c;S.dku=S.dku||{};S.dku[k]=L+1;sfx('fanfare');showToast(`${u.n} ${L+1}`);renderSheet();save()}
   else if(el.hasAttribute('data-voyopen')){closeSheet();if(canVoyage())showStarPick()}
   else if(el.dataset.dn!==undefined){const v=+el.dataset.dn;if((b.dn|0)===v)return;setDense(b,v);renderSheet();sfx('tick')}
   else if(el.dataset.cmode!==undefined){const v=+el.dataset.cmode;if(b.mode===v)return;for(const t of contents(b))addInv(t);Object.assign(b,init('compressor'),{mode:v});renderSheet();sfx('tick')}
@@ -3123,6 +3160,8 @@ elCard.addEventListener('click',e=>{
   else if(b.hasAttribute('data-stats'))showStats();
   else if(b.hasAttribute('data-dfinish')){if(S.mode!=='daily'||S.dEnd)return;if(Date.now()-(b._arm||0)>3000){b._arm=Date.now();b.textContent=`Tap again: final score ${Math.floor(S.dscore||0).toLocaleString()}`;return}S.dEnd=true;dLock();save();showDailyEnd(false)}
   else if(b.hasAttribute('data-dend'))showDailyEnd(false);
+  else if(b.dataset.lb){showBoard(b.dataset.lb)}
+  else if(b.hasAttribute('data-lbpost')){lbPost()}
   else if(b.dataset.dsend){dSend=b.dataset.dsend;showDailyEnd(false)}
   else if(b.hasAttribute('data-dclaim'))claimDaily();
   else if(b.dataset.orb){const id=b.dataset.orb;if(!orbReady(id))return;S.orb.cur=S.orb.cur===id?null:id;sfx('tick');showResearch()}

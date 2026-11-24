@@ -48,6 +48,12 @@ export const HELM={
   command:{br:'Next Voyage',n:'Old command',max:1,cost:()=>30,d:'Keep your Commander levels when you Voyage.'},
   ancestry:{br:'Next Voyage',n:'Ancestral shop',max:1,cost:()=>60,d:'Keep everything you bought in the Starseed shop when you Voyage.'}
 };
+// Iridium refits for Barge Docks: bought with Iridium from storage, for every dock on the moon you're on
+export const DOCK_UP={
+  bar:{n:'Extra barge',max:3,cost:L=>[800,2500,6000][L],d:'Every Barge Dock on this moon flies one more barge.'},
+  hold:{n:'Iridium holds',max:5,cost:L=>300*2**L,d:'Barges on this moon carry 25% more per level.'},
+  eng:{n:'Iridium engines',max:5,cost:L=>300*2**L,d:'Barges on this moon fly 15% faster per level. Mining takes the same time.'}
+};
 // Iridium delivered to the Core during a Voyage cycle adds Starcharts when you next Voyage
 export const IRID_PER_CHART=5000;
 

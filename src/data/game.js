@@ -358,7 +358,9 @@ const MODS={
   embermoon:{n:'Ember moon',seeds:1.1,d:'Ember shards drop three times as often, but all power is 20% lower.'},
   unstable:{n:'Unstable core',seeds:1.2,d:'The Core only makes power while the sun is up.'},
   seeded:{n:'Seeded moon',seeds:1.15,d:'Every ore patch has a seed tile, but patches start with 30% of their ore.'},
-  frontier:{n:'Frontier moon',seeds:1.2,d:'No ore within 24 tiles of the Core, but the map starts at 192×192.'}
+  frontier:{n:'Frontier moon',seeds:1.2,d:'No ore within 24 tiles of the Core, but the map starts at 192×192.'},
+  // rare: never rolled for the Daily moon; on the galaxy map it has its own small chance
+  belt:{n:'Asteroid belt',seeds:1.3,rare:1,d:'The moon drifts through an asteroid belt. Only a few small ore patches lie near the Core, but asteroids pass and land ten times as often, and Barge Docks are open from the start.'}
 };
 // Challenges: a separate run from the start of the tutorial. Win by reaching the goal: refine 1 Aether, or (Hand-fed) deliver 1,000 of every item.
 const CHALLENGES={

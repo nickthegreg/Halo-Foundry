@@ -22,7 +22,7 @@ export const SPECIALS={
 export const BIAS={1:'ferrite',2:'cuprite',3:'silica',4:'carbon'};
 
 // Modifiers that can't share a moon
-const CLASH=[['rich','barren','seeded'],['longnight','eternal']];
+const CLASH=[['rich','barren','seeded','belt'],['longnight','eternal'],['frontier','belt']];
 const clash=(a,b)=>CLASH.some(g=>g.includes(a)&&g.includes(b));
 
 function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -36,7 +36,7 @@ export function genGalaxy(seed){
     for(let i=0;i<m;i++){
       const a=((i+.5)/m+off/m)*Math.PI*2,q=Math.floor((((a/(Math.PI*2))%1)+1)%1*4);
       // modifiers: ring 1–2 one (or none), ring 3+ two
-      const ks=Object.keys(MODS),want=r>=3?2:(R()<.25?0:1),mods=[];
+      const ks=Object.keys(MODS).filter(k=>!MODS[k].rare),want=r>=3?2:(R()<.25?0:1),mods=[];
       for(let t=0;t<40&&mods.length<want;t++){const k=ks[R()*ks.length|0];if(!mods.includes(k)&&!mods.some(o=>clash(o,k)))mods.push(k)}
       let sp=null;const x=R();
       if(r>=2){if(x<.12)sp='derelict';else if(x<.2)sp='bazaar';else if(x<.28)sp='storm';else if(r>=3&&x<.34)sp='anomaly'}
@@ -44,6 +44,8 @@ export function genGalaxy(seed){
       nodes.push({id:nodes.length,r,i,a,q,n:nameOf(R),mods,sp,bias});
     }
   }
+  // Asteroid belt moons: a separate roll (so older galaxies keep their other modifiers), rings 2 and out
+  for(const n of nodes){if(n.r<2)continue;const B=rng((seed^0x6be17)+n.id*7919);if(B()<.1&&!n.mods.some(o=>clash(o,'belt')))n.mods.push('belt')}
   // make sure every special shows up at least once, in rings 2–4
   for(const sp of Object.keys(SPECIALS))if(!nodes.some(n=>n.sp===sp)){const c=nodes.filter(n=>n.r>=(sp==='anomaly'?3:2)&&n.r<=4&&!n.sp);if(c.length)c[R()*c.length|0].sp=sp}
   // links: ring neighbours, and each moon to the closest-angle moon one ring in

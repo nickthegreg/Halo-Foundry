@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:83,date:'2026-11-23',title:'Belts and refits',items:[
+    'New moon type, Asteroid belt: only a few small ore patches near the Core, but asteroids pass and land ten times as often, and Barge Docks are open from the start. It turns up now and then on the galaxy map and when you choose your next moon. Pays 30% more Starseeds.',
+    'Iridium refits: spend Iridium from storage in any Barge Dock’s panel for an extra barge, Iridium holds or Iridium engines. They improve every dock on the moon you’re on.',
+    'Groundwork for a public Daily moon leaderboard. It switches on once its server is running.'
+  ]},
   {n:82,date:'2026-11-23',title:'The Bore opens up',items:[
     'Once the Deep Core Bore reaches the heart it needs no more deliveries, so it now puts out of three sides, the bright edge and both sides beside it, each with a Heavy metal, Magma glass and Helium-3 slot. Up to three times the outflow, and plenty of room to belt it away.'
   ]},
