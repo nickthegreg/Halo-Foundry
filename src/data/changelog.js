@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:85,date:'2026-11-23',title:'Matrioshka Core',items:[
+    'New megaproject, the Matrioshka Core: shells of thinking matter wrapped round your sun, raised in 5 stages from a 5×5 ground station. It unlocks once you have orbital labs.',
+    'Every stage makes orbital research 20% faster. From the first stage, orbital labs keep researching while you’re away, and kit launches keep arriving, at 10% of their usual rate.',
+    'Finish all five shells and every moon after this one keeps 4 more hours of offline progress. The shells show up round the star in the halo view.'
+  ]},
   {n:84,date:'2026-11-23',title:'Fusion',items:[
     'New building, the Fusion Reactor (5×5): 1 GW from one Fusion cell every 20 seconds, about five fully stacked Aether Reactors in one. It unlocks with Fusion cells, from the Deep Core Bore’s fifth stage, and its build cost includes 3,000 Iridium.',
     'It has to be lit: ignition draws 200 MW for 20 seconds, and plasma starts chasing round its magnet ring. Let it run out of cells and it cools and must be lit again.'

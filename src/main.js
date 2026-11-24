@@ -333,6 +333,7 @@ function accept(nb,t,side,p0){
     case 'railterm':if(nb.role||nb.q.length>=termCap(0))return false;nb.q.push(t);return true;
     case 'market':return isCamp()&&!!S.mk&&mkAccept(t);
     case 'elevator':return late()&&megaAccept('elevator',t);
+    case 'matrioshka':return late()&&megaAccept('matrioshka',t);
     case 'starship':return isCamp()&&megaAccept('starship',t);
     case 'dock':{const u=worth(t);if(side===nb.d||(BASE_OF[t]||t)!=='carbon'||nb.fuel+u>200)return false;nb.fuel+=u;return true}
     case 'bore':return late()&&side!==nb.d&&megaAccept('bore',t);
@@ -406,7 +407,7 @@ function sim(dt){
   let demand=0,solar=S.petals*petalKW()+(S.lat||0)*latticeKW(),cap=0;const comb=[];
   for(const b of S.bs.values()){
     if(b.bp)continue;
-    if(b.t==='relay'||b.t==='market'||b.t==='elevator'||b.t==='bore')b.active=true;
+    if(b.t==='relay'||b.t==='market'||b.t==='elevator'||b.t==='bore'||b.t==='matrioshka')b.active=true;
     if(b.t==='spaceport')demand+=b.st?1e7:1e6;
     else if(b.active&&B[b.t].pw)demand+=b.t==='uplink'?uplinkPw(b)*ocPw():b.t==='deepdrill'?ddPw(b.ord||0):b.t==='incinerator'?B[b.t].pw:B[b.t].pw*ocPw();
     if(b.t==='solar')solar+=45*sday*solarMul(b);
@@ -595,7 +596,7 @@ function padLaunch(b){
   for(let k=0;k<24;k++){const a=Math.random()*3.1416;PARTS.push({k:'smoke',x:b.x+3.5,y:b.y+5,vx:Math.cos(a)*(1+Math.random()*3),vy:-Math.sin(a)*Math.random()*1.2,life:2+Math.random()*2,max:4,r:.5})}
   const O=S.orb;
   if(m==='lab'){O.mods=(O.mods||0)+1;showBanner('Lab module '+O.mods+' in orbit',`Your orbital labs study ${fmtRate(labRate())} kits a second (room for ${labMax()}). Choose orbital research in the Research panel, then send kits up with Kit runs.`);if(!padOpen('lab'))b.m=null}
-  else if(m==='kits'){O.kits=O.kits||{};let n=0;for(const k of KITS)if(h[k]){O.kits[k]=(O.kits[k]||0)+h[k];n+=h[k]}showToast(`${n.toLocaleString()} Experiment kits reached orbit`)}
+  else if(m==='kits'){O.kits=O.kits||{};let n=0;for(const k of KITS)if(h[k]){O.kits[k]=(O.kits[k]||0)+h[k];LAUNCHED_K[k]=(LAUNCHED_K[k]||0)+h[k];n+=h[k]}showToast(`${n.toLocaleString()} Experiment kits reached orbit`)}
   else if(m==='ring'){ringUp();if(!padOpen('ring'))b.m=null}
   else if(m==='array'){S.arrLv=(S.arrLv||0)+1;burst(CX,CY,'#7fd7ff',50);sfx('fanfare');showBanner(`Deep Array · dish ${S.arrLv} of ${MISSIONS.array.max}`,`You can now see ${galSight()} links out from every moon you’ve visited on the galaxy map. The dish stays up through every ascension.`);if(!padOpen('array'))b.m=null}
   else if(m==='ark'){const n=padNeed('ark'),c={};let tot=0;for(const k in h){const v=(h[k]||0)-(n[k]||0);if(v>0){c[k]=v;tot+=v}}S.ark=S.ark||{};for(const k in c)S.ark[k]=(S.ark[k]||0)+c[k];S.arkN=(S.arkN||0)+1;
@@ -604,7 +605,7 @@ function padLaunch(b){
   save();
 }
 // ---------- orbital labs ----------
-function labRate(){return (S.orb.mods||0)*(1+.25*ssLv('dlabs'))*gridMul()}
+function labRate(){return (S.orb.mods||0)*(1+.25*ssLv('dlabs'))*(1+.2*megaLv('matrioshka'))*gridMul()}
 function isORep(id){return id.startsWith('rep:')}
 function orbCost(id){if(isORep(id)){const k=id.slice(4),R=ORB_REP[k],m=Math.pow(R.grow,orbLv(k)),o={};for(const i in R.kits)o[i]=Math.round(R.kits[i]*m);return o}return ORB[id].kits}
 function orbName(id){if(isORep(id)){const k=id.slice(4);return `${ORB_REP[k].n} ${orbLv(k)+1}`}return ORB[id].n}
@@ -913,7 +914,7 @@ function mkPanel(){
   return h;
 }
 // ---------- Megaprojects fed by belt (Space Elevator, Deep Core Bore) ----------
-const ONE_OF=['market','elevator','bore','starship'];
+const ONE_OF=['market','elevator','bore','starship','matrioshka'];
 function megaSt(k){return (S.mega&&S.mega[k]&&S.mega[k].st)||0}
 function megaLv(k){if(!isCamp()||!S.mega||!S.mega[k])return 0;for(const b of S.bs.values())if(b.t===k&&!b.bp)return S.mega[k].st;return 0}
 function megaNeed(k,st){const M=MEGA[k],o={},m=Math.pow(M.grow,st);for(const i in M.need)o[i]=Math.round(M.need[i]*m/10)*10;return o}
@@ -935,6 +936,7 @@ const BORE_USE={heavy:'Fusion cells (from stage 5)',magma:'Quantum chips (from s
 function boreRow(b){const rs=boreRates();if(!rs.length)return '';const ob=(S.mega.bore&&S.mega.bore.ob)||{};
   return `<div class="flow"><span class="lbl">Bringing up ${rs.map(([k,r])=>`${fmtRate(r)} ${ITEMS[k].s}/s`).join(' · ')}</span></div><div class="flow"><span class="lbl">Stored, up to ${BORE_CAP.toLocaleString()} each</span>${rs.map(([k])=>chip(k,(ob[k]||0).toLocaleString())).join('')}</div><p class="desc">What comes up waits here until a conveyor takes it, so you can leave the slots empty until you need them. Uses: ${rs.map(([k])=>`${ITEMS[k].n} → ${BORE_USE[k]}`).join('; ')}. Both parts go into Swarm nodes.</p>`}
 function megaDone(k,st){const M=MEGA[k];
+  if(k==='matrioshka'&&st>=M.stages){S.asc=S.asc||{};S.asc.fore=1}
   if(k==='bore'){if(st===3&&!S.rec.includes('quantum'))S.rec.push('quantum');if(st===5&&!S.rec.includes('fusion'))S.rec.push('fusion');if(st>=M.stages)setTimeout(heartReached,1500)}burst(CX,CY,'#d8b4ff',40);sfx('fanfare');showBanner(`${M.n} · stage ${st} of ${M.stages}`,M.eff(st)+(st>=M.stages?'. Complete!':'.'));save()}
 function megaPanel(k){const M=MEGA[k],L=megaSt(k),G=(S.mega&&S.mega[k])||{have:{}};
   if(L>=M.stages)return `<div class="flow"><span class="lbl">All ${M.stages} stages built. ${M.eff(L)}.</span></div>`;
@@ -2381,6 +2383,17 @@ function drawMachine(g,b,x,y,s){
       g.fillStyle='#c97a3a';for(const [dx,dy] of [[.5,.5],[4.5,.5],[.5,4.5],[4.5,4.5]]){g.beginPath();g.arc(x+s*dx,y+s*dy,s*.2,0,7);g.fill()}
       for(const sd of boreSides(b)){const bk={w:5,d:sd};port(g,bk,x,y,s,ITEM_TINT.heavy,1);port(g,bk,x,y,s,ITEM_TINT.magma,2);port(g,bk,x,y,s,ITEM_TINT.he3,3)};
       break;}
+    case 'matrioshka':{const S5=s*5,c5x=x+S5/2,c5y=y+S5/2,T=S?S.time:0,L=S?megaSt('matrioshka'):0;
+      base(g,x,y,S5,'#26223c');
+      // five nested shells round a small sun; each finished stage lights one, and lit shells turn and flicker with thought
+      const o=g.globalCompositeOperation;
+      for(let k=0;k<5;k++){const r=s*(.55+.4*k),lit=k<L;g.save();g.translate(c5x,c5y);g.rotate(T*(.12+.05*k)*(k%2?-1:1));
+        g.setLineDash(lit?[r*.5,r*.12]:[r*.08,r*.16]);g.beginPath();g.arc(0,0,r,0,7);g.strokeStyle=lit?['#9fe8ff','#c99bff','#f3c25a','#7ff0d0','#ffd6f0'][k]:'rgba(140,130,190,.35)';g.lineWidth=s*(lit?.13:.06);g.stroke();
+        if(lit){g.globalCompositeOperation='lighter';for(let m=0;m<4+k*2;m++){const a=m/(4+k*2)*6.283,tw=.5+.5*Math.sin(T*6+m*1.7+k);g.globalAlpha=.25+.6*tw;g.fillStyle='#ffffff';g.fillRect(Math.cos(a)*r-s*.04,Math.sin(a)*r-s*.04,s*.08,s*.08)}g.globalAlpha=1;g.globalCompositeOperation=o}
+        g.restore()}
+      g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(c5x,c5y,0,c5x,c5y,s*.45);gr.addColorStop(0,'rgba(255,250,230,.95)');gr.addColorStop(.5,'rgba(243,194,90,.6)');gr.addColorStop(1,'rgba(243,150,60,0)');g.fillStyle=gr;g.beginPath();g.arc(c5x,c5y,s*.45,0,7);g.fill();g.globalCompositeOperation=o;
+      if(L)glow(b.x+2.5,b.y+2.5,2+.4*L,'#c99bff',.12*L);
+      break;}
     case 'elevator':{
       const S5=s*5,c5x=x+S5/2,c5y=y+S5/2,T=S?S.time:0,L=S?megaSt('elevator'):0;
       rr(g,x+s*.1,y+s*.1,S5-s*.2,S5-s*.2,s*.5);g.fillStyle='#29263d';g.fill();g.lineWidth=s*.06;g.strokeStyle='#8a83b8';g.stroke();
@@ -2743,6 +2756,8 @@ function haloFrame(){const cv=$('#haloCv');if(!cv||elModal.hidden||!HALO){HALO=n
   // the star
   if(HA('star')){const o=g.globalCompositeOperation;g.globalCompositeOperation='lighter';const sz=R0*1.9*(1+.02*Math.sin(t*1.3));g.save();g.translate(c,c);g.rotate(t*.03);g.drawImage(HA('star'),-sz/2,-sz/2,sz,sz);g.rotate(-t*.07);g.globalAlpha=.35;g.drawImage(HA('star'),-sz*.6,-sz*.6,sz*1.2,sz*1.2);g.restore();g.globalAlpha=1;g.globalCompositeOperation=o}
   else{const gr=g.createRadialGradient(c,c,0,c,c,R0*.95);gr.addColorStop(0,'#fff8e2');gr.addColorStop(.3,'#f3c25a');gr.addColorStop(1,'rgba(243,150,60,0)');g.fillStyle=gr;g.beginPath();g.arc(c,c,R0*.95,0,7);g.fill()}
+  // Matrioshka shells wrapped round the star, one per finished stage
+  {const L=isCamp()?megaSt('matrioshka'):0;for(let k=0;k<L;k++){g.save();g.translate(c,c);g.rotate(t*(.1+.04*k)*(k%2?-1:1));g.setLineDash([R0*.25,R0*.08]);g.beginPath();g.arc(0,0,R0*(.62+.07*k),0,7);g.strokeStyle=['rgba(159,232,255,.55)','rgba(201,155,255,.55)','rgba(243,194,90,.55)','rgba(127,240,208,.55)','rgba(255,214,240,.55)'][k];g.lineWidth=2;g.stroke();g.restore()}}
   // moons
   ms.forEach((m,i)=>{const x=m.px??c+Math.cos(m.a)*orbR(m.r),y=m.py??c+Math.sin(m.a)*orbR(m.r);m.px=x;m.py=y;const sel=i===HALO.sel;
     const mR=m.here?16:12;if(HA('moon')){g.save();g.translate(x,y);g.rotate(m.a+Math.PI);g.globalAlpha=m.unknown?.45:1;g.drawImage(HA('moon'),-mR,-mR,mR*2,mR*2);g.restore();g.globalAlpha=1;
@@ -2768,7 +2783,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||S.ms>=MS.length&&(late()||voyN()>0)))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||(t==='fusion'&&late()&&S.rec.includes('fusion'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||S.ms>=MS.length&&(late()||voyN()>0)))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||(t==='fusion'&&late()&&S.rec.includes('fusion'))||(t==='matrioshka'&&late()&&isCamp()&&!!S.orb&&(S.orb.mods||0)>0)||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -2917,6 +2932,7 @@ function status(b){
     case 'starship':{const L=megaSt('starship');return L>=5?['ok','Ready · Voyage from the Ascension panel']:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of 5`]}
     case 'stock':return b.it?[b.n>=STOCK_CAP?'warn':'ok',`${b.n.toLocaleString()} / ${STOCK_CAP.toLocaleString()} ${ITEMS[b.it].s}${b.n>=STOCK_CAP?' · full':''}`]:['idle','Empty · takes the first item it’s given'];
     case 'bore':{const L=megaSt('bore'),M=MEGA.bore;return lp?['warn','Low power · '+pct]:L>=M.stages?['ok','At the heart · '+boreRates().map(([k,r])=>fmtRate(r)+' '+ITEMS[k].s+'/s').join(' · ')]:['ok',`Stage ${L+1} of ${M.stages}${L?' · bringing up '+boreRates().map(([k])=>ITEMS[k].s).join(', '):''}`]}
+    case 'matrioshka':{const L=megaSt('matrioshka'),M=MEGA.matrioshka;return L>=M.stages?['ok','Complete · all five shells']:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of ${M.stages}${L?' · research +'+20*L+'%':''}`]}
     case 'elevator':{const L=megaSt('elevator'),M=MEGA.elevator;return L>=M.stages?['ok','Complete · '+M.eff(L)]:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of ${M.stages}${L?' · '+M.eff(L):''}`]}
     case 'market':return mkOn()?['ok',`${(S.mk&&S.mk.open.length)||0} open contract${S.mk&&S.mk.open.length===1?'':'s'}${S.mk&&S.mk.timed?(S.mk.timed.on?' · timed contract running':' · timed offer waiting'):''}`]:['warn','Opening'];
     case 'compressor':return b.run?(lp?['warn','Low power · '+pct]:['ok',b.mode===2?'Unpacking':'Packing']):b.outN?['warn','Output blocked']:b.inN?['ok',`Collecting · ${b.inN} / ${b.mode===2?1:TIN[b.mode+1]}`]:['warn',b.mode===2?'Waiting for dense or packed items':'Waiting for items'];
@@ -2950,6 +2966,7 @@ function bufRow(b){
     case 'belt':return b.items.length?`<div class="flow">${cnt(b.items.map(i=>i.t))}</div>`:'';
     case 'market':return mkPanel();
     case 'elevator':return megaPanel('elevator');
+    case 'matrioshka':return megaPanel('matrioshka');
     case 'dock':return dockRow(b);
     case 'starship':return megaPanel('starship')+(megaSt('starship')>=5?'<div class="actions"><button class="btn primary" data-voyopen>Choose your road and launch</button></div>':'');
     case 'stock':return b.it?`<div class="flow"><span class="lbl">Holding</span>${chip(b.it,b.n.toLocaleString()+' / '+STOCK_CAP.toLocaleString())}</div>`:'';
@@ -3694,15 +3711,16 @@ function updateResearch(){
 
 // ================= offline progress =================
 // While you're away the factory earns a share of what it was delivering to the Core, without using ore or fuel.
-let AWAY=null,LAUNCHED=0,LAUNCHED_L=0;
+let AWAY=null,LAUNCHED=0,LAUNCHED_L=0,LAUNCHED_K={};
 function offEff(){return Math.min(1,.2+.1*((S.up&&S.up.night)||0)+relStat('off')/100)}
-function offCapH(){return 8+4*((S.up&&S.up.haul)||0)+relStat('haul')+(nupLv('lantern')?4:0)}
+function offCapH(){return 8+4*((S.up&&S.up.haul)||0)+relStat('haul')+(nupLv('lantern')?4:0)+(S.asc&&S.asc.fore?4:0)}
 function trackRates(d){
   // rolling ~3 minute average of deliveries to the Core and of spare power, per game-second
   const a=1/180;S.dr=S.dr||{};
   for(const k of new Set([...Object.keys(S.dr),...Object.keys(d)])){const v=(S.dr[k]||0)*(1-a)+(d[k]||0)*a;if(v<1e-4)delete S.dr[k];else S.dr[k]=v}
   S.lr=(S.lr||0)*(1-a)+LAUNCHED*a;LAUNCHED=0;if(S.lr<1e-5)S.lr=0;
   S.llr=(S.llr||0)*(1-a)+LAUNCHED_L*a;LAUNCHED_L=0;if(S.llr<1e-5)S.llr=0;
+  S.klr=S.klr||{};for(const k of KITS){const v=(S.klr[k]||0)*(1-a)+(LAUNCHED_K[k]||0)*a;if(v<1e-5)delete S.klr[k];else S.klr[k]=v}LAUNCHED_K={};
   S.dch=(S.dch||0)*(1-a)+(S.ms>=MS.length?Math.max(0,PW.gen-PW.demand)/1000:0)*a;
 }
 function fmtAway(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h}h ${m}m`:`${m} min`}
@@ -3715,11 +3733,15 @@ function grantOffline(sec){
   let pl=0,cg=0;if(S.lr>0){pl=Math.floor(S.lr*t*e);if(pl>0){const c0=constN(S.petals);S.petals+=pl;cg=constN(S.petals)-c0;any=true;
     const m=MS[S.ms];if(m&&m.launch){S.prog.petal=Math.min(PET_GOAL,(S.prog.petal||0)+pl);checkMs()}}}
   let ll=0;if(S.llr>0){ll=Math.floor(S.llr*t*e);if(ll>0){S.lat=(S.lat||0)+ll;any=true}}
+  // Matrioshka: orbital labs and kit launches keep going at 10% of their usual rate
+  let orbP=0;if(megaLv('matrioshka')>0&&S.orb&&S.orb.mods){const ot=t*.1,O=S.orb;O.kits=O.kits||{};for(const k in (S.klr||{}))O.kits[k]=(O.kits[k]||0)+Math.floor(S.klr[k]*ot);
+    const before=JSON.stringify(O.p)+JSON.stringify(O.done)+JSON.stringify(O.lv);let rem=ot,n=0;while(rem>0&&n<400){const d=Math.min(30,rem);orbTick(d);rem-=d;n++}if(JSON.stringify(O.p)+JSON.stringify(O.done)+JSON.stringify(O.lv)!==before){orbP=Math.round(ot/60);any=true}}
   if(!any)return;
   const keys=ITEM_ORDER.filter(k=>got[k]);
   openModal(`<span class="eyebrow">Welcome back</span><h1>Your factory kept going</h1>
-  <p>You were away <strong>${fmtAway(sec)}</strong>. It ran at <strong>${Math.round(e*100)}%</strong> while you were gone, without using up ore or fuel.${sec>t?` Offline time counts up to ${offCapH()} hours; Long haul raises that.`:''}</p>
+  <p>You were away <strong>${fmtAway(sec)}</strong>. It ran at <strong>${Math.round(e*100)}%</strong> while you were gone, without using up ore or fuel.${sec>offCapH()*3600?` Offline time counts up to ${offCapH()} hours; Long haul raises that.`:''}</p>
   <div class="ms-req">${keys.map(k=>`<span class="req done"><img src="${ICON[k]}" alt="${ITEMS[k].n}">+${got[k].toLocaleString()}</span>`).join('')}${ch>=1?`<span class="req done">${BOLT}+${Math.floor(ch).toLocaleString()} MJ</span>`:''}</div>
+  ${orbP>0?`<p>The Matrioshka Core kept your orbital labs working: about <strong>${orbP.toLocaleString()} minute${orbP===1?'':'s'}</strong> of research.</p>`:''}
   ${ll>0?`<p><strong>${ll.toLocaleString()}</strong> Lattice core${ll===1?' was':'s were'} launched into orbit (${S.lat.toLocaleString()} now).</p>`:''}
   ${pl>0?`<p><strong>${pl.toLocaleString()}</strong> sail petal${pl===1?' was':'s were'} launched into orbit (${S.petals.toLocaleString()} now).${cg>0?` <strong>${cg===1?'A Constellation':cg+' Constellations'}</strong> completed: +${cg} Commander point${cg===1?'':'s'} in Menu → Powers.`:''}</p>`:''}
   <button class="btn primary" data-close>Collect</button>`);
