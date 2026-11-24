@@ -32,6 +32,7 @@ Regenerate with `node tests/reference.mjs`.
 | Assembler | 3×3 | 20 Frame, 40 Circuit, 10 Motor | uses 150 kW |  |
 | Refinery | 3×3 | 30 Frame, 60 Steel, 10 Processor | uses 200 kW |  |
 | Aether Reactor | 3×3 | 20 Servo, 40 Processor, 60 Frame | makes up to 40 MW |  |
+| Fusion Reactor | 5×5 | 3000 Iridium, 60 Quantum chip, 600 Void glass, 2500 Slagcrete, 800 Frame | makes up to 1000 MW |  |
 | Separator | 3×3 | 40 Frame, 20 Servo, 80 Composite plate, 200 Steel | uses 400 kW |  |
 | Incinerator | 1×1 | 20 Steel, 10 Circuit | uses 1 GW while burning |  |
 | Spaceport | 7×7 | 10000 Servo, 5000 Slagcrete, 2000 Magnet, 1000 Frame, 200 Guidance unit, 2000 Void glass | uses 1 GW standing, 10 GW while building a rocket |  |

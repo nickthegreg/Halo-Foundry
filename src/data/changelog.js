@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:84,date:'2026-11-23',title:'Fusion',items:[
+    'New building, the Fusion Reactor (5×5): 1 GW from one Fusion cell every 20 seconds, about five fully stacked Aether Reactors in one. It unlocks with Fusion cells, from the Deep Core Bore’s fifth stage, and its build cost includes 3,000 Iridium.',
+    'It has to be lit: ignition draws 200 MW for 20 seconds, and plasma starts chasing round its magnet ring. Let it run out of cells and it cools and must be lit again.'
+  ]},
   {n:83,date:'2026-11-23',title:'Belts and refits',items:[
     'New moon type, Asteroid belt: only a few small ore patches near the Core, but asteroids pass and land ten times as often, and Barge Docks are open from the start. It turns up now and then on the galaxy map and when you choose your next moon. Pays 30% more Starseeds.',
     'Iridium refits: spend Iridium from storage in any Barge Dock’s panel for an extra barge, Iridium holds or Iridium engines. They improve every dock on the moon you’re on.',

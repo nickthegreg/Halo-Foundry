@@ -160,6 +160,7 @@ function init(t){
     case 'fab':case 'fab2':case 'assembler':return{rec:null,buf:{},outN:0,prog:0,run:false,ang:0};
     case 'refinery':return{n:0,run:false,prog:0,outN:0,ang:0};
     case 'reactor':return{fuel:0,energy:0,load:0,heat:0,ang:0,husk:0};
+    case 'fusion':return{fuel:0,energy:0,load:0,heat:0,ang:0,ign:0};
     case 'splitter':return{hold:null,rr:0,pri:null};
     case 'sorter':return{hold:null,filter:null,rr:0,sd:0};
     case 'batcher':return{st:{},ratio:{},q:[[],[]],rr:0,alt:0};
@@ -211,6 +212,7 @@ function contents(b){
     case 'smelter':case 'foundry':if(b.inT)add(b.inT,b.inN);if(b.outT)add(dOut(b,b.outT),b.outN);if(b.run&&b.cur)add(Object.keys(SMELT).find(k=>SMELT[k]===b.cur),TIN[b.dn|0]);break;
     case 'fab':case 'fab2':case 'assembler':for(const k in b.buf)add(k,b.buf[k]);if(b.rec)add(dOut(b,b.rec),b.outN);break;
     case 'refinery':add('aether',b.outN);break;
+    case 'fusion':add('fusion',b.fuel);break;
     case 'reactor':add('aether',b.fuel);add('husk',b.husk||0);add('nova',b.nova||0);break;
     case 'splitter':case 'sorter':if(b.hold)o.push(b.hold);break;
     case 'batcher':for(const k in b.st)add(k,b.st[k]);(b.q||[]).forEach(a=>o.push(...a));break;
@@ -316,6 +318,7 @@ function accept(nb,t,side,p0){
       if((nb.st[t]||0)>=batCap())return false;nb.st[t]=(nb.st[t]||0)+1;return true;}
     case 'combustor':case 'turbine':{const u=worth(t);if((BASE_OF[t]||t)!=='carbon'||nb.fuel+u>(nb.t==='combustor'?8:20))return false;nb.fuel+=u;return true;}
     case 'reactor':if(t!=='aether'||nb.fuel>=10)return false;nb.fuel++;return true;
+    case 'fusion':{const u=worth(t);if((BASE_OF[t]||t)!=='fusion'||nb.fuel+u>6)return false;nb.fuel+=u;return true}
     case 'refinery':{const u=worth(t);t=BASE_OF[t]||t;if(!ORE_P[t]||nb.n>=refRatio()+200)return false;nb.n+=u;stat('c',t,u);return true;}
     case 'uplink':if(t==='husk'||nb.q.length>=6)return false;nb.q.push(t);return true;
     case 'ring':{const bt=BASE_OF[t]||t;if(bt!=='petal'&&bt!=='lattice')return false;ringQ(nb);if(nb.pq.length+nb.lq.length>=4)return false;
@@ -409,6 +412,10 @@ function sim(dt){
     if(b.t==='solar')solar+=45*sday*solarMul(b);
     else if(b.t==='collector')solar+=400*(.25+.75*sday)*solarMul(b);
     else if(b.t==='filmarray')solar+=300*(.4+.6*sday)*solarMul(b);
+    else if(b.t==='fusion'){const fed=b.energy>0||b.fuel>0;b.ign=b.ign||0;
+      // lighting it: 200 MW for 20 s (slower if the grid can't cover it); dry, it cools in 5 s and must be lit again
+      if(fed&&b.ign<1){demand+=200000;b.ign=Math.min(1,b.ign+dt/20*Math.min(1,PW.sat||0))}else if(!fed)b.ign=Math.max(0,b.ign-dt/5);
+      if(fed&&b.ign>=1){cap+=B.fusion.gen;comb.push(b)}}
     else if(B[b.t].burn&&(b.energy>0||b.fuel>0)&&!(b.t==='reactor'&&(b.husk||0)>=4)){cap+=B[b.t].gen*(b.t==='reactor'?reactorMul(b):1);comb.push(b)}
   }
   demand*=bm('pow',1.08);solar*=bm('sun',.94);
@@ -417,8 +424,8 @@ function sim(dt){
   const sat0=demand>0?Math.min(1,gen/demand):1;
   PW={gen,demand,sat:sat0,cap:base+cap,day,solar,burn:cap*load,solarG};
   const sat=sat0*gridMul();
-  for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*b.heat*(b.t==='reactor'?1.2:4)}}
-  for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
+  for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*(b.t==='fusion'?.3+2.2*b.heat:b.heat*(b.t==='reactor'?1.2:4))}}
+  for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':c.t==='fusion'?'fusion':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&c.t!=='fusion'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
   if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt)}if(gridOn||modOn('belt'))astTick(dt);
   goalTick(dt);
   stepPulses(dt);seedTick(dt);trickleTick(dt);
@@ -2327,6 +2334,21 @@ function drawMachine(g,b,x,y,s){
       if(b.run){g.globalAlpha=.5+.5*b.prog;g.drawImage(SPR.aether,c3x-s*.45,c3y-s*.45,s*.9,s*.9);g.globalAlpha=1;glow(b.x+1.5,b.y+1.5,2.4,'#c48bff',.5)}
       else{g.beginPath();g.arc(c3x,c3y,s*.22,0,7);g.fillStyle='#5a4a7a';g.fill()}
       port(g,b,x,y,s,'#d8b4ff');break;}
+    case 'fusion':{const S5=s*5,c5x=x+S5/2,c5y=y+S5/2,h=b.heat||0,ig=b.ign||0,T=S?S.time:0;
+      base(g,x,y,S5,'#2a2540');
+      // magnet ring: a dark torus with twelve coils
+      g.beginPath();g.arc(c5x,c5y,s*1.75,0,7);g.lineWidth=s*.7;g.strokeStyle='#1a1630';g.stroke();g.lineWidth=s*.06;g.strokeStyle='#8a83b8';g.beginPath();g.arc(c5x,c5y,s*2.1,0,7);g.stroke();g.beginPath();g.arc(c5x,c5y,s*1.4,0,7);g.stroke();
+      for(let k=0;k<12;k++){const a=k/12*6.283;g.save();g.translate(c5x+Math.cos(a)*s*1.75,c5y+Math.sin(a)*s*1.75);g.rotate(a);g.fillStyle=k%3===0?'#f3c25a':'#6f68a0';g.fillRect(-s*.12,-s*.42,s*.24,s*.84);g.restore()}
+      // plasma: bright arcs chasing round the ring, brighter as it heats; ignition shows as a teal ring filling in
+      const o=g.globalCompositeOperation;g.globalCompositeOperation='lighter';
+      for(let k=0;k<3;k++){const a0=(b.ang||0)*(1+.3*k)+k*2.1,al=.15+.5*h;g.beginPath();g.arc(c5x,c5y,s*(1.65+.1*k),a0,a0+1.6+1.2*h);g.strokeStyle=`rgba(${k===1?'255,220,160':'190,240,255'},${al})`;g.lineWidth=s*(.14+.05*h);g.lineCap='round';g.stroke()}
+      g.lineCap='butt';
+      if(ig<1&&ig>0){g.beginPath();g.arc(c5x,c5y,s*1.75,-1.571,-1.571+6.283*ig);g.strokeStyle=`rgba(127,240,208,${.55+.3*Math.sin(T*8)})`;g.lineWidth=s*.22;g.stroke()}
+      const gr=g.createRadialGradient(c5x,c5y,0,c5x,c5y,s*1.1);gr.addColorStop(0,`rgba(255,250,235,${.15+.75*h})`);gr.addColorStop(.5,`rgba(140,210,255,${.08+.4*h})`);gr.addColorStop(1,'rgba(140,210,255,0)');g.fillStyle=gr;g.beginPath();g.arc(c5x,c5y,s*1.1,0,7);g.fill();
+      g.globalCompositeOperation=o;
+      for(let i=0;i<6;i++){g.beginPath();g.arc(x+s*.6+i*s*.76,y+S5-s*.62,s*.12,0,7);g.fillStyle=i<b.fuel?'#9fe8ff':'rgba(40,32,60,.8)';g.fill()}
+      if(h>.03)glow(b.x+2.5,b.y+2.5,4.2,'#9fe8ff',.55*h);
+      break;}
     case 'reactor':{
       const S3=s*3,c3x=x+S3/2,c3y=y+S3/2,h=b.heat;
       rr(g,x+s*.08,y+s*.08,S3-s*.16,S3-s*.16,s*.5);g.fillStyle='#2c2548';g.fill();g.lineWidth=s*.05;g.strokeStyle='#c99bff';g.stroke();
@@ -2746,7 +2768,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||S.ms>=MS.length&&(late()||voyN()>0)))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||S.ms>=MS.length&&(late()||voyN()>0)))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||(t==='fusion'&&late()&&S.rec.includes('fusion'))||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -2873,6 +2895,7 @@ function status(b){
     case 'junction':{const n=b.lanes.reduce((a,l)=>a+l.length,0);return['ok',n?`Carrying ${n}`:'Empty']}
     case 'smelter':case 'foundry':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];
+    case 'fusion':return (b.ign||0)>=1&&(b.fuel||b.energy>0)?['ok',`Running · ${fmtW(b.load*B.fusion.gen)}`]:(b.fuel||b.energy>0)?['warn',`Igniting · ${Math.round((b.ign||0)*100)}%`]:['bad',(b.ign||0)>0?'Cooling · needs Fusion cells':'Needs Fusion cells'];
     case 'reactor':return (b.husk||0)>=4?['bad','Husks piling up · connect its output']:b.load>.01?['ok',`Running · ${fmtW(b.load*B.reactor.gen*reactorMul(b))}`]:(b.fuel||b.energy>0)?['ok','Standing by']:['bad','Needs Aether'];
     case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return['bad','Pick a recipe'];const r=RECIPES[b.rec];return b.run?(lp?['warn','Low power · '+pct]:['ok','Assembling']):b.outN+r.out>Math.max(4,r.out*2)?['warn','Output blocked']:['warn','Waiting for inputs']}
     case 'batcher':{const ks=Object.keys(b.ratio);if(!ks.length)return['warn','No ratio set · passing items through'];if(b.q&&(b.q[0].length||b.q[1].length))return['ok',b.q[0].length&&b.q[1].length?'Sending on both outputs':'Sending a batch'];const need=ks.filter(k=>batUnits(b,k)+((b.cr&&b.cr[k])||0)<b.ratio[k]).map(k=>ITEMS[k].s);return['warn','Waiting for '+need.join(', ')]}
@@ -2915,6 +2938,7 @@ function bufRow(b){
     case 'drill':case 'deepdrill':return `<div class="flow"><span class="lbl">Out</span>${chip(b.ore,b.out)}<span class="lbl">· ${reachLeft(b).toLocaleString()} ${ITEMS[b.ore].s} left in reach · ${(ORE_P[b.ore].rate*drillMult(b)).toFixed(2)}${b.dn?` ${ITEMS[dOut(b,b.ore)].s}/s from ${(ORE_P[b.ore].rate*drillMult(b)*digOre(b)).toFixed(2)} ore`:'/s'}${b.t==='deepdrill'?` · draws ${fmtW(ddPw(b.ord||0))} (Deep Drill ${(b.ord||0)+1})`:''}</span></div><div class="flow"><span class="lbl">${b.dep?'This drill has run dry':`Runs dry in about ${fmtDur(reachLeft(b)/(ORE_P[b.ore].rate*drillMult(b)*gridMul()*digOre(b)))} at full speed`}</span></div><div class="prog"><b style="width:${b.prog*100}%"></b></div>`;
     case 'smelter':case 'foundry':return `<div class="flow"><span class="lbl">In</span>${b.inT?chip(b.inT,b.inN):'<span class="lbl">empty</span>'}<span class="arrow">→</span><span class="lbl">Out</span>${b.outT?chip(b.outT,b.outN):'<span class="lbl">empty</span>'}</div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>`+(()=>{const ore=b.inT||Object.keys(SMELT).find(k=>SMELT[k]===b.outT);if(!ore)return '';const c=smeltRate(b,ore),m=TIN[b.dn|0];return rateLine([[ore,c*m]],[[dOut(b,SMELT[ore]),c]],rateNote())})();
     case 'refinery':return `<div class="flow"><span class="lbl">Ore</span>${b.n.toLocaleString()} / ${refRatio().toLocaleString()}<span class="arrow">→</span>${chip('aether',b.outN)}<span class="lbl">· ${S.refined||0} made so far</span></div><div class="prog"><b style="width:${Math.min(100,b.n/refRatio()*100)}%"></b></div>`;
+    case 'fusion':return `<div class="flow"><span class="lbl">${fmtW(B.fusion.gen)} at full output, before your power bonuses</span></div><div class="flow"><span class="lbl">${(b.ign||0)>=1?'Lit':`Ignition ${Math.round((b.ign||0)*100)}% · drawing 200 MW`}</span></div><div class="flow"><span class="lbl">Fuel</span>${chip('fusion',b.fuel+'/6')}</div>`;
     case 'reactor':return `<div class="flow"><span class="lbl">${fmtW(B.reactor.gen*reactorMul(b))} at full output${b.nb?` (+${25*b.nb}% from ${b.nb} touching reactor${b.nb===1?'':'s'})`:''}</span></div><div class="flow"><span class="lbl">Fuel</span>${chip('aether',b.fuel+'/10')}<span class="lbl">Husks</span>${chip('husk',(b.husk||0)+'/4')}</div>`;
     case 'fab':case 'fab2':case 'assembler':{if(!b.rec)return '';const r=RECIPES[b.rec];return `<div class="flow"><span class="lbl">In</span>${Object.keys(r.in).map(k=>chip(k,(b.buf[k]||0)+'/'+recIn(b.rec)[k]*TIN[fabDn(b)])).join('')}<span class="arrow">→</span>${chip(dOut(b,b.rec),b.outN)}<span class="lbl">${(1/fabRate(b,b.rec)).toFixed(2)}s each (base ${+(r.t*TT[b.dn|0]).toFixed(2)}s)</span></div><div class="prog"><b style="width:${b.run?b.prog*100:0}%"></b></div>${(()=>{const c=fabRate(b,b.rec),d=dupP();return rateLine(Object.keys(r.in).map(k=>[k,c*recIn(b.rec)[k]*TIN[fabDn(b)]]),[[dOut(b,b.rec),c*recOut(b.rec)*(1+d)]],rateNote()+(d>0?` · incl. ${Math.round(d*100)}% duplication`:''))})()}`}
     case 'batcher':{const ks=Object.keys(b.st).filter(k=>b.st[k]>0);return ks.length?`<div class="flow"><span class="lbl">Stored</span>${ks.map(k=>chip(k,b.st[k]+'/'+batCap())).join('')}</div>`:'<div class="flow"><span class="lbl">Empty</span></div>'}
@@ -3746,7 +3770,7 @@ function badOf(b){
     case 'fab':case 'fab2':case 'assembler':{if(!b.rec||b.run)return null;const r=RECIPES[b.rec];return b.outN+r.out>Math.max(4,r.out*2)?'block':'starve'}
     case 'refinery':return b.outN>=2?'block':null;
     case 'separator':return !b.run&&b.nx&&sepTot(b)>0?'block':null;
-    case 'combustor':case 'turbine':case 'reactor':return !b.fuel&&b.energy<=0?'starve':null;
+    case 'combustor':case 'turbine':case 'reactor':case 'fusion':return !b.fuel&&b.energy<=0?'starve':null;
   }
   return null;
 }
@@ -4017,7 +4041,7 @@ function tap(sx,sy){
 
 // ================= save / load =================
 function serialize(){
-  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='stock')a.push({it:b.it,n:b.n});else if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
+  const bs=[];for(const b of S.bs.values()){if(b.t==='core')continue;const a=[b.t,b.x,b.y,b.d];if(B[b.t].r)a.push(b.ore);if(b.t==='fab'||b.t==='fab2'||b.t==='assembler')a.push(b.rec||0);if(b.t==='sorter')a.push(b.filter||0);if(b.t==='batcher')a.push(b.bp?{r:b.ratio}:{r:b.ratio,st:b.st,q:b.q});if(b.t==='splitter')a.push(b.pri==null?-1:b.pri);if(!b.bp){if(b.t==='stock')a.push({it:b.it,n:b.n});else if(b.t==='separator')a.push({n:b.n,oq:b.oq,nx:b.nx});else if(b.t==='spaceport')a.push({m:b.m,h:b.h,st:b.st,p:Math.round(b.p*1000)/1000,go:b.go});else if(b.t==='railterm')a.push({r:b.role,q:[...b.q,...b.sh.load],l:b.lab,dt:b.dest,f:b.flt})}if(B[b.t].burn&&!b.bp)a.push({f:b.fuel||0,e:Math.round((b.energy||0)*100)/100,m:b.ember||0,h:b.husk||0,i:b.t==='fusion'?Math.round((b.ign||0)*100)/100:undefined});if(b.bp){while(a.length<5)a.push(0);a.push(1)}if(b.t==='sorter'&&b.sd){while(a.length<6)a.push(0);a.push(b.sd)}bs.push(a)}
   return {v:1,wv:3,bpq:1,refined:S.refined||0,seed:S.seed,inv:S.inv,ms:S.ms,prog:S.prog,petals:S.petals,rsh:S.res,dr:S.dr,dch:S.dch,lr:S.lr||0,savedAt:Date.now(),charge:S.charge,gt:S.gt,gavg:S.gavg,ft:S.ft||0,favg:S.favg||0,lat:S.lat||0,aburn:S.aburn||0,crown:S.crown||{},crownBank:S.crownBank||0,crownSpent:S.crownSpent||0,llr:S.llr||0,cmd:S.cmd||{},cmdBank:S.cmdBank||0,cmdSpent:S.cmdSpent||0,asc:S.asc,dd2:1,ss:S.ss||{},nup:S.nup||{},relics:S.relics||[],relicPick:S.relicPick||null,msHold:S.msHold?1:0,irid:S.irid||0,voy:S.voy||null,landed:S.landed||[],ast:S.ast||[],astT:S.astT,landT:S.landT,astId:S.astId||0,starOffer:S.starOffer||null,starlight:S.starlight||0,sl:S.sl||{},boreWins:S.boreWins||0,ark:S.ark||{},arkN:S.arkN||0,mega:S.mega||{},past:S.past||[],gal:S.gal||null,mods:S.mods||[],moon:S.moon||null,stormWon:S.stormWon||0,stormLost:S.stormLost||0,arrLv:S.arrLv||0,banes:S.banes||[],banePick:S.banePick||null,ach:S.ach||{},mk:S.mk||null,mkRep:S.mkRep||{},mkTot:S.mkTot||0,mkComm:S.mkComm||0,mkCommSkip:S.mkCommSkip||0,mkTimed:S.mkTimed||0,mkHuge:S.mkHuge||0,mkB:S.mkB||{},mkSeed:S.mkSeed||0,obj:S.obj||null,objAll:S.objAll||0,relicRR:S.relicRR||0,relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,orb:S.orb,free:S.free||{},ringWins:S.ringWins||0,trk:S.trk||{},mode:mode(),mod:S.mod||null,ch:S.ch||null,daily:S.daily||null,dscore:S.dscore||0,dsrc:S.dsrc||{},dEnd:!!S.dEnd,chWon:!!S.chWon,chFail:!!S.chFail,chOffer:S.chOffer||null,chd:S.chd||{},up:S.up,time:S.time,flags:S.flags,unl:S.unl,rec:S.rec,seen:S.seen,speed,newT:S.newT,cam:{x:cam.x,y:cam.y,z:cam.z},rail:[...S.rail],dn:[...S.bs.values()].filter(b=>b.dn||b.t==='compressor'&&b.mode).map(b=>[b.x,b.y,b.t==='compressor'?b.mode:b.dn]),bs,res:resDiff()};
 }
 function save(){if(CRASHED)return;try{localStorage.setItem(CUR,JSON.stringify(serialize()))}catch(_){}if(S&&isCamp()&&JSON.stringify(META.cmd||{})!==JSON.stringify(S.cmd||{})){META.cmd=Object.assign({},S.cmd||{});saveMeta()}}
@@ -4043,7 +4067,7 @@ function start(data,forceNew){
     const BL=(d.bs||[]).slice();if(!d.dd2)BL.sort((p,q)=>(p[0]==='deepdrill')-(q[0]==='deepdrill'));
     for(const a of BL){if(a[0]==='rail'){const x=a[1]+OFF,y=a[2]+OFF;S.rail.add(y*W+x);place('pylon',x,y,0,true);continue}if(!B[a[0]])continue;let b=place(a[0],a[1]+OFF,a[2]+OFF,a[3],true,B[a[0]].r?a[4]:null);if(a[0]==='deepdrill'&&!d.dd2)for(const [ox,oy] of [[-1,0],[0,-1],[-1,-1]]){if(typeof b==='object')break;b=place(a[0],a[1]+OFF+ox,a[2]+OFF+oy,a[3],true,a[4])}if(typeof b!=='object'&&B[a[0]].cost){pay(B[a[0]].cost,1);S.flags.refunded=(S.flags.refunded||0)+1}if(typeof b==='object'){if((a[0]==='fab'||a[0]==='fab2'||a[0]==='assembler')&&a[4])b.rec=a[4];if(a[0]==='sorter'&&a[4])b.filter=a[4];if(a[0]==='sorter'&&a[6])b.sd=a[6];if(a[0]==='batcher'&&a[4]&&typeof a[4]==='object'){const X=a[4];if(X.r)b.ratio=X.r;else b.ratio=X;
       if(X.st&&typeof X.st==='object')for(const k in X.st)if(ITEMS[k]&&X.st[k]>0)b.st[k]=Math.min(batCap(),X.st[k]|0);
-      if(Array.isArray(X.q))b.q=[0,1].map(i=>Array.isArray(X.q[i])?X.q[i].filter(k=>ITEMS[k]):[])}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:4;b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0));if(a[0]==='reactor')b.husk=Math.max(0,Math.min(4,F.h|0))}if(a[5]!==1&&a[4]&&typeof a[4]==='object'){const X=a[4];if(a[0]==='stock'){if(ITEMS[X.it]){b.it=X.it;b.n=Math.max(0,Math.min(STOCK_CAP,X.n|0));if(!b.n)b.it=null}}else if(a[0]==='separator'){b.n=Math.max(0,Math.min(1200,X.n|0));if(X.oq&&typeof X.oq==='object')for(const k in X.oq)if(ITEMS[k]&&X.oq[k]>0)b.oq[k]=X.oq[k]|0;b.nx=ITEMS[X.nx]&&b.oq[X.nx]?X.nx:null}else if(a[0]==='spaceport'){b.m=MISSIONS[X.m]?X.m:null;if(X.h&&typeof X.h==='object')for(const k in X.h)if(ITEMS[k]&&X.h[k]>0)b.h[k]=X.h[k]|0;b.st=X.st?1:0;b.p=Math.max(0,Math.min(1,+X.p||0));b.go=!!X.go}else if(a[0]==='railterm'){b.role=X.r?1:0;if(Array.isArray(X.q))b.q=X.q.filter(k=>ITEMS[k]).slice(0,2000);if(typeof X.l==='number')b.lab=X.l;if(typeof X.dt==='number')b.dest=X.dt;if(Array.isArray(X.f))b.flt=X.f.filter(k=>ITEMS[k])}}if(a[5]===1)b.bp=true}}
+      if(Array.isArray(X.q))b.q=[0,1].map(i=>Array.isArray(X.q[i])?X.q[i].filter(k=>ITEMS[k]):[])}if(a[0]==='splitter'&&typeof a[4]==='number'&&a[4]>=0&&a[5]!==1)b.pri=a[4];if(B[a[0]].burn&&a[4]&&typeof a[4]==='object'&&a[5]!==1){const F=a[4],mx=a[0]==='combustor'?8:a[0]==='turbine'?20:a[0]==='fusion'?6:4;if(a[0]==='fusion')b.ign=Math.max(0,Math.min(1,+F.i||0));b.fuel=Math.max(0,Math.min(mx,F.f|0));b.energy=Math.max(0,+F.e||0);if(a[0]==='combustor')b.ember=Math.max(0,Math.min(5,F.m|0));if(a[0]==='reactor')b.husk=Math.max(0,Math.min(4,F.h|0))}if(a[5]!==1&&a[4]&&typeof a[4]==='object'){const X=a[4];if(a[0]==='stock'){if(ITEMS[X.it]){b.it=X.it;b.n=Math.max(0,Math.min(STOCK_CAP,X.n|0));if(!b.n)b.it=null}}else if(a[0]==='separator'){b.n=Math.max(0,Math.min(1200,X.n|0));if(X.oq&&typeof X.oq==='object')for(const k in X.oq)if(ITEMS[k]&&X.oq[k]>0)b.oq[k]=X.oq[k]|0;b.nx=ITEMS[X.nx]&&b.oq[X.nx]?X.nx:null}else if(a[0]==='spaceport'){b.m=MISSIONS[X.m]?X.m:null;if(X.h&&typeof X.h==='object')for(const k in X.h)if(ITEMS[k]&&X.h[k]>0)b.h[k]=X.h[k]|0;b.st=X.st?1:0;b.p=Math.max(0,Math.min(1,+X.p||0));b.go=!!X.go}else if(a[0]==='railterm'){b.role=X.r?1:0;if(Array.isArray(X.q))b.q=X.q.filter(k=>ITEMS[k]).slice(0,2000);if(typeof X.l==='number')b.lab=X.l;if(typeof X.dt==='number')b.dest=X.dt;if(Array.isArray(X.f))b.flt=X.f.filter(k=>ITEMS[k])}}if(a[5]===1)b.bp=true}}
     if(Array.isArray(d.dn))for(const [x,y,v] of d.dn){const q=at(x+OFF,y+OFF);if(!q)continue;if(q.t==='compressor')q.mode=Math.max(0,Math.min(2,v|0));else if(DM.includes(q.t))q.dn=Math.max(1,Math.min(2,v|0))}
     // The Compressor building was retired: remove any that were built, refunding their cost and contents
     for(const q of [...S.bs.values()])if(q.t==='compressor'){for(const t of contents(q))addInv(t);pay(costOf('compressor'),1);S.bs.delete(q.id);for(let j=0;j<(q.w||1);j++)for(let i=0;i<(q.w||1);i++)S.grid[(q.y+j)*W+q.x+i]=0}

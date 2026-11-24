@@ -438,3 +438,11 @@ orbital list above (Aether condensers at +25%, Bulk logistics = Batchers ×2 and
 - Docks (2026-11-20): must overhang the frontier (some tiles inside, some outside; or touch the map border once the
   frontier is the whole map). Asteroids have `dir` (N/E/S/W); `astPos` puts them past the frontier; `drawSpace` draws
   asteroids and barges in world space.
+
+### 2026-11-23: Fusion, Matrioshka, Star lifter
+- Fusion Reactor built (B.fusion, 5×5): gen 1 GW, burn 20 s per Fusion cell, holds 6, ignition `b.ign` 0→1 over 20 s
+  while drawing 200 MW (scaled by last tick's satisfaction), cools to 0 in 5 s when dry. No neighbour bonus.
+  Unlocks with recipe `fusion` (Bore stage 5). Cost includes 3,000 Iridium.
+- Matrioshka core (not built): 5-stage megaproject (Lattice cores + Quantum chips). Owner: when it's built, orbital
+  research and kit launches keep going offline at 10% of their normal rate. Completion: a permanent one-off bonus.
+- Star lifter (not built): 7×7 megaproject pulling Stellar plasma off the star; owner is open to where it goes.
