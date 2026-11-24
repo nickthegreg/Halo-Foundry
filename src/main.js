@@ -915,11 +915,13 @@ function megaAccept(k,t){S.mega=S.mega||{};const G=S.mega[k]=S.mega[k]||{st:0,ha
   if(Object.keys(need).every(i=>(G.have[i]||0)>=need[i])){G.st++;G.have={};megaDone(k,G.st)}return true}
 // Each output has its own slot on the bright edge: Heavy metal, Magma glass, Helium-3 from left to right
 const BORE_SLOT={heavy:1,magma:2,he3:3};
+// once the Bore reaches the heart it takes nothing more in, so it puts out of three sides: the bright edge and both sides next to it
+function boreSides(b){return S&&S.mega&&megaSt('bore')>=MEGA.bore.stages?[b.d,(b.d+1)&3,(b.d+3)&3]:[b.d]}
 function boreRates(){const L=megaLv('bore');return BORE_OUT.filter(o=>L>=o[1]).map(([k,st,r])=>[k,r*(L-st+1)*gridMul()])}
 const BORE_CAP=5000,STOCK_CAP=2000;
 function boreTick(b,dt,sat){if(!megaSt('bore'))return;const G=S.mega.bore;G.ob=G.ob||{};b.ob=G.ob;
   for(const [k,r] of boreRates()){b.oa[k]=(b.oa[k]||0)+r*dt*sat;while(b.oa[k]>=1&&(b.ob[k]||0)<BORE_CAP){b.oa[k]--;b.ob[k]=(b.ob[k]||0)+1}if(b.oa[k]>1)b.oa[k]=1;
-    if(b.ob[k]>0&&pushPorts(b,k,[[b.d,BORE_SLOT[k]]])){b.ob[k]--;stat('p',k)}}
+    const sides=boreSides(b);for(let n=0;n<sides.length&&b.ob[k]>0;n++){if(pushPorts(b,k,sides.map(d=>[d,BORE_SLOT[k]]))){b.ob[k]--;stat('p',k)}else break}}
   b.ang+=dt*sat*megaSt('bore')}
 const BORE_USE={heavy:'Fusion cells (from stage 5)',magma:'Quantum chips (from stage 3)',he3:'Fusion cells'};
 function boreRow(b){const rs=boreRates();if(!rs.length)return '';const ob=(S.mega.bore&&S.mega.bore.ob)||{};
@@ -2105,7 +2107,7 @@ function drawArt(g,b,x,y,s,im){
     case 'bore':{const L=S?megaSt('bore'):0;hotGlow(g,cx,cy,s*1.6,L/6,'rgba(255,220,140,A)','rgba(255,110,40,A)');
       g.save();g.translate(cx,cy);g.rotate(b.ang||0);g.strokeStyle='rgba(216,220,234,.85)';g.lineWidth=s*.12;g.lineCap='round';for(let k=0;k<3;k++){g.rotate(2.094);g.beginPath();g.moveTo(0,0);g.lineTo(0,-s*1.25);g.stroke()}g.restore();g.lineCap='butt';
       g.beginPath();g.arc(cx,cy,s*.22,0,7);g.fillStyle=L>=6?'#ffd27a':L?'#ff7a3a':'#1c1830';g.fill();if(L)glow(b.x+2.5,b.y+2.5,2.5,'#ff8a3a',.12*L);
-      port(g,b,x,y,s,ITEM_TINT.heavy,1);port(g,b,x,y,s,ITEM_TINT.magma,2);port(g,b,x,y,s,ITEM_TINT.he3,3);break}
+      for(const sd of boreSides(b)){const bk={w:5,d:sd};port(g,bk,x,y,s,ITEM_TINT.heavy,1);port(g,bk,x,y,s,ITEM_TINT.magma,2);port(g,bk,x,y,s,ITEM_TINT.he3,3)};break}
     case 'elevator':{const L=S?megaSt('elevator'):0;
       for(let k=0;k<8;k++){const a=k/8*6.283-1.571,lx=cx+Math.cos(a)*s*1.55,ly=cy+Math.sin(a)*s*1.55;g.beginPath();g.arc(lx,ly,s*.15,0,7);g.fillStyle=k<L?'#e6ccff':'rgba(30,26,50,.75)';g.fill();if(k<L)glow(b.x+(lx-x)/s,b.y+(ly-y)/s,.5,'#d8b4ff',.4)}
       g.strokeStyle=`rgba(216,180,255,${.35+.08*L})`;g.lineWidth=s*.09;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx,y+s*.15);g.stroke();
@@ -2320,7 +2322,7 @@ function drawMachine(g,b,x,y,s){
       for(let k=0;k<3;k++){g.rotate(2.094);g.beginPath();g.moveTo(0,0);g.lineTo(0,-s*1.9);g.stroke()}g.restore();
       // corner pylons
       g.fillStyle='#c97a3a';for(const [dx,dy] of [[.5,.5],[4.5,.5],[.5,4.5],[4.5,4.5]]){g.beginPath();g.arc(x+s*dx,y+s*dy,s*.2,0,7);g.fill()}
-      port(g,b,x,y,s,ITEM_TINT.heavy,1);port(g,b,x,y,s,ITEM_TINT.magma,2);port(g,b,x,y,s,ITEM_TINT.he3,3);
+      for(const sd of boreSides(b)){const bk={w:5,d:sd};port(g,bk,x,y,s,ITEM_TINT.heavy,1);port(g,bk,x,y,s,ITEM_TINT.magma,2);port(g,bk,x,y,s,ITEM_TINT.he3,3)};
       break;}
     case 'elevator':{
       const S5=s*5,c5x=x+S5/2,c5y=y+S5/2,T=S?S.time:0,L=S?megaSt('elevator'):0;

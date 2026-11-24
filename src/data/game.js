@@ -203,7 +203,7 @@ const MISSIONS={
 const MEGA={
   elevator:{n:'Space Elevator',stages:8,grow:1.3,need:{slagcrete:1500,magnet:600,composite:800,voidglass:600},eff:L=>`Launches burn ${6*L}% less Aether`},
   starship:{n:'Starship',stages:5,grow:1.5,need:{iridium:1500,fusion:150,quantum:150,lattice:200,composite:4000},eff:L=>L>=5?'Ready to Voyage':`Hull ${L} of 5 built`},
-  bore:{n:'Deep Core Bore',stages:6,grow:1.5,need:{steel:3000,motor:400,slagcrete:1500,voidcell:80},eff:L=>L>=6?'Reached the heart: Heavy metal, Magma glass and Helium-3 at full flow':`Brings up ${BORE_OUT.filter(o=>L>=o[1]).map(o=>o[0]==='heavy'?'Heavy metal':o[0]==='magma'?'Magma glass':'Helium-3').join(', ')||'nothing yet'}`}
+  bore:{n:'Deep Core Bore',stages:6,grow:1.5,need:{steel:3000,motor:400,slagcrete:1500,voidcell:80},eff:L=>L>=6?'Reached the heart: Heavy metal, Magma glass and Helium-3 at full flow, out of three sides':`Brings up ${BORE_OUT.filter(o=>L>=o[1]).map(o=>o[0]==='heavy'?'Heavy metal':o[0]==='magma'?'Magma glass':'Helium-3').join(', ')||'nothing yet'}`}
 };
 // Bore output: [item, first stage, items/s per stage from then on]
 const BORE_OUT=[['heavy',1,.4],['magma',3,.25],['he3',5,.15]];

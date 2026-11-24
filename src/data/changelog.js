@@ -1,6 +1,9 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:82,date:'2026-11-23',title:'The Bore opens up',items:[
+    'Once the Deep Core Bore reaches the heart it needs no more deliveries, so it now puts out of three sides, the bright edge and both sides beside it, each with a Heavy metal, Magma glass and Helium-3 slot. Up to three times the outflow, and plenty of room to belt it away.'
+  ]},
   {n:81,date:'2026-11-23',title:'Pace',items:[
     'New Helm upgrade, Pace: the whole moon runs 1% faster per level, up to 10%. Machines, conveyors, power, days, asteroids and offline progress all speed up together, so it’s the one way to push conveyors past 30 items a second.',
     'Fixed: once you opened the whole moon, the frontier’s fog covered everything and the world looked much darker.'
