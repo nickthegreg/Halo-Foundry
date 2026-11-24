@@ -1,2 +1,2 @@
 // Address of the Daily moon leaderboard (a Cloudflare Worker, see server/). Empty = leaderboard hidden.
-export const LB_URL='';
+export const LB_URL='https://halo-daily.nickthegreg.workers.dev';

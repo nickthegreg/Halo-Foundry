@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:86,date:'2026-11-23',title:'Daily leaderboard',items:[
+    'The Daily moon has a public leaderboard. When your run ends, pick a name and post your score: only your first attempt of the day counts, the same one that sets your rewards.',
+    'See today’s and yesterday’s top 50, and your own rank, from the Leaderboard button next to the Daily moon on the title screen.'
+  ]},
   {n:85,date:'2026-11-23',title:'Matrioshka Core',items:[
     'New megaproject, the Matrioshka Core: shells of thinking matter wrapped round your sun, raised in 5 stages from a 5×5 ground station. It unlocks once you have orbital labs.',
     'Every stage makes orbital research 20% faster. From the first stage, orbital labs keep researching while you’re away, and kit launches keep arriving, at 10% of their usual rate.',
