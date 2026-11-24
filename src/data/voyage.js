@@ -24,6 +24,7 @@ export const HELM={
   bounty:{br:'Foundry',n:'Bounty',max:10,cost:L=>5+5*L,d:'Every ore tile holds 50% more ore per level.'},
   dynamo:{br:'Foundry',n:'Dynamo',max:10,cost:L=>5+5*L,d:'Every power source makes 50% more per level.'},
   current:{br:'Foundry',n:'Current',max:5,cost:L=>6+6*L,d:'Conveyors move 15% faster per level.'},
+  pace:{br:'Foundry',n:'Pace',max:10,cost:L=>8+6*L,d:'The whole moon runs 1% faster per level: machines, conveyors, power, days and asteroids all keep the quicker time, and so does offline progress. It’s the one way to push a conveyor past 30 items a second.'},
   echoes:{br:'Foundry',n:'Echoes',max:5,cost:L=>8+8*L,d:'Every moon you’ve left this Voyage hums along with you: +2% machine speed and +2% Starseeds per moon left, per level (up to 40 moons).'},
   // The road: soften the road you chose
   mastery:{br:'The road',n:'Road mastery',max:5,cost:L=>10+10*L,d:'Each level takes a fifth off your road’s penalty. Heavy world: conveyors, drills and Uplinks less slowed, buildings less dear. Low-gravity moon: dense digs and crafts need fewer inputs and less time. The road’s rewards stay the same.'},

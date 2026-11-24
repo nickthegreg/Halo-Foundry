@@ -1174,6 +1174,8 @@ function echoMul(){return 1+.02*hl('echoes')*echoN()}
 function roadPen(){return 1-.2*hl('mastery')}
 // Each Voyage makes every craft and smelt take 50% longer, so a late factory needs more machines
 function voyTime(){return isCamp()?1+.5*voyN():1}
+// Helm · Pace: the whole moon's clock runs a little faster
+function paceMul(){return 1+.01*helmLv('pace')}
 function helmLv(k){return (S&&S.voy&&S.voy.helm&&S.voy.helm[k])||0}
 function curStar(){const v=S&&S.voy;if(!v)return null;return PATHS[v.path]||STARS[v.star]||null}
 function starP(k){const st=isCamp()?curStar():null;return st&&st[k]!=null?st[k]:1}
@@ -2527,7 +2529,7 @@ function render(rdt){
     for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++){const c=chunkCv(cx,cy),sx=w2sx(cx*CH),sy=w2sy(cy*CH),sz=CH*z+.6;if(c)g.drawImage(c,sx,sy,sz,sz);else{g.fillStyle=BI().base;g.fillRect(sx,sy,sz,sz)}}
   }
   if(wx1>wx0&&wy1>wy0)drawOreLive(g,z,wx0,wy0,wx1,wy1);
-  {const L=mapLim(),lo=192-L,sz=2*L*z;g.fillStyle=BI().fog;g.beginPath();g.rect(w2sx(0),w2sy(0),W*z,H*z);if(L<192)g.rect(w2sx(lo),w2sy(lo),sz,sz);g.fill('evenodd');
+  {const L=mapLim(),lo=192-L,sz=2*L*z;g.fillStyle=BI().fog;g.beginPath();if(L<192){g.rect(w2sx(0),w2sy(0),W*z,H*z);g.rect(w2sx(lo),w2sy(lo),sz,sz);g.fill('evenodd')}
    if(s2wx(0)<2||s2wy(0)<2||s2wx(VW)>W-2||s2wy(VH)>H-2){g.strokeStyle='rgba(200,215,255,.22)';g.lineWidth=Math.max(2,z*.12);g.strokeRect(w2sx(0),w2sy(0),W*z,H*z)}
    g.save();g.setLineDash([8,6]);g.strokeStyle='rgba(127,240,208,.4)';g.lineWidth=1.5;g.strokeRect(w2sx(lo),w2sy(lo),sz,sz);g.restore()}
   GL=[];
@@ -3641,7 +3643,7 @@ function trackRates(d){
 function fmtAway(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h}h ${m}m`:`${m} min`}
 function grantOffline(sec){
   if(!S||sec<60||!isCamp())return;
-  const t=Math.min(sec,offCapH()*3600),e=offEff(),got={};let any=false;
+  const t=Math.min(sec,offCapH()*3600)*paceMul(),e=offEff(),got={};let any=false;
   for(const k in (S.dr||{})){const n=Math.floor(S.dr[k]*t*e);if(n>0){addInv(k,n);got[k]=n;any=true}}
   let ch=0;if(S.ms>=MS.length&&S.dch>0){ch=Math.max(0,Math.min(chargeCap()-(S.charge||0),S.dch*t*e));S.charge=(S.charge||0)+ch;if(ch>=1)any=true}
   // Launch Rings keep flinging petals at the same share of their recent rate
@@ -4023,7 +4025,7 @@ function frame(now){
   if(STOPPED)return;
   const rdt=Math.min(.1,(now-lastT)/1000);lastT=now;
   if(DEF.isOpen){DEF.frame(rdt);requestAnimationFrame(frame);return}
-  acc+=rdt*speed;const STEP=STEP_DT;let n=0;
+  acc+=rdt*speed*paceMul();const STEP=STEP_DT;let n=0;
   try{while(acc>=STEP&&n<15){sim(STEP);acc-=STEP;n++}if(n>=15)acc=0}catch(e){acc=0;crashed(e)}
   try{
   if(dirty){recalc();dirty=false}

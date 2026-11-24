@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:81,date:'2026-11-23',title:'Pace',items:[
+    'New Helm upgrade, Pace: the whole moon runs 1% faster per level, up to 10%. Machines, conveyors, power, days, asteroids and offline progress all speed up together, so it’s the one way to push conveyors past 30 items a second.',
+    'Fixed: once you opened the whole moon, the frontier’s fog covered everything and the world looked much darker.'
+  ]},
   {n:80,date:'2026-11-21',title:'A painted foundry',items:[
     'Every building has new painted art, each with its own look and colours, so you can tell a Refinery from a Reactor at a glance. The biggest builds got the most care: the Spaceport, Deep Core Bore, Space Elevator, Starship and Market.',
     'The Core has a new look for every size. It grows from a compact heart into a crystal-ringed citadel, with more turning rings, more power flowing in and more sparks at each size.',
