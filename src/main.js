@@ -429,7 +429,7 @@ function sim(dt){
   const sat=sat0*gridMul();
   for(const b of S.bs.values()){if(B[b.t].burn){b.load=comb.includes(b)?load:0;b.heat+=(b.load-b.heat)*Math.min(1,dt*2);if(b.t!=='combustor')b.ang+=dt*(b.t==='fusion'?.3+2.2*b.heat:b.heat*(b.t==='reactor'?1.2:4))}}
   for(const c of comb){c.energy-=dt*load*fuelMul();if(c.energy<=0&&c.fuel>0){c.fuel--;stat('c',c.t==='reactor'?'aether':c.t==='fusion'?'fusion':'carbon');if(c.t==='reactor'){S.aburn=(S.aburn||0)+1;c.husk=(c.husk||0)+1;stat('p','husk')}c.energy+=B[c.t].burn;if(c.t!=='reactor'&&c.t!=='fusion'&&Math.random()<emberChance()){stat('p','ember');if(c.t==='turbine')addInv('ember');else if(c.ember<5)c.ember++}else if(c.t==='reactor'&&Math.random()<NOVA_P*rp('nova')*(1+.25*nupLv('sparks'))*bm('shard',.9)){stat('p','nova');addInv('nova');novaFound()}}if(c.energy<0)c.energy=0}
-  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt)}if(gridOn||modOn('belt'))astTick(dt);
+  if(gridOn){const k=Math.min(1,dt/20);S.gavg+=(solar-S.gavg)*k;S.favg=(S.favg||0)+(cap*load-(S.favg||0))*k;if(S.gavg>=rung(S.gt).kw)climbRung();if(S.favg>=frung(S.ft||0).kw)climbFurnace();S.charge=Math.min(chargeCap(),(S.charge||0)+Math.max(0,gen-demand)*dt/1000);researchTick();orbTick(dt);mkTick(dt)}if(gridOn||astOn())astTick(dt);
   goalTick(dt);
   stepPulses(dt);seedTick(dt);trickleTick(dt);
 
@@ -1288,6 +1288,9 @@ function launchSeq(k){if(!canVoyage()||!PATHS[k])return;
 
 // ---------- asteroids ----------
 // Big ones pass overhead and are mined by Barge Docks; small ones (after a Voyage) land on the moon as ore.
+// Iridium only turns up in asteroids once you're into the late game (Ascension 2+) or on a Voyage
+function iridOn(){return late()||voyN()>0}
+function astMix(kind){const m=Object.assign({},AST_KINDS[kind].mix);if(!iridOn())delete m.iridium;return m}
 function astOn(){return isCamp()&&(voyN()>0||countOf('dock')>0||modOn('belt'))}
 const beltK=()=>modOn('belt')?10:1;
 function astName(){const L='ABCDEFGHJKLMNPRSTVXZ';return L[Math.random()*20|0]+L[Math.random()*20|0]+'-'+(10+Math.random()*90|0)}
@@ -1319,7 +1322,7 @@ function astPos(a){const off=10+7*a.d,la=astLat(a),d=astDir(a);
   return d===0?[la,-off]:d===1?[W+off,la]:d===2?[la,H+off]:[-off,la]}
 function astRad(a){return 1.4+1.6*Math.sqrt(a.left/Math.max(1,a.size))*(a.size/80000)}
 // where a barge is on its trip: out (first 40%), mining at the asteroid (middle 20%), home (last 40%)
-function bargeAt(b,q,i){const ox=b.x+1.5,oy=b.y+1.5,a=(S.ast||[]).find(v=>v.id===q.a),[tx,ty]=a?astPos(a):[ox+(ox-192)*.3,oy+(oy-192)*.3];
+function bargeAt(b,q,i){const ox=b.x+1.5,oy=b.y+1.5,a=q.a>0?(S.ast||[]).find(v=>v.id===q.a):null,od=Math.hypot(ox-192,oy-192)||1,[tx,ty]=a?astPos(a):q.a===-1?[ox+(ox-192)/od*160,oy+(oy-192)/od*160]:[ox+(ox-192)*.3,oy+(oy-192)*.3];
   const ang=Math.atan2(ty-oy,tx-ox),sm=k=>k*k*(3-2*k),[ph,k]=bargePh(q),ar=a?astRad(a):1.5,rr=ar+1.7,th0=ang+Math.PI+(i%2?1:-1)*Math.ceil(i/2)*.45;
   // the barge flies to a spot just off the asteroid's near face, mines from there, and leaves from the same spot
   const mx=tx+Math.cos(th0)*rr,my=ty+Math.sin(th0)*rr;
@@ -1340,7 +1343,7 @@ function drawSpace(g,z){if(!isCamp()||!(S.ast&&S.ast.length)&&!countOf('dock'))r
     g.save();g.translate(sx,sy);g.rotate(T*.05+a.id);g.globalAlpha=Math.max(0,Math.min(1,(a.exp-T)/120));g.beginPath();
     for(let k=0;k<9;k++){const an=k/9*6.283,rr=R*(.78+.22*Math.sin(a.id*3.1+k*1.9));g.lineTo(Math.cos(an)*rr,Math.sin(an)*rr)}g.closePath();g.fillStyle=c[0];g.fill();g.lineWidth=Math.max(1,z*.08);g.strokeStyle=c[1];g.stroke();
     g.fillStyle=c[1];for(let k=0;k<3;k++){const an=a.id+k*2.2;g.beginPath();g.arc(Math.cos(an)*R*.4,Math.sin(an)*R*.35,R*(.12+.06*k),0,7);g.fill()}
-    if(AST_KINDS[a.kind].mix.iridium){g.fillStyle='#e8ecff';for(let k=0;k<3;k++){const an=a.id*2+k*2.1;g.fillRect(Math.cos(an)*R*.55,Math.sin(an)*R*.5,R*.12,R*.12)}}
+    if(astMix(a.kind).iridium){g.fillStyle='#e8ecff';for(let k=0;k<3;k++){const an=a.id*2+k*2.1;g.fillRect(Math.cos(an)*R*.55,Math.sin(an)*R*.5,R*.12,R*.12)}}
     g.restore();g.globalAlpha=1;
     // name, ore left and a bar that empties as it's mined
     if(z>=12){const fs=Math.max(10,z*.32)|0,ly=sy+R+Math.max(12,z*.45),fr=Math.max(0,a.left/Math.max(1,a.size)),bw=Math.max(44,z*2.4),bh=Math.max(3,z*.12);
@@ -1377,7 +1380,7 @@ function dockIn(x,y){const w=B.dock.w;return x<0?1:x+w>W?3:y<0?2:y+w>H?0:null}
 function dockNear(x,y){for(const b of S.bs.values())if(b.t==='dock'&&x>=b.x-1&&y>=b.y-1&&x<=b.x+b.w&&y<=b.y+b.w)return b;return null}
 // tapping an asteroid out in space shows what's in it and lets you send every dock there
 function astAt(x,y){for(const a of S.ast||[]){const [ax,ay]=astPos(a);if(Math.hypot(x+.5-ax,y+.5-ay)<=astRad(a)+1.2)return a}return null}
-function showAst(a){const mx=AST_KINDS[a.kind].mix,tot=Object.values(mx).reduce((p,q)=>p+q,0),ds=[...S.bs.values()].filter(b=>b.t==='dock'&&!b.bp),on=ds.filter(b=>b.tg===a.id).length;
+function showAst(a){const mx=astMix(a.kind),tot=Object.values(mx).reduce((p,q)=>p+q,0),ds=[...S.bs.values()].filter(b=>b.t==='dock'&&!b.bp),on=ds.filter(b=>b.tg===a.id).length;
   openModal(`<div class="card-head"><h3>${a.n}</h3><button class="x" data-close aria-label="Close">${SVG.x}</button></div>
   <p class="desc">${AST_KINDS[a.kind].n} asteroid, off the ${['north','east','south','west'][astDir(a)]} edge, ${a.d} AU out. Drifts away in ${fmtDur(a.exp-S.time)}.</p>
   <div class="ms cur"><div class="ms-top"><h4>${fmtN(a.left)} ore left</h4><span class="st">${Math.round(a.left/Math.max(1,a.size)*100)}% of ${fmtN(a.size)}</span></div>
@@ -1402,8 +1405,9 @@ function dockAst(b){S.ast=S.ast||[];let a=S.ast.find(q=>q.id===b.tg);if(!a&&S.as
 function dockHeld(b){let n=0;for(const k in b.ob)n+=b.ob[k];return n}
 function dockTick(b,dt,sat){b.bar=b.bar||[];while(b.bar.length<bargeN())b.bar.push({t:0});
   for(const g of b.bar){
-    if(g.t>0){g.t-=dt*sat;if(g.t<=0){g.t=0;const a=S.ast&&S.ast.find(q=>q.id===g.a);if(a){const m=AST_KINDS[a.kind].mix,tot=Object.values(m).reduce((p,q)=>p+q,0),dm=b.dn|0,w=[1,2,4][dm],per=TIN[dm],n=Math.min(bargeCap(),Math.floor(a.left/per)),load=n*w;a.left-=n*per;
+    if(g.t>0){g.t-=dt*sat;if(g.t<=0){g.t=0;if(g.a===-1){deepHaul(b,g);continue}const a=S.ast&&S.ast.find(q=>q.id===g.a);if(a){const m=astMix(a.kind),tot=Object.values(m).reduce((p,q)=>p+q,0),dm=b.dn|0,w=[1,2,4][dm],per=TIN[dm],n=Math.min(bargeCap(),Math.floor(a.left/per)),load=n*w;a.left-=n*per;
         for(const k in m){const it=k;b.ob[it]=(b.ob[it]||0)+load*m[k]/tot}S.flags.barge=1}}}
+    else if(b.deep){const fu=bargeFuel(b)*DEEP_FUEL;if(b.fuel>=fu&&dockHeld(b)<bargeCap()*[1,2,4][b.dn|0]*2){b.fuel-=fu;g.t=g.T=deepT(b);g.M=0;g.a=-1;g.d=0}}
     else{const a=dockAst(b);const fu=bargeFuel(b);if(a&&a.left>=TIN[b.dn|0]&&b.fuel>=fu&&dockHeld(b)<bargeCap()*[1,2,4][b.dn|0]*2){b.fuel-=fu;g.t=g.T=tripT(a,b);g.M=mineT(a);g.a=a.id;g.d=a.d}}}
   // beyond the frontier: lifted straight to the Core, a few items a tick
   if(dockDirect(b)){const w=[1,2,4][b.dn|0];let n=0;for(const base in b.ob){const key=w===1?base:w===2?DENSE_OF[base]:PACK_OF[base],it=key||base,u=key?w:1;
@@ -1411,17 +1415,26 @@ function dockTick(b,dt,sat){b.bar=b.bar||[];while(b.bar.length<bargeN())b.bar.pu
   // three slots on the bright edge; dense or packed if the dock is set to it
   for(let k=0;k<3;k++){const ks=Object.keys(b.ob).filter(q=>b.ob[q]>=1);if(!ks.length)break;const base=ks[(b.rr++)%ks.length],w=[1,2,4][b.dn|0],key=w===1?base:w===2?DENSE_OF[base]:PACK_OF[base];
     const it=key||base,u=key?w:1;if(b.ob[base]<u)continue;if(pushPorts(b,it,[[b.d,0],[b.d,1],[b.d,2]])){b.ob[base]-=u;stat('p',base)}}}
-function dockStatus(b){const a=dockAst(b),fl=(b.bar||[]).filter(g=>g.t>0).length;
+// Long-range runs: barges fly off past the asteroids for about ten minutes and come home with a big mixed hold.
+// No asteroid needed and no limit, but slower than mining a nearby asteroid. Compressed holds take longer.
+const DEEP_T=600,DEEP_HOLD=10,DEEP_FUEL=5;
+function deepT(b){return DEEP_T*TT[b.dn|0]/((1+.2*helmLv('thrust'))*(1+.15*dku('eng')))}
+function deepHaul(b,g){const ks=Object.keys(AST_KINDS).filter(k=>k!=='void'||late()||voyN()),kind=ks[Math.random()*ks.length|0],m=astMix(kind),tot=Object.values(m).reduce((p,q)=>p+q,0),w=[1,2,4][b.dn|0],load=bargeCap()*DEEP_HOLD*w;
+  for(const k in m)b.ob[k]=(b.ob[k]||0)+load*m[k]/tot;S.flags.barge=1;g.a=0}
+function dockStatus(b){const fl=(b.bar||[]).filter(g=>g.t>0).length;
+  if(b.deep)return b.fuel<bargeFuel(b)*DEEP_FUEL&&!fl?['warn','Needs carbon for long-range runs']:[fl?'ok':'idle',`${fl} of ${bargeN()} barge${bargeN()>1?'s':''} on long-range runs`];
+  const a=dockAst(b);
   if(!a)return['warn','No asteroid in range · one passes every few minutes'];if(b.fuel<bargeFuel(b)&&!fl)return['warn','Needs carbon for fuel'];
   return[fl?'ok':'idle',`${fl} of ${bargeN()} barge${bargeN()>1?'s':''} out · ${a.n}`]}
 function dockRow(b){const a=dockAst(b),held=Object.keys(b.ob||{}).filter(k=>b.ob[k]>=1);
-  return `<div class="flow"><span class="lbl">Fuel ${b.fuel|0}/200 carbon (${bargeFuel(b)} a trip) · ${bargeCap().toLocaleString()} ${['ore','dense items','packed items'][b.dn|0]} per hold</span></div>${dockDirect(b)?'<p class="desc">This dock stands beyond the frontier, where conveyors can’t reach, so its hauls are lifted straight to the Core.</p>':''}${(b.bar||[]).map((g,i)=>`<div class="flow"><span class="lbl">Barge ${i+1}: ${g.t>0&&g.T?['flying out','mining','heading home'][bargePh(g)[0]]+' · back in '+Math.ceil(g.t)+' s':'docked'}</span></div>`).join('')}${held.length?`<div class="flow"><span class="lbl">Unloading</span>${held.map(k=>chip(k,Math.floor(b.ob[k]).toLocaleString())).join('')}</div>`:''}${a?`<p class="desc">Target: <strong>${a.n}</strong>, ${AST_KINDS[a.kind].n.toLowerCase()}, ${Math.round(a.left/a.size*100)}% left, drifts away in ${fmtDur(a.exp-S.time)}.</p>`:''}`}
+  return `<div class="flow"><span class="lbl">Fuel ${b.fuel|0}/200 carbon (${bargeFuel(b)} a trip) · ${bargeCap().toLocaleString()} ${['ore','dense items','packed items'][b.dn|0]} per hold</span></div>${dockDirect(b)?'<p class="desc">This dock stands beyond the frontier, where conveyors can’t reach, so its hauls are lifted straight to the Core.</p>':''}${(b.bar||[]).map((g,i)=>`<div class="flow"><span class="lbl">Barge ${i+1}: ${g.t>0&&g.T?g.a===-1?'long-range run':['flying out','mining','heading home'][bargePh(g)[0]]+' · back in '+Math.ceil(g.t)+' s':'docked'}</span></div>`).join('')}${held.length?`<div class="flow"><span class="lbl">Unloading</span>${held.map(k=>chip(k,Math.floor(b.ob[k]).toLocaleString())).join('')}</div>`:''}${a?`<p class="desc">Target: <strong>${a.n}</strong>, ${AST_KINDS[a.kind].n.toLowerCase()}, ${Math.round(a.left/a.size*100)}% left, drifts away in ${fmtDur(a.exp-S.time)}.</p>`:''}`}
 // Iridium refits: spend Iridium from storage to improve every dock on this moon (they don't carry to the next one)
 function dockRefits(){const ir=Math.floor(S.inv.iridium||0);
   return `<div class="sec-label">Iridium refits · every dock on this moon</div><p class="desc">You have ${ir.toLocaleString()} Iridium in storage. Refits stay with this moon.</p><div class="ms-list">${Object.keys(DOCK_UP).map(k=>{const u=DOCK_UP[k],L=dku(k),mx=L>=u.max,c=mx?0:u.cost(L);
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · ${L}/${u.max}</h4>${mx?'<span class="st">Maxed</span>':''}</div><div class="ms-unl">${u.d}</div>${mx?'':`<div class="actions"><button class="btn${ir>=c?' primary':''}" data-dku="${k}">Refit · ${c.toLocaleString()} Iridium</button></div>`}</div>`}).join('')}</div>`}
 function dockCtrl(b){const as=S.ast||[],m=b.dn|0;
   return `<div class="sec-label">Asteroids in range · ${as.length}</div>${as.length?`<div class="ms-list">${as.map(a=>{const mx=AST_KINDS[a.kind].mix;return `<div class="ms${a.id===b.tg?' cur':''}"><div class="ms-top"><h4>${a.n} · ${AST_KINDS[a.kind].n}</h4><span class="st">${['N','E','S','W'][astDir(a)]} · ${a.d} AU · ${fmtN(a.left)} · ${Math.round(flyT(a,b))} s flying + ${mineT(a)} s mining</span></div><div class="ms-req">${Object.keys(mx).map(k=>`<span class="req"><img src="${ICON[k]}" alt="${ITEMS[k].n}">${Math.round(mx[k]/Object.values(mx).reduce((p,q)=>p+q,0)*100)}%</span>`).join('')}</div>${a.id===b.tg?'':`<button class="btn" data-ast="${a.id}">Send barges here</button>`}</div>`}).join('')}</div>`:'<p class="desc">None right now. One passes every few minutes and stays for up to two hours.</p>'}
+  <div class="sec-label">Long-range runs</div><p class="desc">Send this dock’s barges far past the asteroids instead: about ${Math.round(deepT(b)/60)} minutes a trip, ${DEEP_FUEL}× the fuel, and they come home with ${DEEP_HOLD}× a normal hold of mixed ore. No asteroid needed and it never runs out, but it’s slower than mining a nearby rock.</p><div class="actions"><button class="btn${b.deep?'':' primary'}" data-deep="${b.deep?0:1}">${b.deep?'Back to asteroids':'Start long-range runs'}</button></div>
   ${dockRefits()}
   ${ssLv('dense')?`<div class="sec-label">Hold</div><div class="seg"><button data-dn="0" class="${m===0?'on':''}">Loose</button><button data-dn="1" class="${m===1?'on':''}">Dense ×2</button>${ssLv('dense')>=2?`<button data-dn="2" class="${m===2?'on':''}">Packed ×4</button>`:''}</div><p class="desc">Packed holds carry 2× or 4× as much, out as dense or packed items, at the usual compression cost: each item takes ${TIN[1]} or ${TIN[2]} ore from the asteroid, and each trip burns 2× or 4× the carbon. Trips take the same time.</p>`:''}`}
 
@@ -2799,7 +2812,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||S.ms>=MS.length&&(late()||voyN()>0)))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||(t==='fusion'&&late()&&S.rec.includes('fusion'))||(t==='matrioshka'&&late()&&isCamp()&&!!S.orb&&(S.orb.mods||0)>0)||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||(S.asc&&S.asc.n>=1)||voyN()>0))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||(t==='fusion'&&late()&&S.rec.includes('fusion'))||(t==='matrioshka'&&late()&&isCamp()&&!!S.orb&&(S.orb.mods||0)>0)||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -3061,6 +3074,7 @@ elSheet.addEventListener('click',e=>{
   else if(el.dataset.act==='padload'){const n=padLoad(b);showToast(n?`Loaded ${n.toLocaleString()} items from storage`:'Nothing in storage this mission still needs');refreshSheet()}
   else if(el.dataset.act==='padgo'){if(b.m==='kits'&&!kitN(b.h)){showToast('Load some kits first');return}b.go=true;showToast(b.m==='ark'?'It launches as soon as the module, rocket and fuel are in. Cargo loaded by then goes along.':'It launches as soon as the rocket and fuel are loaded')}
   else if(el.dataset.ast){b.tg=+el.dataset.ast;renderSheet();sfx('tick')}
+  else if(el.dataset.deep){b.deep=el.dataset.deep==='1';renderSheet();sfx('tick')}
   else if(el.dataset.dku){const k=el.dataset.dku,u=DOCK_UP[k],L=dku(k);if(!u||L>=u.max)return;const c=u.cost(L);if((S.inv.iridium||0)<c){showToast(`Needs ${c.toLocaleString()} Iridium in storage`);return}
     S.inv.iridium-=c;S.dku=S.dku||{};S.dku[k]=L+1;sfx('fanfare');showToast(`${u.n} ${L+1}`);renderSheet();save()}
   else if(el.hasAttribute('data-voyopen')){closeSheet();if(canVoyage())showStarPick()}

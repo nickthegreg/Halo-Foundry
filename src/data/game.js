@@ -206,7 +206,7 @@ const MISSIONS={
 // Belt-fed megaprojects: stage n needs need × grow^n
 const MEGA={
   elevator:{n:'Space Elevator',stages:8,grow:1.3,need:{slagcrete:1500,magnet:600,composite:800,voidglass:600},eff:L=>`Launches burn ${6*L}% less Aether`},
-  matrioshka:{n:'Matrioshka Core',stages:5,grow:1.5,need:{lattice:200,quantum:80,processor:1500,voidglass:1200},eff:L=>`Orbital research +${20*L}%`+(L?', and it keeps going while you’re away at 10%':'')+(L>=5?'. Complete: +4 hours offline on every moon from now on':'')},
+  matrioshka:{n:'Matrioshka Core',stages:5,grow:1.5,need:{lattice:200,quantum:80,processor:1500,voidglass:1200,iridium:400},eff:L=>`Orbital research +${20*L}%`+(L?', and it keeps going while you’re away at 10%':'')+(L>=5?'. Complete: +4 hours offline on every moon from now on':'')},
   starship:{n:'Starship',stages:5,grow:1.5,need:{iridium:1500,fusion:150,quantum:150,lattice:200,composite:4000},eff:L=>L>=5?'Ready to Voyage':`Hull ${L} of 5 built`},
   bore:{n:'Deep Core Bore',stages:6,grow:1.5,need:{steel:3000,motor:400,slagcrete:1500,voidcell:80},eff:L=>L>=6?'Reached the heart: Heavy metal, Magma glass and Helium-3 at full flow, out of three sides':`Brings up ${BORE_OUT.filter(o=>L>=o[1]).map(o=>o[0]==='heavy'?'Heavy metal':o[0]==='magma'?'Magma glass':'Helium-3').join(', ')||'nothing yet'}`}
 };

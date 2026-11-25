@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:90,date:'2026-11-25',title:'Long-range barges',items:[
+    'Barge Docks open from your first Ascension; no need to finish every goal first. Asteroids start passing once you build one.',
+    'Long-range runs: switch a dock to send its barges far past the asteroids. About ten minutes a trip and five times the fuel, but they come home with ten holds of mixed ore, need no asteroid and never run out.',
+    'Iridium now only turns up in asteroids from Ascension 2 on, or on a Voyage, when you start needing it.',
+    'The Matrioshka Core’s stages now each take 400 Iridium.'
+  ]},
   {n:89,date:'2026-11-25',title:'More asteroids',items:[
     'Two new Iridium refits in the Barge Dock panel: Survey beacon (asteroids pass 25% more often per level, and one more can be in sight) and Deep scan (asteroids carry 30% more ore per level).',
     'Two new Helm upgrades in the Asteroids branch: Rich rocks (+50% ore per asteroid per level) and Long orbits (asteroids stay 50% longer per level).',

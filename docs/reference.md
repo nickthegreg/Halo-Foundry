@@ -192,7 +192,7 @@ Each segment: +10% power from every source, +2% machine speed, +10% Starseeds wh
 | Project | Stages | Stage 1 needs | Growth per stage | Effect |
 |---|---|---|---|---|
 | Space Elevator | 8 | 1,500 Slagcrete + 600 Magnet + 800 Composite plate + 600 Void glass | ×1.3 | −6% launch Aether per stage |
-| Matrioshka Core | 5 | 200 Lattice core + 80 Quantum chip + 1,500 Processor + 1,200 Void glass | ×1.5 | Brings up items (below); last stage: Moonheart Relic, then a Relic choice |
+| Matrioshka Core | 5 | 200 Lattice core + 80 Quantum chip + 1,500 Processor + 1,200 Void glass + 400 Iridium | ×1.5 | Brings up items (below); last stage: Moonheart Relic, then a Relic choice |
 | Starship | 5 | 1,500 Iridium + 150 Fusion cell + 150 Quantum chip + 200 Lattice core + 4,000 Composite plate | ×1.5 | Brings up items (below); last stage: Moonheart Relic, then a Relic choice |
 | Deep Core Bore | 6 | 3,000 Steel + 400 Motor + 1,500 Slagcrete + 80 Void cell | ×1.5 | Brings up items (below); last stage: Moonheart Relic, then a Relic choice |
 
