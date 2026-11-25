@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:88,date:'2026-11-25',title:'Seeds stay put',items:[
+    'Fixed: when an asteroid landed, seed tiles could jump to other patches, and seeds stopped regrowing tiles that had been mined out. Patches are now worked out from the moon as it was first made, so seeds stay where they are and keep regrowing every tile of their patch, landings or not.',
+    'Which patches have seeds is now tied to the seed tile itself, so it may shuffle once with this update and then stays fixed.'
+  ]},
   {n:87,date:'2026-11-25',title:'Seeds and Deep Drills rebalanced',items:[
     'Seed veins: 20% of patches get a seed tile at level 1, then 5% more per level, up to half of them (was 10% per level up to all of them).',
     'Seed regrowth is now a set amount per tile instead of a share of the tile, so richer ore no longer regrows faster too. Level 1 Seed growth puts back about 2 copper a second across a seed’s 5×5, and each level adds 16% (was 50%). Fast-digging ores like copper regrow quicker than slow ones like carbon.',

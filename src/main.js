@@ -1303,9 +1303,9 @@ function landBlob(L){for(let y=Math.floor(L.y-L.r-1);y<=L.y+L.r+1;y++)for(let x=
   const d=Math.hypot(x+.5-L.x,y+.5-L.y);if(d<L.r){const i=y*W+x;if(ORE[i]&&ORE[i]!==L.k)continue;ORE[i]=L.k;RES[i]=Math.round(L.v*(1.2-.4*d/L.r))}}}
 function landfall(){const lim=mapLim(),R=Math.random;
   for(let t=0;t<300;t++){const a=R()*6.283,dd=14+R()*(lim-18),x=Math.round(CX+Math.cos(a)*dd)+.5,y=Math.round(CY+Math.sin(a)*dd)+.5,r=2.2+R()*1.6;
-    let ok=true;for(let yy=Math.floor(y-r-1);yy<=y+r+1&&ok;yy++)for(let xx=Math.floor(x-r-1);xx<=x+r+1;xx++){const i=yy*W+xx;if(!inLim(xx,yy)||ORE[i]||S.grid[i]){ok=false;break}}
+    let ok=true;for(let yy=Math.floor(y-r-1);yy<=y+r+1&&ok;yy++)for(let xx=Math.floor(x-r-1);xx<=x+r+1;xx++){const i=yy*W+xx;if(!inLim(xx,yy)||ORE[i]||RES0[i]>0||S.grid[i]){ok=false;break}}
     if(!ok)continue;const k=1+(R()*4|0),P=ORE_P[ORE_KEYS[k]],L={x,y,r,k,v:Math.round(P.hi*4)};
-    S.landed.push(L);landBlob(L);for(let yy=Math.floor(y-r-1);yy<=y+r+1;yy++)for(let xx=Math.floor(x-r-1);xx<=x+r+1;xx++){const i=yy*W+xx;RES0[i]=RES[i]}
+    S.landed.push(L);landBlob(L);for(let yy=Math.floor(y-r-1);yy<=y+r+1;yy++)for(let xx=Math.floor(x-r-1);xx<=x+r+1;xx++){const i=yy*W+xx;RES0[i]=RES[i];if(ORE0)ORE0[i]=ORE[i]}
     CHUNKS.clear();buildPatches();burst(x,y,'#ffb070',50);sfx('fanfare');S.flags.landed=1;
     showBanner('An asteroid has landed',`A rich patch of ${ITEMS[ORE_KEYS[k]].s} now lies ${Math.round(dd)} tiles from the Core, to the ${['east','south-east','south','south-west','west','north-west','north','north-east'][Math.round(a/0.785)%8]}.`);save();return}}
 
@@ -1692,7 +1692,7 @@ function genWorld(seed){
     if(cut){ORE[i]=0;RES[i]=0;continue}
     RES[i]=Math.max(1,Math.round(RES[i]*m))}
   if(S&&S.landed)for(const L of S.landed)landBlob(L);
-  RES0=RES.slice();
+  RES0=RES.slice();ORE0=ORE.slice();
   CHUNKS.clear();
   buildPatches();
 }
@@ -1818,14 +1818,17 @@ function paintSpentAt(g,lx,ly,x,y){
 }
 // ---------- seed veins ----------
 // Each ore patch (4-connected tiles of one ore) has a candidate seed: its richest tile. A Starseed perk switches on a share of them.
-let PATCH=null,PATCHES=[],SEEDS=[],SEEDT=null,seedAcc=0;
+let PATCH=null,PATCHES=[],SEEDS=[],SEEDT=null,seedAcc=0,ORE0=null;
+// Patches come from the untouched map (ORE0/RES0), so mining and asteroid landings never reshuffle them:
+// a patch keeps its mined-out tiles, its seed tile stays put, and whether it has a seed depends only on that tile.
 function buildPatches(){
+  const O=ORE0||ORE,R0=RES0||RES;
   PATCH=new Int32Array(W*H).fill(-1);PATCHES=[];SEEDT=new Uint8Array(W*H);const st=[];
   for(let i=0;i<W*H;i++){
-    if(!ORE[i]||PATCH[i]>=0)continue;const k=ORE[i],id=PATCHES.length;let best=i;PATCH[i]=id;st.push(i);
-    while(st.length){const j=st.pop();if(RES[j]>RES[best])best=j;const x=j%W,y=(j/W)|0;
-      for(const [dx,dy] of DIRS){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=W||yy>=H)continue;const q=yy*W+xx;if(ORE[q]===k&&PATCH[q]<0){PATCH[q]=id;st.push(q)}}}
-    PATCHES.push({id,k,seed:best,h:mulberry(((S.seed^Math.imul(id+1,2654435761))>>>0))()});
+    if(!O[i]||PATCH[i]>=0)continue;const k=O[i],id=PATCHES.length;let best=i;PATCH[i]=id;st.push(i);
+    while(st.length){const j=st.pop();if(R0[j]>R0[best])best=j;const x=j%W,y=(j/W)|0;
+      for(const [dx,dy] of DIRS){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=W||yy>=H)continue;const q=yy*W+xx;if(O[q]===k&&PATCH[q]<0){PATCH[q]=id;st.push(q)}}}
+    PATCHES.push({id,k,seed:best,h:mulberry(((S.seed^Math.imul(best+1,2654435761))>>>0))()});
   }
   refreshSeeds();
 }
