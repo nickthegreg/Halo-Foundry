@@ -1,6 +1,10 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:94,date:'2026-11-25',title:'Refits that stick',items:[
+    'Fixed: Iridium refits were never saved, so they vanished whenever the game reloaded. They’re kept now.',
+    'Also now kept between sessions: each Barge Dock’s long-range setting, target, compression mode, fuel, held ore and barges in flight, and the shells loaded in Artillery.'
+  ]},
   {n:93,date:'2026-11-25',title:'A bigger show',items:[
     'Whatever it crushes now leaves rubble behind, and it leaves a trail of footprints.',
     'It swats the barges away with a sweep of its tail.',
