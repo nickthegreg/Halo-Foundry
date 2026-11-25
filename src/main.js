@@ -4191,7 +4191,7 @@ function tqStart(kind,tester){
   const barges=[];for(const b of S.bs.values())if(b.t==='dock'&&!b.bp)for(let i=0;i<Math.max(1,(b.bar||[]).length);i++)if(barges.length<14)barges.push({x:b.x+1.5,y:b.y+1.5,ph:i});
   if(tester&&!barges.length&&kind===1)for(let k=0;k<5;k++){const a=k*1.3;barges.push({x:cx+Math.cos(a)*40,y:cy+Math.sin(a)*40,ph:k})}
   CUT={kind,tester:!!tester,t:0,sx,sy,cx,cy,coreId:core?core.id:-1,mon:{x:sx,y:sy,ang:Math.atan2(cy-sy,cx-sx),sc:0,hp:1,hit:0,burn:0,dead:0,step:0},
-    gone:new Set(),fx:[],barges,guns,caps:[],shells:[],fired:0,cap:'',capT:0,shake:0,flash:0,fade:0,cam:{x:cam.x,y:cam.y,z:cam.z},cam0:{x:cam.x,y:cam.y,z:cam.z},ev:{}};
+    gone:new Set(),fx:[],barges,guns,caps:[],shells:[],fired:0,cap:'',capT:0,shake:0,flash:0,fade:0,cam:{x:sx,y:sy,z:cam.z},cam0:{x:cam.x,y:cam.y,z:cam.z},ev:{}};
   document.body.classList.add('cutscene');closeModal&&closeModal();cutUI(true);sfx('fanfare')}
 // timeline: [time, caption] — the script for each encounter
 const TQ_CAP={1:[[0,'The ground is trembling.'],[4.5,'…'],[7,'An earthquake? A volcano?'],[11,'Something is coming up the Bore.'],[15.5,'It’s heading for the Core!'],[22,'We have to try something. Every barge, attack!'],[28,'They’re just bouncing off it…'],[33.5,'Build capacitors round it, then overload them!'],[40,'It barely noticed.'],[45.5,'Turn the halo on it! Focus every petal and Lattice core!'],[51.5,'Is it… working?'],[56,'It’s still coming.'],[60,'No…']],
@@ -4215,8 +4215,9 @@ function cutStep(rdt){const C=CUT,M=C.mon,t0=C.t;C.t+=rdt;const t=C.t;
   M.sc=t<12.5?0:Math.min(1,(t-12.5)/1.6);
   if(C.kind===1)tqWalk1(C,t,rdt);else tqFight2(C,t,rdt);
   // camera: watch the Bore, then follow the beast with the Core in view
-  const look=t<12?[C.sx,C.sy]:[M.x*.7+C.cx*.3,M.y*.7+C.cy*.3],zz=Math.max(8,Math.min(30,VW/(t<12?18:24)));
-  C.cam.x+=(look[0]-C.cam.x)*Math.min(1,rdt*2);C.cam.y+=(look[1]-C.cam.y)*Math.min(1,rdt*2);C.cam.z+=(zz-C.cam.z)*Math.min(1,rdt*1.5);
+  // keep the beast in the middle of the screen whatever its shape: zoom by the shorter side, lead only a little toward the Core
+  const short=Math.min(VW,VH),look=t<12?[C.sx,C.sy]:[M.x+(C.cx-M.x)*.08,M.y+(C.cy-M.y)*.08],zz=Math.max(8,Math.min(40,short/(t<12?16:20)));
+  C.cam.x+=(look[0]-C.cam.x)*Math.min(1,rdt*4);C.cam.y+=(look[1]-C.cam.y)*Math.min(1,rdt*4);C.cam.z+=(zz-C.cam.z)*Math.min(1,rdt*1.5);
   const sh=C.shake*(.6+.4*Math.random());cam.x=C.cam.x+(Math.random()-.5)*sh;cam.y=C.cam.y+(Math.random()-.5)*sh;cam.z=C.cam.z;
   C.flash=Math.max(0,C.flash-rdt*1.2);
   if(C.kind===1&&t>=61)C.fade=Math.min(1,(t-61)/2.5);if(C.kind===2&&t>=35)C.fade=Math.min(1,(t-35)/2);
@@ -4235,7 +4236,7 @@ function tqWalk1(C,t,rdt){const M=C.mon,f=lerpTab(TQ_WALK,t),nx=C.sx+(C.cx-C.sx)
     else if(!o.dead){o.dead=1;o.vx=Math.cos(a)*14;o.vy=Math.sin(a)*14;o.spin=0;burst(o.x,o.y,'#ffd27a',22);sfx('tick')}
     else{o.x+=o.vx*rdt;o.y+=o.vy*rdt;o.vx*=1-rdt;o.vy*=1-rdt;o.spin+=rdt*12;if(!o.boom&&Math.hypot(o.vx,o.vy)<5){o.boom=1;burst(o.x,o.y,'#ff7a3a',30)}}}
   // capacitors: pulses build a ring of banks, they charge, then blow
-  if(t>=33.5&&t<41){if(!C.caps.length)for(let k=0;k<8;k++){const a=k/8*6.283;C.caps.push({x:M.x+Math.cos(a)*4.2-1,y:M.y+Math.sin(a)*4.2-1,p:0})}
+  if(t>=33.5&&t<41&&!C.ev.boom){if(!C.caps.length)for(let k=0;k<8;k++){const a=k/8*6.283;C.caps.push({x:M.x+Math.cos(a)*4.2-1,y:M.y+Math.sin(a)*4.2-1,p:0})}
     for(const [k,c] of C.caps.entries()){const due=33.8+k*.35;if(t>=due&&c.p<1){c.p=Math.min(1,(t-due)/1.2);if(Math.random()<.4)C.fx.push({k:'pulse',x:C.cx+(c.x+1-C.cx)*c.p,y:C.cy+(c.y+1-C.cy)*c.p,life:.25})}}
     if(t>=38.6&&!C.ev.boom){C.ev.boom=1;for(const c of C.caps){burst(c.x+1,c.y+1,'#7ff0d0',40);PARTS.push({k:'smoke',x:c.x+1,y:c.y+1,vx:0,vy:-.3,life:2.4,max:2.4,r:1})}C.caps.length=0;C.flash=.8;M.hit=1;sfx('launch',M.x,M.y)}}
   // the halo lens: petals and Lattice cores pour down into a lens, and a burning beam hits it
