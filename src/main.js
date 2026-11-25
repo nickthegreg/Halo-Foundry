@@ -1291,12 +1291,12 @@ function launchSeq(k){if(!canVoyage()||!PATHS[k])return;
 function astOn(){return isCamp()&&(voyN()>0||countOf('dock')>0||modOn('belt'))}
 const beltK=()=>modOn('belt')?10:1;
 function astName(){const L='ABCDEFGHJKLMNPRSTVXZ';return L[Math.random()*20|0]+L[Math.random()*20|0]+'-'+(10+Math.random()*90|0)}
-function newAst(){const ks=Object.keys(AST_KINDS).filter(k=>k!=='void'||late()||voyN()),kind=ks[Math.random()*ks.length|0],sz=(1+.25*helmLv('survey'))*(30000+Math.random()*90000);
-  return {id:(S.astId=(S.astId||0)+1),n:astName(),dir:Math.random()*4|0,lat:40+Math.random()*304|0,kind,d:1+Math.floor(Math.random()*5),left:Math.round(sz),size:Math.round(sz),exp:S.time+7200}}
+function newAst(){const ks=Object.keys(AST_KINDS).filter(k=>k!=='void'||late()||voyN()),kind=ks[Math.random()*ks.length|0],sz=(1+.25*helmLv('survey'))*(1+.3*dku('scan'))*(1+.5*helmLv('richrock'))*(30000+Math.random()*90000);
+  return {id:(S.astId=(S.astId||0)+1),n:astName(),dir:Math.random()*4|0,lat:40+Math.random()*304|0,kind,d:1+Math.floor(Math.random()*5),left:Math.round(sz),size:Math.round(sz),exp:S.time+7200*(1+.5*helmLv('linger'))}}
 function astTick(dt){if(!astOn())return;S.ast=S.ast||[];
   S.ast=S.ast.filter(a=>a.left>0&&a.exp>S.time);
-  S.astT=(S.astT==null?60:S.astT)-dt*(1+.25*helmLv('survey'))*starP('ast');
-  if(S.astT<=0){S.astT=360/beltK();if(S.ast.length<(modOn('belt')?10:5)){const a=newAst();S.ast.push(a);if(countOf('dock'))showToast(`Asteroid ${a.n} (${AST_KINDS[a.kind].n}) is passing the moon`)}}
+  S.astT=(S.astT==null?60:S.astT)-dt*(1+.25*helmLv('survey'))*(1+.25*dku('beacon'))*starP('ast');
+  if(S.astT<=0){S.astT=360/beltK();if(S.ast.length<(modOn('belt')?10:5)+dku('beacon')){const a=newAst();S.ast.push(a);if(countOf('dock'))showToast(`Asteroid ${a.n} (${AST_KINDS[a.kind].n}) is passing the moon`)}}
   if((voyN()>0||modOn('belt'))&&S.ms>=1){S.landT=(S.landT==null?240/beltK():S.landT)-dt*(1+.25*helmLv('landfall'))*starP('ast');if(S.landT<=0){S.landT=600/beltK();landfall()}}}
 // a small asteroid lands somewhere open inside the frontier and leaves a rich patch of ore
 function landBlob(L){for(let y=Math.floor(L.y-L.r-1);y<=L.y+L.r+1;y++)for(let x=Math.floor(L.x-L.r-1);x<=L.x+L.r+1;x++){if(x<1||y<1||x>=W-1||y>=H-1)continue;
@@ -3749,6 +3749,8 @@ function grantOffline(sec){
   let pl=0,cg=0;if(S.lr>0){pl=Math.floor(S.lr*t*e);if(pl>0){const c0=constN(S.petals);S.petals+=pl;cg=constN(S.petals)-c0;any=true;
     const m=MS[S.ms];if(m&&m.launch){S.prog.petal=Math.min(PET_GOAL,(S.prog.petal||0)+pl);checkMs()}}}
   let ll=0;if(S.llr>0){ll=Math.floor(S.llr*t*e);if(ll>0){S.lat=(S.lat||0)+ll;any=true}}
+  // seeds keep regrowing ore while you're away
+  if(SEEDS.length){seedAcc=0;seedTick(t)}
   // Matrioshka: orbital labs and kit launches keep going at 10% of their usual rate
   let orbP=0;if(megaLv('matrioshka')>0&&S.orb&&S.orb.mods){const ot=t*.1,O=S.orb;O.kits=O.kits||{};for(const k in (S.klr||{}))O.kits[k]=(O.kits[k]||0)+Math.floor(S.klr[k]*ot);
     const before=JSON.stringify(O.p)+JSON.stringify(O.done)+JSON.stringify(O.lv);let rem=ot,n=0;while(rem>0&&n<400){const d=Math.min(30,rem);orbTick(d);rem-=d;n++}if(JSON.stringify(O.p)+JSON.stringify(O.done)+JSON.stringify(O.lv)!==before){orbP=Math.round(ot/60);any=true}}

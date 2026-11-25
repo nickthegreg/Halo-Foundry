@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:89,date:'2026-11-25',title:'More asteroids',items:[
+    'Two new Iridium refits in the Barge Dock panel: Survey beacon (asteroids pass 25% more often per level, and one more can be in sight) and Deep scan (asteroids carry 30% more ore per level).',
+    'Two new Helm upgrades in the Asteroids branch: Rich rocks (+50% ore per asteroid per level) and Long orbits (asteroids stay 50% longer per level).',
+    'Seeds now keep regrowing ore while you’re away.'
+  ]},
   {n:88,date:'2026-11-25',title:'Seeds stay put',items:[
     'Fixed: when an asteroid landed, seed tiles could jump to other patches, and seeds stopped regrowing tiles that had been mined out. Patches are now worked out from the moon as it was first made, so seeds stay where they are and keep regrowing every tile of their patch, landings or not.',
     'Which patches have seeds is now tied to the seed tile itself, so it may shuffle once with this update and then stays fixed.'

@@ -42,6 +42,8 @@ export const HELM={
   holds:{br:'Asteroids',n:'Bigger holds',max:5,cost:L=>3+2*L,d:'Barges carry 50% more ore per level.'},
   thrust:{br:'Asteroids',n:'Thrusters',max:5,cost:L=>3+2*L,d:'Barges fly 20% faster per level. Mining time stays the same.'},
   survey:{br:'Asteroids',n:'Survey',max:4,cost:L=>4+3*L,d:'Asteroids pass 25% more often per level, and are 25% bigger.'},
+  richrock:{br:'Asteroids',n:'Rich rocks',max:4,cost:L=>5+4*L,d:'Asteroids carry 50% more ore per level.'},
+  linger:{br:'Asteroids',n:'Long orbits',max:3,cost:L=>4+3*L,d:'Asteroids stay in sight 50% longer per level.'},
   landfall:{br:'Asteroids',n:'Landfall',max:4,cost:L=>4+3*L,d:'Small asteroids land on your moon 25% more often per level.'},
   // Carried into the next Voyage
   novamem:{br:'Next Voyage',n:'Nova memory',max:4,cost:L=>10+10*L,d:'Keep 25% of your other Nova workshop levels per level when you Voyage. Deep Drill upgrades always carry over in full.'},
@@ -50,6 +52,8 @@ export const HELM={
 };
 // Iridium refits for Barge Docks: bought with Iridium from storage, for every dock on the moon you're on
 export const DOCK_UP={
+  beacon:{n:'Survey beacon',max:4,cost:L=>500*2**L,d:'Asteroids pass this moon 25% more often per level, and one more can be in sight at a time.'},
+  scan:{n:'Deep scan',max:5,cost:L=>400*2**L,d:'Asteroids that pass this moon carry 30% more ore per level.'},
   bar:{n:'Extra barge',max:3,cost:L=>[800,2500,6000][L],d:'Every Barge Dock on this moon flies one more barge.'},
   hold:{n:'Iridium holds',max:5,cost:L=>300*2**L,d:'Barges on this moon carry 25% more per level.'},
   eng:{n:'Iridium engines',max:5,cost:L=>300*2**L,d:'Barges on this moon fly 15% faster per level. Mining takes the same time.'}
