@@ -1,6 +1,13 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:87,date:'2026-11-25',title:'Seeds and Deep Drills rebalanced',items:[
+    'Seed veins: 20% of patches get a seed tile at level 1, then 5% more per level, up to half of them (was 10% per level up to all of them).',
+    'Seed regrowth is now a set amount per tile instead of a share of the tile, so richer ore no longer regrows faster too. Level 1 Seed growth puts back about 2 copper a second across a seed’s 5×5, and each level adds 16% (was 50%). Fast-digging ores like copper regrow quicker than slow ones like carbon.',
+    'Deep Drills are no longer capped at one dig a tick: they can dig up to four times a tick and fill all four of their slots, up to 120 ore a second. Upgrade them and one outruns four Drills.',
+    'Deep Drills never run dry: when the ore in reach is gone they dig bedrock below at 20% speed.',
+    'Deep Drill Nova upgrades now carry over in full when you Voyage.'
+  ]},
   {n:86,date:'2026-11-23',title:'Daily leaderboard',items:[
     'The Daily moon has a public leaderboard. When your run ends, pick a name and post your score: only your first attempt of the day counts, the same one that sets your rewards.',
     'See today’s and yesterday’s top 50, and your own rank, from the Leaderboard button next to the Daily moon on the title screen.'

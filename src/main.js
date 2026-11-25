@@ -1,4 +1,4 @@
-import {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
+import {seedG,MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung} from './data/game.js';
 import {BIOMES,BIOME_KEYS} from './data/biomes.js';
 import {genGalaxy,moonSeedMul,QUADS,BANDS,bandOf,SPECIALS,BIAS,GAL_RINGS} from './data/galaxy.js';
 import {FIRST_STEPS,HOWTO,FAQ} from './data/guide.js';
@@ -350,7 +350,9 @@ function edgeTile(b,d,i){const w=b.w||1;return d===1?[b.x+w,b.y+i]:d===3?[b.x-1,
 function pushPorts(b,t,ports){const n=ports.length,s=(b.rr||0)%n;for(let k=0;k<n;k++){const i=(s+k)%n,[d,j]=ports[i],o=edgeTile(b,d,j),nb=at(o[0],o[1]);if(nb&&nb!==b&&accept(nb,t,opp(d))){b.rr=(i+1)%n;return true}}return false}
 function outPorts(b){return b.t==='deepdrill'?[[b.d,0],[opp(b.d),0],[b.d,1],[opp(b.d),1]]:(b.t==='foundry'||b.t==='separator'||b.t==='railterm')?[[b.d,0],[b.d,1],[b.d,2]]:null}
 function bCount(){let n=0;for(const b of S.bs.values())if(b.t!=='belt'&&b.t!=='junction'&&b.t!=='core')n++;return n}
-function drillCap(b){return b.t==='deepdrill'?2:1}
+function drillCap(b){return b.t==='deepdrill'?8:1}
+// Deep Drills never run dry: with nothing left in reach they dig bedrock at this share of their speed
+const BEDROCK=.2;
 function drillHasOut(b){const ts=b.t==='deepdrill'?outPorts(b).map(([d,j])=>edgeTile(b,d,j)):[outTile(b,b.d)];return ts.some(([x,y])=>{const q=at(x,y);return q&&q!==b&&!q.bp})}
 function pushDir(b,t,d,p0){const o=outTile(b,d);const nb=at(o[0],o[1]);if(!nb||nb===b)return false;return accept(nb,t,opp(d),p0)}
 
@@ -437,9 +439,20 @@ function sim(dt){
       case 'drill':case 'deepdrill':{
         const P=ORE_P[b.ore];
         b.active=b.out<drillCap(b)&&!b.dep&&!b.wait&&drillHasOut(b);
-        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b);b.ang+=dt*sat*(3+P.rate*3);if(b.prog>=1){const mo=mineOne(b);if(mo<0){b.prog=1;b.wait=true;b.active=false}else if(mo){if(b.dn){const nd=digOre(b);for(let k=1;k<nd;k++)if(mineOne(b)<=0)break}b.prog-=1;if(b.t==='deepdrill'&&b.dn===1&&Math.random()<.06*nupLv('overpack'))b.op=(b.op||0)+1;else b.out++;stat('p',dOut(b,b.ore));if(b.t==='deepdrill'&&Math.random()<.1*nupLv('echo')){b.out++;stat('p',b.ore)}sfx('drill',b.x+.5,b.y+.5,b.ore)}else{b.dep=true;b.prog=0;b.active=false}}}
+        const deep=b.t==='deepdrill';
+        if(b.active){b.prog+=dt*sat*P.rate*drillMult(b)*(b.bed?BEDROCK:1);b.ang+=dt*sat*(3+P.rate*3)*(b.bed?.4:1);
+          // a Drill digs once a tick at most; a Deep Drill up to four times, one for each of its slots
+          for(let n=0;n<(deep?4:1)&&b.prog>=1&&b.out<drillCap(b);n++){let mo=mineOne(b);
+            if(mo>0&&b.bed)b.bed=false;
+            if(mo<=0&&deep){if(!b.bed){b.bed=true;b.prog=Math.min(b.prog,1)}mo=2}
+            if(mo<0){b.prog=1;b.wait=true;b.active=false;break}
+            if(!mo){b.dep=true;b.prog=0;b.active=false;break}
+            if(b.dn&&mo===1){const nd=digOre(b);for(let k=1;k<nd;k++)if(mineOne(b)<=0)break}
+            b.prog-=1;if(deep&&b.dn===1&&Math.random()<.06*nupLv('overpack'))b.op=(b.op||0)+1;else b.out++;stat('p',dOut(b,b.ore));if(deep&&Math.random()<.1*nupLv('echo')){b.out++;stat('p',dOut(b,b.ore))}if(!n)sfx('drill',b.x+.5,b.y+.5,b.ore)}
+          if(deep&&b.prog>4)b.prog=4}
         if(b.op>0&&PACK_OF[b.ore]&&pushPorts(b,PACK_OF[b.ore],outPorts(b)))b.op--;
-        if(b.out>0&&(b.t==='deepdrill'?pushPorts(b,dOut(b,b.ore),outPorts(b)):pushDir(b,dOut(b,b.ore),b.d)))b.out--;
+        if(deep){for(let n=0;n<4&&b.out>0;n++){if(pushPorts(b,dOut(b,b.ore),outPorts(b)))b.out--;else break}}
+        else if(b.out>0&&pushDir(b,dOut(b,b.ore),b.d))b.out--;
         break;}
       case 'junction':
         for(const lane of b.lanes){
@@ -1219,7 +1232,7 @@ function showStarPick(){
   <div class="actions"><button class="btn" data-ascopen>Not yet</button></div>`)}
 function doVoyage(k){if(!canVoyage()||!PATHS[k])return;
   const v=S.voy||{n:0,charts:0,total:0,helm:{}},got=voyCharts(),H=v.helm||{},hl=x=>H[x]||0;
-  const nup={};if(hl('novamem'))for(const q in S.nup||{})nup[q]=Math.floor((S.nup[q]||0)*.25*hl('novamem'));
+  const nup={},DEEP_NUP=['bore','reach','thrift','cool','resonance','grant','echo','press','overpack'];for(const q in S.nup||{}){if(DEEP_NUP.includes(q))nup[q]=S.nup[q];else if(hl('novamem'))nup[q]=Math.floor((S.nup[q]||0)*.25*hl('novamem'))}
   const ss=hl('ancestry')?Object.assign({},S.ss||{}):{};delete ss.starship;if(hl('packed'))ss.dense=Math.max(ss.dense||0,2);
   const d={v:1,wv:3,dd2:1,seed:(Math.random()*1e9|0),inv:startInv(),ms:TUT,prog:{},petals:0,gt:0,gavg:0,ft:0,favg:0,
     free:hl('crate')?{drill:4,smelter:4,fab:2}:{},relics:S.relics||[],relicExtra:S.relicExtra||0,relicExtraR:S.relicExtraR||0,
@@ -1817,16 +1830,16 @@ function buildPatches(){
   refreshSeeds();
 }
 function refreshSeeds(){
-  if(!PATCHES.length)return;const pct=modOn('seeded')?1:.1*ssLv('seedv');SEEDS=[];
+  if(!PATCHES.length)return;const sv=ssLv('seedv'),pct=modOn('seeded')?1:sv?Math.min(.5,.15+.05*sv):0;SEEDS=[];
   const dtap=orbDone('deeptap'),nseed=nupLv('seed');for(const p of PATCHES){const on=p.h<pct||(dtap&&p.k===6)||(nseed&&p.k===5);SEEDT[p.seed]=on?1:0;if(on){SEEDS.push(p);if(!ORE[p.seed]){ORE[p.seed]=p.k;RES[p.seed]=RES0[p.seed];const x=p.seed%W,y=(p.seed/W)|0;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}
 }
 // Once a second each seed tops tiles in its reach back up toward their starting amount, restoring mined-out tiles
 function seedTick(dt){
   seedAcc+=dt;if(seedAcc<1)return;const t=seedAcc;seedAcc=0;if(!SEEDS.length)return;
-  const R=2+ssLv('seedr'),rate=.00002*Math.pow(1.5,ssLv('seedg'))*rp('seed')*t;let grew=false;
-  for(const p of SEEDS){const sx=p.seed%W,sy=(p.seed/W)|0;
+  const R=2+ssLv('seedr'),g=seedG(ssLv('seedg'))*rp('seed')*t;let grew=false;
+  for(const p of SEEDS){const sx=p.seed%W,sy=(p.seed/W)|0,add=g*((ORE_P[ORE_KEYS[p.k]]||{rate:1}).rate);
     for(let y=sy-R;y<=sy+R;y++)for(let x=sx-R;x<=sx+R;x++){if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;if(PATCH[i]!==p.id||RES[i]>=RES0[i])continue;
-      RES[i]=Math.min(RES0[i],RES[i]+RES0[i]*rate);if(!ORE[i]&&RES[i]>=2){ORE[i]=p.k;grew=true;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}
+      RES[i]=Math.min(RES0[i],RES[i]+add);if(!ORE[i]&&RES[i]>=2){ORE[i]=p.k;grew=true;CHUNKS.delete(((y/CH)|0)*1000+((x/CH)|0))}}}
   for(const b of S.bs.values()){if(b.wait)b.wait=false;if(grew&&b.dep)b.dep=false}
 }
 function drawSeeds(g,z){
@@ -2906,7 +2919,7 @@ function status(b){
   const lp=PW.sat<.999,pct=Math.round(PW.sat*100)+'%';
   switch(b.t){
     case 'belt':return['ok',(b.rate||0)>.05?`Moving ${(b.rate||0).toFixed(1)} items/s of ${(BV/SP).toFixed(1)} max`:b.items.length?`Holding ${b.items.length}, not moving`:'Empty'];
-    case 'drill':case 'deepdrill':return !b.dep&&!drillHasOut(b)?['warn','Nothing to output into']:b.wait?['warn','Waiting for ore to regrow']:b.dep?['bad','Ore in reach used up']:b.out>=drillCap(b)?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
+    case 'drill':case 'deepdrill':return !b.dep&&!drillHasOut(b)?['warn','Nothing to output into']:b.bed?['ok','Digging bedrock · 20% speed, never runs dry']:b.wait?['warn','Waiting for ore to regrow']:b.dep?['bad','Ore in reach used up']:b.out>=drillCap(b)?['warn','Output blocked']:lp?['warn','Low power · '+pct]:['ok','Mining '+ITEMS[b.ore].s];
     case 'junction':{const n=b.lanes.reduce((a,l)=>a+l.length,0);return['ok',n?`Carrying ${n}`:'Empty']}
     case 'smelter':case 'foundry':return b.run?(lp?['warn','Low power · '+pct]:['ok','Smelting']):b.outN>=4?['warn','Output blocked']:['warn','Waiting for ore'];
     case 'refinery':return b.run?(lp?['warn','Low power · '+pct]:['ok','Fusing Aether']):b.outN>=2?['warn','Output blocked']:['warn',`Collecting ore · ${b.n.toLocaleString()} / ${refRatio().toLocaleString()}`];

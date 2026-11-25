@@ -44,7 +44,7 @@ export const HELM={
   survey:{br:'Asteroids',n:'Survey',max:4,cost:L=>4+3*L,d:'Asteroids pass 25% more often per level, and are 25% bigger.'},
   landfall:{br:'Asteroids',n:'Landfall',max:4,cost:L=>4+3*L,d:'Small asteroids land on your moon 25% more often per level.'},
   // Carried into the next Voyage
-  novamem:{br:'Next Voyage',n:'Nova memory',max:4,cost:L=>10+10*L,d:'Keep 25% of your Nova workshop levels per level when you Voyage.'},
+  novamem:{br:'Next Voyage',n:'Nova memory',max:4,cost:L=>10+10*L,d:'Keep 25% of your other Nova workshop levels per level when you Voyage. Deep Drill upgrades always carry over in full.'},
   command:{br:'Next Voyage',n:'Old command',max:1,cost:()=>30,d:'Keep your Commander levels when you Voyage.'},
   ancestry:{br:'Next Voyage',n:'Ancestral shop',max:1,cost:()=>60,d:'Keep everything you bought in the Starseed shop when you Voyage.'}
 };

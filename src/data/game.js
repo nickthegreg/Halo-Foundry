@@ -18,6 +18,8 @@ const ORE_COL={ferrite:['#c8622f','#f3a273'],cuprite:['#24a585','#8af0d3'],silic
 const SMELT={ferrite:'iron',cuprite:'copper',silica:'glass',voidstone:'voidglass'};
 const SMELT_T={ferrite:0.8,cuprite:0.45,silica:1.6,voidstone:8};
 // rate = ore/s per Drill; lo/hi = ore per tile. Cuprite and ferrite are fast and shallow; carbon is slow and deep.
+// Seed regrowth per tile per second, in digs of that ore (× its dig rate): level 1 ≈ 2 copper/s across a 5×5
+const seedG=L=>L<1?.022:.044*Math.pow(1.16,L-1);
 const ORE_P={ferrite:{rate:1.2,lo:220,hi:340},cuprite:{rate:1.8,lo:110,hi:190},silica:{rate:0.4,lo:250,hi:350},carbon:{rate:0.22,lo:3500,hi:5000},voidstone:{rate:0.04,lo:4000,hi:6000,deep:1},starsand:{rate:0.6,lo:400,hi:600}};
 const RECIPES={
   gear:{in:{iron:2},out:1,t:0.6},
@@ -55,7 +57,7 @@ const B={
   belt:{n:'Conveyor',cost:{iron:1},dir:1,d:'The veins of the foundry. Carries items one tile at a time in the direction it points. Drag to lay a line that follows your finger; dragging across another conveyor adds a Crossing.'},
   junction:{n:'Crossing',cost:{iron:3,copper:2},d:'A little bridge where two conveyor lines cross without mixing. Items leave on the side opposite where they came in.'},
   drill:{n:'Drill',cost:{iron:8,copper:4},pw:12,dir:1,r:1,d:'Where everything starts. Place it on or beside ore and it mines the 3×3 area around it, pushing ore out of its bright edge. One ore type per drill. Patches run dry in time, so expect to move on.'},
-  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:1},pw:40,fibPw:1,dir:1,w:2,r:2,mult:2.5,d:'A 2×2 rig that bites deeper: it mines the 6×6 area around it at 2.5× speed and uses up ore half as fast. Ore leaves through two slots on its bright edge and two on the back. Each one costs more Ember shards and draws more power than the last (1, 1, 2, 3, 5, 8… × 40 kW). The shards come back when you Ascend.'},
+  deepdrill:{n:'Deep Drill',cost:{steel:6,circuit:4,ember:1},pw:40,fibPw:1,dir:1,w:2,r:2,mult:2.5,d:'A 2×2 rig that bites deeper: it mines the 6×6 area around it at 2.5× speed and uses up ore half as fast. It can dig up to four times as fast as a Drill and fill all four of its slots, two on the bright edge and two on the back, so upgrade it and it outruns four Drills. It never runs dry: when the ore in reach is gone it keeps digging bedrock below at 20% speed. Each one costs more Ember shards and draws more power than the last (1, 1, 2, 3, 5, 8… × 40 kW). The shards come back when you Ascend.'},
   smelter:{n:'Smelter',cost:{iron:10},pw:25,dir:1,d:'Turns raw ore into something useful: ferrite into iron, cuprite into copper, silica into glass. Feed it ore from any side; ingots leave its bright edge.'},
   fab:{n:'Fabricator',cost:{iron:12,copper:8},pw:35,dir:1,d:'The workhorse. Pick a recipe, feed it the inputs from any side, and the finished part leaves its bright edge. If it stops, it’s short of an input or its output has nowhere to go.'},
   fab2:{n:'Fabricator Mk II',cost:{composite:10,servo:4,circuit:30},pw:110,dir:1,w:2,mult:2.5,d:'A 2×2 Fabricator that runs the same recipes 2.5× as fast. Feed it from any side; parts leave its bright edge.'},
@@ -253,8 +255,8 @@ const CMD={
 };
 // Starseed shop: permanent perks bought with Starseeds. They survive Ascension.
 const SS={
-  seedv:{n:'Seed veins',max:10,cost:L=>Math.round(3*Math.pow(1.5,L)),d:'Each level gives 10% more ore patches a seed tile. A seed tile never runs out, can’t be built on, and slowly regrows the ore around it, even on tiles that were mined out.',eff:L=>`${L*10}% of patches`},
-  seedg:{n:'Seed growth',req:'seedv',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Seeds regrow ore 50% faster per level.',eff:L=>`×${Math.pow(1.5,L).toFixed(2)} speed`},
+  seedv:{n:'Seed veins',max:7,cost:L=>Math.round(3*Math.pow(1.5,L)),d:'Gives a share of ore patches a seed tile: 20% of them at level 1, then 5% more per level, up to half. A seed tile never runs out, can’t be built on, and slowly regrows the ore around it, even on tiles that were mined out.',eff:L=>`${L?Math.min(50,15+5*L):0}% of patches`},
+  seedg:{n:'Seed growth',req:'seedv',max:20,cost:L=>Math.round(2*Math.pow(1.6,L)),d:'Seeds regrow ore faster: 16% more per level. Regrowth is a set amount per tile, faster for ores that drills dig quickly, like copper, and slower for slow ones, like carbon. Level 1 puts back about 2 copper a second across a seed’s 5×5; by the high teens a patch full of Drills never runs dry.',eff:L=>`${(1.8*25*seedG(L)).toFixed(1)} copper/s per 5×5`},
   seedr:{n:'Seed reach',req:'seedv',max:3,cost:L=>[4,8,16][L],d:'Seeds regrow ore one tile farther out per level, from 2 tiles around the seed up to 5.',eff:L=>`${2+L} tiles out`},
   core:{n:'Core size',max:2,cost:L=>[8,20][L],d:'The Core grows to 5×5, then 7×7, so more lines can feed it. It grows as soon as the tiles around it are clear.',eff:L=>`${3+2*L}×${3+2*L}`},
   trkT:{n:'Trickle: items',max:5,cost:L=>[2,4,8,16,32][L],d:'The Core makes items on its own, as if they were delivered. Each level adds better items.',eff:L=>`tier ${L}`},
@@ -419,4 +421,4 @@ const DENSE_OF={},PACK_OF={},BASE_OF={};
 // Late-game buildings stay out of the bar until ascension 2
 const LATE_T=['separator','incinerator','railterm','rail','spaceport','elevator','bore','starship'];
 
-export {MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
+export {seedG,MEGA,BORE_OUT,STARLIGHT,DENSE_OF,PACK_OF,BASE_OF,ORB,ORB_REP,ROCKET,ROCKET_T,MISSIONS,RING_MS,LATE_T,CROWN,crownReq,EVERY_ITEMS,EVERY_N,RARITY,FX_TEXT,relicText,MODS,CHALLENGES,SS,TRICKLE,RELICS,NUP,CMD,FRUNGS,constReq,frung,TECH,REPEAT,B,BELT_V,BOLT,CORE_GEN,CX,CY,DAY_LEN,DIRS,H,ITEMS,ITEM_ORDER,MS,ORE_COL,ORE_KEYS,ORE_P,PET_GOAL,RECIPES,RUNGS,SAVE_KEY,SMELT,SMELT_T,SP,TOOLS,TUT,W,fmtW,opp,rung};
