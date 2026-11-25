@@ -5,8 +5,9 @@ const opp=d=>(d+2)&3;
 const BELT_V=1.75, SP=0.34, DAY_LEN=300, PET_GOAL=40, CORE_GEN=120;
 const SAVE_KEY='halo-foundry-v2';
 
-const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice','voidstone','starsand','rare','slag','voidglass','slagcrete','magnet','voidlens','voidcell','gyro','hull','guidance','kitf','kitv','kits','heavy','magma','he3','quantum','fusion','iridium'];
+const ITEM_ORDER=['ferrite','cuprite','silica','carbon','iron','copper','glass','gear','wire','circuit','steel','lens','motor','prism','petal','frame','processor','servo','aether','husk','ember','nova','wafer','film','composite','coil','photonic','lattice','voidstone','starsand','rare','slag','voidglass','slagcrete','magnet','voidlens','voidcell','gyro','hull','guidance','kitf','kitv','kits','heavy','magma','he3','quantum','fusion','iridium','shell'];
 const ITEMS={
+  shell:{n:'Artillery shell',s:'artillery shells'},
   ferrite:{n:'Ferrite ore',s:'ferrite'},cuprite:{n:'Cuprite ore',s:'cuprite'},silica:{n:'Silica sand',s:'silica'},carbon:{n:'Carbon',s:'carbon'},
   iron:{n:'Iron ingot',s:'iron'},copper:{n:'Copper ingot',s:'copper'},glass:{n:'Glass',s:'glass'},
   gear:{n:'Gear',s:'gear'},wire:{n:'Wire',s:'wire'},circuit:{n:'Circuit',s:'circuit'},steel:{n:'Steel',s:'steel'},
@@ -46,6 +47,7 @@ const RECIPES={
   voidcell:{in:{voidglass:4,coil:2,processor:1},out:1,t:12,at:'asm'},
   gyro:{in:{magnet:2,servo:1,voidlens:1},out:1,t:8,at:'asm'},
   hull:{in:{composite:4,slagcrete:6,frame:2},out:1,t:6,at:'asm'},
+  shell:{in:{steel:4,slagcrete:2,heavy:1,iridium:1},out:1,t:4,at:'asm'},
   guidance:{in:{gyro:1,photonic:2,voidcell:1},out:1,t:10,at:'asm'},
   kitf:{in:{circuit:2,gear:2,magnet:1},out:1,t:4},
   kitv:{in:{voidlens:1,processor:1,slagcrete:2},out:1,t:6,at:'asm'},
@@ -87,6 +89,8 @@ const B={
   pylon:{n:'Pylon',cost:{slagcrete:10,steel:10},d:'Holds up Mag-rail. Placed for you as you lay track. To remove one, remove the rail above it first.'},
   elevator:{n:'Space Elevator',cost:{slagcrete:4000,magnet:1000,composite:1500,frame:800},pw:200000,w:5,d:'A tether from the ground to orbit, raised in 8 stages. Belt in each stage’s materials from any side. Every finished stage cuts the Aether that Spaceport launches burn by 6%, so nearly half by the top. One per moon.'},
   matrioshka:{n:'Matrioshka Core',cost:{composite:1200,quantum:40,frame:600,processor:800},pw:150000,w:5,d:'A computer the size of a star system: shells of thinking matter wrapped one inside another around your sun, built from this ground station in 5 stages. Belt in each stage’s materials from any side. Every stage speeds up orbital research, and from the first one your orbital labs keep researching while you’re away, and kits keep launching, at 10% of their usual rate. Finish all five and every moon after this one keeps 4 more hours of offline progress. One per moon.'},
+  artillery:{n:'Artillery',cost:{steel:400,composite:60,frame:60,motor:40},w:3,d:'Moon-wide guns, built for one job: the Tarrasque. Each holds 100 Artillery shells, belted in from any side, and fires at anything on the moon. Load 10,000 shells across your batteries before the Deep Core Bore can dig its last stage.'},
+  remains:{n:'Tarrasque remains',cost:{},w:5,d:'Where the Tarrasque fell. Its body is full of strange matter: every Drill touching it mines Starseeds and Nova shards straight to the Core, and a Deep Drill four times as much. It stays on this moon only.'},
   bore:{n:'Deep Core Bore',cost:{steel:5000,slagcrete:3000,motor:800,servo:500},pw:300000,w:5,dir:1,d:'A shaft into the moon’s mantle, sunk in 6 stages. Belt in each stage’s materials on any side but its bright edge. As it goes down it brings up things found nowhere else, each from its own colour-marked slot on the bright edge: Heavy metal, then Magma glass (stage 3) and Helium-3 (stage 5), faster with each stage. The last stage reaches the moon’s heart. One per moon.'},
   dock:{n:'Barge Dock',cost:{steel:300,motor:60,frame:40,circuit:200},pw:2000,w:3,dir:1,d:'Sends barges to mine passing asteroids. Build it hanging off the moon’s edge; the nearer its asteroid, the quicker each trip. Burns 10 carbon a trip.'},
   starship:{n:'Starship',cost:{composite:3000,slagcrete:3000,frame:1500,processor:800},pw:500000,w:5,d:'The ship that leaves this star behind. Built on a launch pad in 5 belt-fed stages: Iridium from asteroids, Fusion cells, Quantum chips, Lattice cores and composite, more for each stage. When the last stage is in, choose your road and launch. Only your Relics, achievements and blueprints come along. One per moon; unlocked by the Starship plans in the Starseed shop.'},
@@ -347,7 +351,8 @@ const RELICS={
   seal:{n:'Minimalist’s Seal',r:'l',sig:'minimal',fx:{cost:7.5,fab:12.5}},
   // Earned once, for closing the Halo Ring the first time
   ringforged:{n:'Ringforged Halo',r:'l',ring:1,fx:{spd:15,solar:25,seeds:15}},
-  moonheart:{n:'Moonheart',r:'l',ring:1,fx:{ore:30,drill:20,seeds:10}}
+  moonheart:{n:'Moonheart',r:'l',ring:1,fx:{ore:30,drill:20,seeds:10}},
+  slayer:{n:'Tarrasque Fang',r:'l',ring:1,fx:{seeds:100}}
 };
 const FX_TEXT={spd:'machines {v}% faster',belt:'conveyors {v}% faster',solar:'solar and halo +{v}%',burn:'burner power +{v}%',pulse:'pulses {v}% faster',ember:'Ember drops +{v}%',ore:'+{v}% ore per tile',off:'+{v}% offline output',haul:'+{v} h offline time',dup:'+{v}% duplication',core:'Core power +{v}%',cap:'Charge storage +{v}%',petal:'+{v}% power per petal',drill:'drills {v}% faster',seed:'seeds regrow {v}% faster',trk:'trickle {v}% faster',smelt:'smelting {v}% faster',fab:'fabricating {v}% faster',up:'Uplinks {v}% faster',cost:'buildings {v}% cheaper',fuel:'burners {v}% hotter',mj:'research needs {v}% less Charge',nova:'Nova drops +{v}%',seeds:'+{v}% Starseeds when you Ascend',refine:'Refineries need {v}% less ore'};
 function relicText(k){const f=RELICS[k].fx;const t=Object.keys(f).map(q=>FX_TEXT[q].replace('{v}',f[q])).join(', ');return t.charAt(0).toUpperCase()+t.slice(1)+'.'}
@@ -410,7 +415,7 @@ function rung(i){if(i<RUNGS.length)return RUNGS[i];const k=i-RUNGS.length,kw=486
   return k%2===0?{kw,n:'Overclock '+(5+k/2),oc:.08,d:'Every machine works 8% faster.'}:{kw,n:'Flow '+((k+1)/2),belt:.05,d:'Conveyors and Crossings move items 5% faster.'}}
 function fmtW(kw){return kw>=1e6?(kw/1e6).toFixed(2)+' GW':kw>=1000?(kw/1000).toFixed(kw>=1e4?1:2)+' MW':Math.round(kw)+' kW'}
 const BOLT='<svg viewBox="0 0 12 12"><path d="M7 0 1.5 7H5.5L4.5 12 10.5 4.5H6.5Z" fill="#f3c25a"/></svg>';
-const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','stock','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','fusion','market','elevator','matrioshka','bore','dock','starship','separator','incinerator','railterm','rail','spaceport','remove'];
+const TOOLS=['inspect','select','blueprints','belt','junction','drill','smelter','foundry','fab','fab2','splitter','sorter','batcher','stock','combustor','deepdrill','solar','filmarray','uplink','ring','turbine','collector','capacitor','relay','assembler','refinery','reactor','fusion','market','elevator','matrioshka','artillery','bore','dock','starship','separator','incinerator','railterm','rail','spaceport','remove'];
 // Dense items (Compression, from ascension 3): 5 of an item pack into 1 dense item worth 2
 const DENSE_EX=['aether','ember','nova','husk'];
 // Packed (second level): 20 → 1 packed item worth 4

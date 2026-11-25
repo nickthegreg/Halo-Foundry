@@ -245,3 +245,14 @@ p.guide{font-size:14px;line-height:1.4;margin:4px 0}
 .faq[open] summary::after{content:'–'}
 .faq p{font-size:14px;line-height:1.45;margin:0 0 12px}
 .faq .ms-list{padding-bottom:10px}
+
+/* Tarrasque cutscene: hide the HUD, show captions, a health bar and a skip button */
+body.cutscene .hud,body.cutscene .dock,body.cutscene .sheet,body.cutscene .toast,body.cutscene .banner{visibility:hidden}
+#cutUI{position:fixed;inset:0;pointer-events:none;z-index:40}
+#cutUI .cut-cap{position:absolute;left:16px;right:16px;bottom:calc(120px + env(safe-area-inset-bottom));text-align:center;font-size:20px;font-weight:700;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.9),0 0 2px #000;opacity:0}
+#cutUI .cut-cap.in{animation:cutIn .6s ease forwards}
+@keyframes cutIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#cutUI .cut-hp{position:absolute;top:calc(20px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(320px,80vw);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#ffd6c4;text-align:center}
+#cutUI .cut-hp b{display:block;height:10px;margin-top:6px;border-radius:6px;background:linear-gradient(90deg,#ff5a2a,#ffb070);box-shadow:0 0 0 2px rgba(0,0,0,.6);transition:width .3s}
+#cutUI .cut-sh{position:absolute;top:calc(64px + env(safe-area-inset-top));left:0;right:0;text-align:center;font-size:13px;color:#ffe6a8;text-shadow:0 1px 6px #000}
+#cutUI .cut-skip{position:absolute;right:16px;top:calc(16px + env(safe-area-inset-top));pointer-events:auto;opacity:.8}

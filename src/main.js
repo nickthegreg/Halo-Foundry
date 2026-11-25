@@ -171,6 +171,8 @@ function init(t){
     case 'market':return{ang:0};
     case 'bore':return{ang:0,ob:{},oa:{}};
     case 'stock':return{it:null,n:0};
+    case 'artillery':return{n:0,ang:0};
+    case 'remains':return{acc:0};
     case 'dock':return{fuel:0,ob:{},bar:[],tg:null,rr:0};
     case 'compressor':return{inT:null,inN:0,outT:null,outN:0,run:false,prog:0,mode:0,ang:0};
     case 'separator':return{n:0,run:false,prog:0,oq:{},nx:null,ang:0};
@@ -224,6 +226,7 @@ function contents(b){
     case 'spaceport':for(const k in b.h)add(k,b.h[k]);break;
     case 'bore':break;
     case 'stock':if(b.it)add(b.it,b.n);break;
+    case 'artillery':add('shell',b.n);break;
     case 'dock':add('carbon',b.fuel|0);for(const k in b.ob)add(k,Math.floor(b.ob[k]));break;
     case 'railterm':o.push(...b.q,...(b.sh.load||[]));break;
   }
@@ -337,6 +340,7 @@ function accept(nb,t,side,p0){
     case 'starship':return isCamp()&&megaAccept('starship',t);
     case 'dock':{const u=worth(t);if(side===nb.d||(BASE_OF[t]||t)!=='carbon'||nb.fuel+u>200)return false;nb.fuel+=u;return true}
     case 'bore':return late()&&side!==nb.d&&megaAccept('bore',t);
+    case 'artillery':{const u=worth(t);if((BASE_OF[t]||t)!=='shell'||nb.n+u>100)return false;nb.n+=u;return true}
     case 'stock':if(side===nb.d||(nb.it&&nb.it!==t)||nb.n>=STOCK_CAP)return false;nb.it=t;nb.n++;return true;
     case 'core':deliver(t);return true;
   }
@@ -543,6 +547,8 @@ function sim(dt){
       case 'spaceport':padTick(b,dt,sat0);break;
       case 'bore':boreTick(b,dt,sat0);break;
       case 'dock':dockTick(b,dt,sat0);break;
+      case 'remains':remainsTick(b,dt);break;
+      case 'artillery':b.ang+=dt*.15;break;
       case 'stock':for(let k=0;k<2&&b.n>0;k++){if(pushDir(b,b.it,b.d)){b.n--;if(!b.n)b.it=null}else break}break;
       case 'railterm':railTick(b,dt,sat);break;
       case 'belt':{
@@ -658,7 +664,8 @@ function swarmUp(){const O=S.orb;O.swarm=(O.swarm||0)+1;const n=O.swarm;burst(CX
 function starMenu(){const have=S.starlight||0;if(!have&&!Object.keys(S.sl||{}).length&&!swarmN())return '';
   return `<div class="sec-label">Starlight · ${have} to spend</div><p style="font-size:14px">Earn one for every shell of 8 Dyson swarm nodes. Perks are permanent.</p><div class="ms-list">${Object.keys(STARLIGHT).map(k=>{const u=STARLIGHT[k],L=(S.sl&&S.sl[k])||0,mx=L>=u.max,c=L+1,ok=!mx&&have>=c;
     return `<div class="ms cur"><div class="ms-top"><h4>${u.n} · level ${L}</h4><span class="st">${mx?'Maxed':c+' Starlight'}</span></div><div class="actions" style="align-items:center"><div class="ms-unl" style="flex:1">${u.d}</div>${mx?'':`<button class="btn${ok?' primary':''}" style="flex:none;padding:0 14px" data-sl="${k}">+1</button>`}</div></div>`}).join('')}</div>`}
-function heartReached(){S.relics=S.relics||[];S.boreWins=(S.boreWins||0)+1;
+function heartReached(){if(isCamp()&&tqState()<2){tqStart(tqState()===0?1:2);return}heartReward()}
+function heartReward(){S.relics=S.relics||[];S.boreWins=(S.boreWins||0)+1;
   if(!S.relics.includes('moonheart')){S.relics.push('moonheart');save();
     openModal(`<span class="eyebrow">Deep Core Bore</span><h1>The heart of the moon</h1><p>The Bore has reached the core. For getting there the first time, you earn a Relic no one else can give you:</p><div class="ms-list">${relicCard('moonheart','')}</div><p>Reaching the heart again on a later moon gives a Relic choice.</p><button class="btn primary" data-close>Wonderful</button>`)}
   else{if(S.relicPick)S.relicExtra=(S.relicExtra||0)+1;else newPick();save();whenIdle(()=>{if(S.relicPick)showRelicPick()})}}
@@ -931,7 +938,7 @@ const ONE_OF=['market','elevator','bore','starship','matrioshka'];
 function megaSt(k){return (S.mega&&S.mega[k]&&S.mega[k].st)||0}
 function megaLv(k){if(!isCamp()||!S.mega||!S.mega[k])return 0;for(const b of S.bs.values())if(b.t===k&&!b.bp)return S.mega[k].st;return 0}
 function megaNeed(k,st){const M=MEGA[k],o={},m=Math.pow(M.grow,st);for(const i in M.need)o[i]=Math.round(M.need[i]*m/10)*10;return o}
-function megaAccept(k,t){S.mega=S.mega||{};const G=S.mega[k]=S.mega[k]||{st:0,have:{}},M=MEGA[k];if(G.st>=M.stages)return false;
+function megaAccept(k,t){S.mega=S.mega||{};const G=S.mega[k]=S.mega[k]||{st:0,have:{}},M=MEGA[k];if(G.st>=M.stages)return false;if(k==='bore'&&G.st===M.stages-1&&boreLocked())return false;
   const bt=BASE_OF[t]||t,u=worth(t),n=megaNeed(k,G.st)[bt];if(!n||(G.have[bt]||0)>=n)return false;
   G.have[bt]=Math.min(n,(G.have[bt]||0)+u);const need=megaNeed(k,G.st);
   if(Object.keys(need).every(i=>(G.have[i]||0)>=need[i])){G.st++;G.have={};megaDone(k,G.st)}return true}
@@ -2458,6 +2465,20 @@ function drawMachine(g,b,x,y,s){
         g.fillStyle=k<L?'#e8ecff':'#3d3858';g.fill()}
       g.fillStyle=L>=5?'#7fd7ff':'#3d3858';for(const dx of [-.9,0,.9]){g.beginPath();g.arc(c5x+s*dx,y+s*4.55,s*.24,0,7);g.fill()}
       break;}
+    case 'artillery':{const S3=s*3,c3x=x+S3/2,c3y=y+S3/2,f=Math.min(1,(b.n||0)/100);base(g,x,y,S3,'#2e2a3e');
+      g.beginPath();g.arc(c3x,c3y,s*1.05,0,7);g.fillStyle='#3d3752';g.fill();g.lineWidth=s*.08;g.strokeStyle='#8a83b8';g.stroke();
+      // shell racks fill up round the turret
+      for(let k=0;k<10;k++){const a=k/10*6.283;g.beginPath();g.arc(c3x+Math.cos(a)*s*1.25,c3y+Math.sin(a)*s*1.25,s*.1,0,7);g.fillStyle=k<f*10?'#f3c25a':'rgba(30,26,50,.8)';g.fill()}
+      const aim=CUT&&CUT.mon.sc>0?Math.atan2(CUT.mon.y-(b.y+1.5),CUT.mon.x-(b.x+1.5)):(b.ang||0);g.save();g.translate(c3x,c3y);g.rotate(aim);
+      g.fillStyle='#6f68a0';rr(g,-s*.55,-s*.45,s*1.1,s*.9,s*.2);g.fill();g.fillStyle='#b8b2dc';g.fillRect(s*.3,-s*.12,s*1.15,s*.24);g.fillStyle='#2a2640';g.fillRect(s*1.3,-s*.14,s*.18,s*.28);g.restore();
+      break;}
+    case 'remains':{const S5=s*5,c5x=x+S5/2,c5y=y+S5/2,T=S?S.time:0;
+      g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(c5x,c5y,S5*.48,S5*.4,0,0,7);g.fill();
+      // ribs of the fallen beast, glowing seams of strange ore between them
+      g.save();g.translate(c5x,c5y);g.rotate(.5);for(let k=-3;k<=3;k++){g.strokeStyle='#e6dcc6';g.lineWidth=s*.28;g.lineCap='round';g.beginPath();g.ellipse(k*s*.55,0,s*.4,s*1.9-Math.abs(k)*s*.2,0,-1.2,1.2);g.stroke()}
+      g.strokeStyle='#d9ccb2';g.lineWidth=s*.35;g.beginPath();g.moveTo(-s*2.1,0);g.lineTo(s*2.1,0);g.stroke();g.lineCap='butt';g.restore();
+      g.globalCompositeOperation='lighter';for(let k=0;k<6;k++){const a=k*1.05+T*.2,r=s*(.8+.5*(k%3));const R=s*(.45+.15*Math.sin(T*2+k));g.drawImage(glowSpr(k%2?'#c99bff':'#ffd27a'),c5x+Math.cos(a)*r-R,c5y+Math.sin(a)*r*.7-R,R*2,R*2)}g.globalCompositeOperation='source-over';
+      break;}
     case 'stock':{
       const S2=s*2,f=b.n?Math.min(1,b.n/STOCK_CAP):0;
       rr(g,x+s*.1,y+s*.1,S2-s*.2,S2-s*.2,s*.25);g.fillStyle='#3a3550';g.fill();g.lineWidth=s*.05;g.strokeStyle='#8a83b8';g.stroke();
@@ -2635,7 +2656,7 @@ function render(rdt){
    g.save();g.setLineDash([8,6]);g.strokeStyle='rgba(127,240,208,.4)';g.lineWidth=1.5;g.strokeRect(w2sx(lo),w2sy(lo),sz,sz);g.restore()}
   GL=[];
   const bx0=Math.floor(s2wx(0))-3,bx1=Math.ceil(s2wx(VW))+1,by0=Math.floor(s2wy(0))-3,by1=Math.ceil(s2wy(VH))+1,belts=[],mach=[];
-  const bpb=[];for(const b of S.bs.values()){if(b.x+b.w<bx0||b.x>bx1||b.y+b.w<by0||b.y>by1)continue;(b.t==='belt'?(b.bp?bpb:belts):mach).push([b,w2sx(b.x),w2sy(b.y)])}
+  const bpb=[];for(const b of S.bs.values()){if(CUT&&CUT.gone.has(b.id))continue;if(b.x+b.w<bx0||b.x>bx1||b.y+b.w<by0||b.y>by1)continue;(b.t==='belt'?(b.bp?bpb:belts):mach).push([b,w2sx(b.x),w2sy(b.y)])}
   drawBeltLayer(g,belts,z,S.time);
   if(bpb.length){g.globalAlpha=.38;drawBeltLayer(g,bpb,z,0);g.globalAlpha=1;const pth=new Path2D();for(const [b,x,y] of bpb)beltPath(pth,b,x,y,z);g.save();g.setLineDash([3,4]);g.lineDashOffset=-S.time*10;g.strokeStyle='rgba(127,240,208,.8)';g.lineWidth=1.3;g.stroke(pth);g.restore()}
   const is=z*.44;
@@ -2690,7 +2711,7 @@ function render(rdt){
       const a=Math.min(1,p.life/p.max*2);g.globalAlpha=a;const R=z*1.4;g.drawImage(glowSpr(pc),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2);g.globalAlpha=1;g.globalCompositeOperation='source-over';const q=z*.6;g.drawImage(SPR[p.k],w2sx(p.x)-q/2,w2sy(p.y)-q/2,q,q);g.globalCompositeOperation='lighter'}
     else{p.x+=p.vx*rdt;p.y+=p.vy*rdt;g.globalAlpha=p.life/p.max;const R=z*.18;g.drawImage(glowSpr(p.c),w2sx(p.x)-R,w2sy(p.y)-R,R*2,R*2)}
   }
-  g.globalAlpha=1;g.globalCompositeOperation='source-over';drawFloats(g,rdt);
+  g.globalAlpha=1;g.globalCompositeOperation='source-over';if(CUT)drawTarr(g,z);drawFloats(g,rdt);
   drawOverlays(g,z);
   drawSeeds(g,z);drawSnow(g);
   // ghost (mouse hover)
@@ -2812,7 +2833,7 @@ const SVG={
 };
 SVG.select='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#7ff0d0" stroke-width="2.2"><rect x="7" y="8" width="22" height="20" rx="3" stroke-dasharray="4 3"/><path d="M22 22l7 7" stroke-linecap="round"/></svg>';
 SVG.blueprints='<svg class="ic" viewBox="0 0 36 36" fill="none" stroke="#9fd8ff" stroke-width="2"><rect x="10" y="7" width="18" height="22" rx="2"/><path d="M7 11v19a2 2 0 0 0 2 2h14"/><path d="M14 13h10M14 18h10M14 23h6" stroke-linecap="round"/></svg>';
-const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||(S.asc&&S.asc.n>=1)||voyN()>0))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||(t==='fusion'&&late()&&S.rec.includes('fusion'))||(t==='matrioshka'&&late()&&isCamp()&&!!S.orb&&(S.orb.mods||0)>0)||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
+const isUnl=t=>(t==='starship'&&isCamp()&&ssLv('starship')>=1)||(t==='dock'&&isCamp()&&(modOn('belt')||(S.asc&&S.asc.n>=1)||voyN()>0))||(t==='stock'&&S.unl.includes('batcher'))||(t==='market'&&isCamp()&&S.ms>=MS.length)||(t==='elevator'&&late()&&S.unl.includes('spaceport'))||(t==='bore'&&late()&&S.unl.includes('separator'))||(t==='fusion'&&late()&&S.rec.includes('fusion'))||(t==='artillery'&&isCamp()&&tqState()>=1)||(t==='matrioshka'&&late()&&isCamp()&&!!S.orb&&(S.orb.mods||0)>0)||t==='inspect'||t==='remove'||t==='select'||t==='blueprints'||t==='paste'||(S.unl.includes(t)&&!banned(t));
 const toolName=t=>({inspect:'Inspect',remove:'Remove',select:'Select',blueprints:'Blueprints',paste:'Paste'})[t]||B[t].n;
 function buildDock(){
   elTools.innerHTML=TOOLS.filter(t=>(!LATE_T.includes(t)||late()||S.unl.includes(t))&&(t!=='compressor'||ssLv('dense'))).map(t=>{
@@ -2894,6 +2915,8 @@ function tipText(){
   return 'Now do the same with teal cuprite. The Core needs 40 of each ingot.';
 }
 function hudTick(force){
+  if(TQ_PEND&&elModal.hidden&&!CUT)tqLost();
+  if(S&&isCamp()&&tqState()>=1){if(S.rec&&!S.rec.includes('shell'))S.rec.push('shell');if(!TQ_PEND&&!CUT&&elModal.hidden)artilleryNews()}
   // goal
   const m=MS[S.ms];
   if(m){
@@ -2959,8 +2982,10 @@ function status(b){
     case 'wreck':return['idle','Remove it to salvage its parts'];
     case 'dock':return dockStatus(b);
     case 'starship':{const L=megaSt('starship');return L>=5?['ok','Ready · Voyage from the Ascension panel']:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of 5`]}
+    case 'artillery':return[(b.n||0)>=100?'ok':'warn',`${b.n||0} / 100 shells · ${shellsLoaded().toLocaleString()} / ${SHELLS_NEED.toLocaleString()} across the moon`];
+    case 'remains':return b.dn2?['ok',`${b.dn2} drill${b.dn2>1?'s':''}’ worth mining it · ${fmtN(b.sd||0)} Starseeds so far`]:['idle','Build Drills touching it to mine Starseeds and Nova shards'];
     case 'stock':return b.it?[b.n>=STOCK_CAP?'warn':'ok',`${b.n.toLocaleString()} / ${STOCK_CAP.toLocaleString()} ${ITEMS[b.it].s}${b.n>=STOCK_CAP?' · full':''}`]:['idle','Empty · takes the first item it’s given'];
-    case 'bore':{const L=megaSt('bore'),M=MEGA.bore;return lp?['warn','Low power · '+pct]:L>=M.stages?['ok','At the heart · '+boreRates().map(([k,r])=>fmtRate(r)+' '+ITEMS[k].s+'/s').join(' · ')]:['ok',`Stage ${L+1} of ${M.stages}${L?' · bringing up '+boreRates().map(([k])=>ITEMS[k].s).join(', '):''}`]}
+    case 'bore':{const L=megaSt('bore'),M=MEGA.bore;if(L===M.stages-1&&boreLocked())return['warn',`Something stirs below. Load ${SHELLS_NEED.toLocaleString()} Artillery shells first (${shellsLoaded().toLocaleString()} loaded)`];return lp?['warn','Low power · '+pct]:L>=M.stages?['ok','At the heart · '+boreRates().map(([k,r])=>fmtRate(r)+' '+ITEMS[k].s+'/s').join(' · ')]:['ok',`Stage ${L+1} of ${M.stages}${L?' · bringing up '+boreRates().map(([k])=>ITEMS[k].s).join(', '):''}`]}
     case 'matrioshka':{const L=megaSt('matrioshka'),M=MEGA.matrioshka;return L>=M.stages?['ok','Complete · all five shells']:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of ${M.stages}${L?' · research +'+20*L+'%':''}`]}
     case 'elevator':{const L=megaSt('elevator'),M=MEGA.elevator;return L>=M.stages?['ok','Complete · '+M.eff(L)]:lp?['warn','Low power · '+pct]:['ok',`Stage ${L+1} of ${M.stages}${L?' · '+M.eff(L):''}`]}
     case 'market':return mkOn()?['ok',`${(S.mk&&S.mk.open.length)||0} open contract${S.mk&&S.mk.open.length===1?'':'s'}${S.mk&&S.mk.timed?(S.mk.timed.on?' · timed contract running':' · timed offer waiting'):''}`]:['warn','Opening'];
@@ -3197,12 +3222,14 @@ function showMenu(){
   else if(t==='guide')h=`<div class="ms cur"><div class="ms-top"><h4>What now?</h4></div><div class="ms-unl">${nextStep()}</div></div>
   <div class="actions"><button class="btn primary" data-help>How to play</button><button class="btn" data-faq>Questions</button></div>
   <div class="actions"><button class="btn" data-prog>Progress</button><button class="btn" data-news>What's new</button></div>`;
-  else h=`<div class="sec-label">Art</div><div class="seg"><button data-art="1" class="${ARTON?'on':''}">Painted</button><button data-art="0" class="${ARTON?'':'on'}">Classic</button></div>
+  else h=`<div class="sec-label">Play time</div><p>This save: <strong>${fmtDur(playTime(CUR))}</strong> · all saves: <strong>${fmtDur(playTime())}</strong><br><span class="desc">Time with the game open, not counting offline progress. This moon has run for ${fmtDur(S.time||0)} of game time.</span></p>
+  <div class="sec-label">Art</div><div class="seg"><button data-art="1" class="${ARTON?'on':''}">Painted</button><button data-art="0" class="${ARTON?'':'on'}">Classic</button></div>
   <div class="sec-label">Ground</div><div class="seg">${BIOME_KEYS.map(k=>`<button data-biome="${k}" class="${BIOME===k?'on':''}">${BIOMES[k].n}</button>`).join('')}</div>
   <div class="sec-label">Sound</div>
   <label class="slider" for="musicVol"><span>Music</span><input id="musicVol" type="range" min="0" max="100" value="${Math.round(AU.mv*100)}"></label>
   <label class="slider" for="sfxVol"><span>Effects</span><input id="sfxVol" type="range" min="0" max="100" value="${Math.round(AU.sv*100)}"></label>
   <div class="actions" style="align-items:center"><p style="flex:1;font-size:14px">${AU.cur?`Now playing <strong>${AU.cur}</strong> · ${AU.genre}`:AU.ctx?'Between tunes':'Sound starts after your first tap'}</p><button class="btn" style="flex:none;padding:0 16px" data-next>Next tune</button></div>
+  ${testerOK()?`<div class="sec-label">Tarrasque · tester</div><div class="actions"><button class="btn" data-tqtest="1">Play encounter 1</button><button class="btn" data-tqtest="2">Play encounter 2</button></div><p class="desc">Tester runs change nothing: no buildings lost, no shells spent, no rewards.</p>`:''}
   ${testerOK()?`<div class="sec-label">Game speed · tester</div><div class="seg">${[1,2,3].map(v=>`<button data-speed="${v}" class="${speed===v?'on':''}">${v}×</button>`).join('')}</div>`:`<div class="sec-label">Tester access</div><form class="seg" id="testerForm"><input id="testerPw" type="password" autocomplete="off" placeholder="Password" aria-label="Tester password" style="flex:2;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--raise);color:var(--text);padding:0 12px;font:inherit"><button type="submit">Unlock</button></form><p id="testerMsg" style="font-size:13px">Unlocks game speed controls for testing.</p>`}
   <div class="sec-label">Save</div><p class="guide">Progress saves on this device every few seconds. A save code moves this game to another device.</p>
   <div class="actions"><button class="btn" data-savecode>Save code</button><button class="btn" data-mm="title">Main menu</button></div>
@@ -3225,12 +3252,14 @@ elCard.addEventListener('click',e=>{
   if(b.hasAttribute('data-close'))closeModal();
   else if(b.dataset.art){setArt(b.dataset.art==='1');sfx('tick');const st=elCard.scrollTop;showMenu();elCard.scrollTop=st}
   else if(b.dataset.biome){setBiome(b.dataset.biome);sfx('tick');const st=elCard.scrollTop;showMenu();elCard.scrollTop=st}
+  else if(b.dataset.tqtest){if(!testerOK())return;closeModal();tqStart(+b.dataset.tqtest,true)}
   else if(b.dataset.speed){if(!testerOK())return;speed=+b.dataset.speed;S.speed=speed;showMenu()}
   else if(b.dataset.up){const k=b.dataset.up;if(UPG[k].max&&(S.up[k]||0)>=UPG[k].max)return;const c=UPG[k].cost(S.up[k]||0);if(!canAfford(c)){showToast('Need '+missing(c)+' more');return}pay(c,-1);dAdd(costVal(c),'u');S.up[k]=(S.up[k]||0)+1;save();showMenu();showToast(UPG[k].n+' is now level '+S.up[k])}
   else if(b.dataset.tech){const id=b.dataset.tech;S.res.cur=S.res.cur===id?null:id;sfx('tick');showResearch();hudTick(true)}
   else if(b.hasAttribute('data-stats'))showStats();
   else if(b.hasAttribute('data-dfinish')){if(S.mode!=='daily'||S.dEnd)return;if(Date.now()-(b._arm||0)>3000){b._arm=Date.now();b.textContent=`Tap again: final score ${Math.floor(S.dscore||0).toLocaleString()}`;return}S.dEnd=true;dLock();save();showDailyEnd(false)}
   else if(b.hasAttribute('data-dend'))showDailyEnd(false);
+  else if(b.dataset.tq){TQ_PEND=0;if(b.dataset.tq==='win')closeModal();else tqChoice(b.dataset.tq)}
   else if(b.dataset.lb){showBoard(b.dataset.lb)}
   else if(b.hasAttribute('data-lbpost')){lbPost()}
   else if(b.dataset.dsend){dSend=b.dataset.dsend;showDailyEnd(false)}
@@ -4138,12 +4167,179 @@ function start(data,forceNew){
   return !d;
 }
 
+// ================= the Tarrasque =================
+// Reaching the Bore's heart the first time wakes it (encounter 1: it walks to the Core and the moon is lost).
+// After that Artillery unlocks and the Bore's last stage waits for 10,000 loaded shells (encounter 2: it falls).
+// The state is kept per save slot: 0 asleep, 1 woke once (artillery known), 2 slain.
+const SHELLS_NEED=10000;
+let CUT=null,TQ_PEND=0,TQ_TEST=false;
+function tqState(){return (META.tq&&META.tq[CUR])||0}
+function setTq(v){META.tq=META.tq||{};META.tq[CUR]=v;saveMeta();if(v>=1&&S&&S.rec&&!S.rec.includes('shell'))S.rec.push('shell')}
+function shellsLoaded(){let n=0;for(const b of S.bs.values())if(b.t==='artillery'&&!b.bp)n+=b.n||0;return n}
+function boreLocked(){return isCamp()&&tqState()===1&&shellsLoaded()<SHELLS_NEED}
+function artilleryNews(){if(!isCamp()||tqState()!==1||S.flags.tqArt)return;S.flags.tqArt=1;save();
+  whenIdle(()=>openModal(`<span class="eyebrow">After the Tarrasque</span><h1>We’ve developed artillery</h1><p>The thing that came up the Bore is still down there, and it will come again when a Bore reaches the heart.</p><p>This time we can fight back. <strong>Artillery</strong> batteries hold 100 shells each and can hit anything on the moon. Assemblers can now make <strong>Artillery shells</strong> from steel, slagcrete, Heavy metal and Iridium.</p><p>The Deep Core Bore won’t dig its last stage until <strong>${SHELLS_NEED.toLocaleString()} shells</strong> are loaded, about 100 batteries’ worth. Blueprints help.</p><button class="btn primary" data-close>We’ll be ready</button>`))}
+// where it comes up: beside the Bore, or (tester) some way off from the Core
+function tqStart(kind,tester){
+  const core=[...S.bs.values()].find(b=>b.t==='core'),bo=[...S.bs.values()].find(b=>b.t==='bore');
+  const cx=core?core.x+core.w/2:CX,cy=core?core.y+core.w/2:CY;let sx,sy;
+  if(bo){const a=Math.atan2(bo.y+2.5-cy,bo.x+2.5-cx);sx=bo.x+2.5+Math.cos(a)*5;sy=bo.y+2.5+Math.sin(a)*5}
+  else{const a=Math.random()*6.283;sx=cx+Math.cos(a)*26;sy=cy+Math.sin(a)*26}
+  if(Math.hypot(sx-cx,sy-cy)<14){const a=Math.atan2(sy-cy,sx-cx)||1;sx=cx+Math.cos(a)*16;sy=cy+Math.sin(a)*16}
+  const guns=[...S.bs.values()].filter(b=>b.t==='artillery'&&!b.bp).map(b=>[b.x+1.5,b.y+1.5,b]);
+  if(!guns.length&&kind===2)for(let k=0;k<40;k++){const a=k/40*6.283,r=30+(k%5)*6;guns.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r,null])}
+  const barges=[];for(const b of S.bs.values())if(b.t==='dock'&&!b.bp)for(let i=0;i<Math.max(1,(b.bar||[]).length);i++)if(barges.length<14)barges.push({x:b.x+1.5,y:b.y+1.5,ph:i});
+  if(tester&&!barges.length&&kind===1)for(let k=0;k<5;k++){const a=k*1.3;barges.push({x:cx+Math.cos(a)*40,y:cy+Math.sin(a)*40,ph:k})}
+  CUT={kind,tester:!!tester,t:0,sx,sy,cx,cy,coreId:core?core.id:-1,mon:{x:sx,y:sy,ang:Math.atan2(cy-sy,cx-sx),sc:0,hp:1,hit:0,burn:0,dead:0,step:0},
+    gone:new Set(),fx:[],barges,guns,caps:[],shells:[],fired:0,cap:'',capT:0,shake:0,flash:0,fade:0,cam:{x:cam.x,y:cam.y,z:cam.z},cam0:{x:cam.x,y:cam.y,z:cam.z},ev:{}};
+  document.body.classList.add('cutscene');closeModal&&closeModal();cutUI(true);sfx('fanfare')}
+// timeline: [time, caption] — the script for each encounter
+const TQ_CAP={1:[[0,'The ground is trembling.'],[4.5,'…'],[7,'An earthquake? A volcano?'],[11,'Something is coming up the Bore.'],[15.5,'It’s heading for the Core!'],[22,'We have to try something. Every barge, attack!'],[28,'They’re just bouncing off it…'],[33.5,'Build capacitors round it, then overload them!'],[40,'It barely noticed.'],[45.5,'Turn the halo on it! Focus every petal and Lattice core!'],[51.5,'Is it… working?'],[56,'It’s still coming.'],[60,'No…']],
+  2:[[0,'The ground is trembling again.'],[4.5,'This time we’re ready.'],[7,'Here it comes.'],[11.5,'Artillery: open fire!'],[22,'Keep firing!'],[29,'It’s going down!'],[34,'The Tarrasque is slain.']]};
+// how far along its walk it is at time t (encounter 1), with a pause while the capacitors go up
+const TQ_WALK=[[15,0],[22,.2],[31,.35],[34,.45],[41,.45],[46,.62],[57,.88],[60,1]];
+function lerpTab(T,t){if(t<=T[0][0])return T[0][1];for(let i=1;i<T.length;i++)if(t<=T[i][0]){const [a,x]=T[i-1],[b,y]=T[i];return x+(y-x)*(t-a)/(b-a)}return T[T.length-1][1]}
+function cutUI(on){let el=$('#cutUI');if(!on){if(el)el.remove();document.body.classList.remove('cutscene');return}
+  if(!el){el=document.createElement('div');el.id='cutUI';el.innerHTML='<div class="cut-cap" id="cutCap"></div><div class="cut-hp" id="cutHp" hidden><span>Tarrasque</span><b id="cutHpB"></b></div><div class="cut-sh" id="cutSh" hidden></div><button class="btn cut-skip" id="cutSkip">Skip</button>';document.body.appendChild(el);
+    $('#cutSkip').onclick=()=>{if(CUT)CUT.t=Math.max(CUT.t,CUT.kind===1?60:34)}}}
+function cutStep(rdt){const C=CUT,M=C.mon,t0=C.t;C.t+=rdt;const t=C.t;
+  // captions
+  const caps=TQ_CAP[C.kind];let cap='';for(const [ts,c] of caps)if(t>=ts)cap=c;
+  if(C.kind===1&&t>=22&&t<33&&!C.barges.length)cap=t<28?'Our barges… we don’t have any.':'Nothing we have can reach it.';
+  if(cap!==C.cap){C.cap=cap;const e=$('#cutCap');if(e){e.textContent=cap;e.classList.remove('in');void e.offsetWidth;e.classList.add('in')}}
+  // ground shaking
+  C.shake=t<4?.25+.15*Math.sin(t*9):t<7?0:t<12?.9:t<15?.6:0;
+  if(t>=11&&t<15){if(!C.ev.crack){C.ev.crack=1;sfx('launch',C.sx,C.sy)}if(Math.random()<.5)PARTS.push({k:'smoke',x:C.sx+(Math.random()-.5)*4,y:C.sy+(Math.random()-.5)*4,vx:(Math.random()-.5)*1.5,vy:-.4,life:2.2,max:2.2,r:.6})}
+  // it bursts out
+  if(t>=12.5&&!C.ev.out){C.ev.out=1;burst(C.sx,C.sy,'#ffb070',90);for(let k=0;k<30;k++){const a=Math.random()*6.283;PARTS.push({k:'smoke',x:C.sx,y:C.sy,vx:Math.cos(a)*(2+Math.random()*4),vy:Math.sin(a)*(2+Math.random()*4),life:2.6,max:2.6,r:.8})}C.flash=.6;sfx('fanfare')}
+  M.sc=t<12.5?0:Math.min(1,(t-12.5)/1.6);
+  if(C.kind===1)tqWalk1(C,t,rdt);else tqFight2(C,t,rdt);
+  // camera: watch the Bore, then follow the beast with the Core in view
+  const look=t<12?[C.sx,C.sy]:[M.x*.7+C.cx*.3,M.y*.7+C.cy*.3],zz=Math.max(8,Math.min(30,VW/(t<12?18:24)));
+  C.cam.x+=(look[0]-C.cam.x)*Math.min(1,rdt*2);C.cam.y+=(look[1]-C.cam.y)*Math.min(1,rdt*2);C.cam.z+=(zz-C.cam.z)*Math.min(1,rdt*1.5);
+  const sh=C.shake*(.6+.4*Math.random());cam.x=C.cam.x+(Math.random()-.5)*sh;cam.y=C.cam.y+(Math.random()-.5)*sh;cam.z=C.cam.z;
+  C.flash=Math.max(0,C.flash-rdt*1.2);
+  if(C.kind===1&&t>=61)C.fade=Math.min(1,(t-61)/2.5);if(C.kind===2&&t>=35)C.fade=Math.min(1,(t-35)/2);
+  if((C.kind===1&&t>=64)||(C.kind===2&&t>=37.5))tqEnd()}
+// walking: crush whatever it steps on
+function tqStomp(C,r){const M=C.mon;for(const b of S.bs.values()){if(C.gone.has(b.id)||b.t==='core')continue;const w=b.w||1;
+  if(Math.hypot(b.x+w/2-M.x,b.y+w/2-M.y)<r+w*.45){C.gone.add(b.id);if(w>1||Math.random()<.35){burst(b.x+w/2,b.y+w/2,'#ffb070',w>1?26:8);if(Math.random()<.6)PARTS.push({k:'smoke',x:b.x+w/2,y:b.y+w/2,vx:(Math.random()-.5),vy:-.3,life:2,max:2,r:.5*w})}}}}
+function tqWalk1(C,t,rdt){const M=C.mon,f=lerpTab(TQ_WALK,t),nx=C.sx+(C.cx-C.sx)*f,ny=C.sy+(C.cy-C.sy)*f,mv=Math.hypot(nx-M.x,ny-M.y);
+  // a little sway so it doesn't walk on rails
+  const sw=Math.sin(t*.7)*1.2*f*(1-f);M.x=nx+Math.cos(M.ang+1.571)*sw;M.y=ny+Math.sin(M.ang+1.571)*sw;M.step+=mv*1.6;if(M.sc>=1)tqStomp(C,2.6);
+  M.hit=Math.max(0,M.hit-rdt*2);
+  // barges dive in, sting it, get swatted
+  if(t>=22&&t<33)for(const [i,B0] of C.barges.entries()){const k=(t-22)/11,o=B0.o=B0.o||{x:B0.x,y:B0.y,dead:0},ring=4.5+((i%3)*.7),a=t*1.6+i*6.283/C.barges.length;
+    if(k<.25){const e=k/.25;o.x=B0.x+(M.x+Math.cos(a)*ring-B0.x)*e;o.y=B0.y+(M.y+Math.sin(a)*ring-B0.y)*e}
+    else if(k<.6+i*.02){o.x=M.x+Math.cos(a)*ring;o.y=M.y+Math.sin(a)*ring;if(Math.random()<.15){C.fx.push({k:'tracer',x:o.x,y:o.y,tx:M.x+(Math.random()-.5)*2,ty:M.y+(Math.random()-.5)*2,life:.18});M.hit=.3}}
+    else if(!o.dead){o.dead=1;o.vx=Math.cos(a)*14;o.vy=Math.sin(a)*14;o.spin=0;burst(o.x,o.y,'#ffd27a',22);sfx('tick')}
+    else{o.x+=o.vx*rdt;o.y+=o.vy*rdt;o.vx*=1-rdt;o.vy*=1-rdt;o.spin+=rdt*12;if(!o.boom&&Math.hypot(o.vx,o.vy)<5){o.boom=1;burst(o.x,o.y,'#ff7a3a',30)}}}
+  // capacitors: pulses build a ring of banks, they charge, then blow
+  if(t>=33.5&&t<41){if(!C.caps.length)for(let k=0;k<8;k++){const a=k/8*6.283;C.caps.push({x:M.x+Math.cos(a)*4.2-1,y:M.y+Math.sin(a)*4.2-1,p:0})}
+    for(const [k,c] of C.caps.entries()){const due=33.8+k*.35;if(t>=due&&c.p<1){c.p=Math.min(1,(t-due)/1.2);if(Math.random()<.4)C.fx.push({k:'pulse',x:C.cx+(c.x+1-C.cx)*c.p,y:C.cy+(c.y+1-C.cy)*c.p,life:.25})}}
+    if(t>=38.6&&!C.ev.boom){C.ev.boom=1;for(const c of C.caps){burst(c.x+1,c.y+1,'#7ff0d0',40);PARTS.push({k:'smoke',x:c.x+1,y:c.y+1,vx:0,vy:-.3,life:2.4,max:2.4,r:1})}C.caps.length=0;C.flash=.8;M.hit=1;sfx('launch',M.x,M.y)}}
+  // the halo lens: petals and Lattice cores pour down into a lens, and a burning beam hits it
+  if(t>=45.5&&t<58){const lx=M.x,ly=M.y-7;C.lens=Math.min(1,(t-45.5)/3)*(t>56.5?Math.max(0,(58-t)/1.5):1);M.burn=t>48?Math.min(1,(t-48)/3)*C.lens:0;
+    if(Math.random()<.3){const a=Math.random()*6.283,r=14+Math.random()*6;PARTS.push({k:Math.random()<.35?'lattice':'petal',x:lx+Math.cos(a)*r,y:ly+Math.sin(a)*r*.5-6,vx:-Math.cos(a)*r/1.6,vy:-(Math.sin(a)*r*.5-6)/1.6+5,life:1.6,max:1.6})}
+    if(M.burn>.2&&Math.random()<.5)burst(M.x+(Math.random()-.5)*2,M.y+(Math.random()-.5)*2,'#ff9a45',3)}else C.lens=0;
+  // the Core
+  if(t>=60&&!C.ev.core){C.ev.core=1;const core=S.bs.get(C.coreId);if(core){C.gone.add(core.id);burst(C.cx,C.cy,'#f3c25a',160);burst(C.cx,C.cy,'#c99bff',120);for(let k=0;k<40;k++){const a=Math.random()*6.283;PARTS.push({k:'smoke',x:C.cx,y:C.cy,vx:Math.cos(a)*(3+Math.random()*5),vy:Math.sin(a)*(3+Math.random()*5),life:3,max:3,r:1.2})}}C.flash=1;C.shake=1.5;sfx('launch',C.cx,C.cy)}
+  if(t>=60)C.shake=Math.max(0,1.5-(t-60)*.6)}
+function tqFight2(C,t,rdt){const M=C.mon;
+  // it lumbers a few tiles toward the Core, then the shells pin it in place
+  const f=t<15?0:Math.min(.18,(t-15)/30);if(!M.dead){M.x=C.sx+(C.cx-C.sx)*f;M.y=C.sy+(C.cy-C.sy)*f;M.step+=rdt*(t<20?1.2:.4)}
+  M.hit=Math.max(0,M.hit-rdt*2.5);
+  // twelve volleys from every battery; each shell arcs over the moon and lands on it
+  const V=12,per=Math.ceil(SHELLS_NEED/V);
+  if(t>=12&&!M.dead){const k=Math.floor((t-12)/1.45);if(k<V&&!C.ev['v'+k]){C.ev['v'+k]=1;const n=Math.max(36,Math.min(C.guns.length,90));
+      for(let i=0;i<n;i++){const g=C.guns[(i*7+k*13)%C.guns.length];C.shells.push({x0:g[0],y0:g[1],t:-(i%15)*.05,T:1.1+Math.random()*.4,ox:(Math.random()-.5)*3,oy:(Math.random()-.5)*3})}
+      C.fired=Math.min(SHELLS_NEED,C.fired+per);sfx('launch',C.cx,C.cy)}}
+  for(let i=C.shells.length-1;i>=0;i--){const s0=C.shells[i];s0.t+=rdt;if(s0.t>=s0.T){C.shells.splice(i,1);burst(M.x+s0.ox,M.y+s0.oy,Math.random()<.5?'#ffd27a':'#ff7a3a',10);if(Math.random()<.25)PARTS.push({k:'smoke',x:M.x+s0.ox,y:M.y+s0.oy,vx:(Math.random()-.5),vy:-.4,life:1.6,max:1.6,r:.6});M.hit=.6;if(!M.dead)M.hp=Math.max(0,M.hp-1/(V*Math.max(36,Math.min(C.guns.length,90))))}}
+  C.shake=Math.max(C.shake,C.shells.length?.35:0);
+  if(M.hp<=0&&!M.dead){M.dead=t;C.flash=.7;burst(M.x,M.y,'#ffb070',140);for(let k=0;k<36;k++){const a=Math.random()*6.283;PARTS.push({k:'smoke',x:M.x,y:M.y,vx:Math.cos(a)*(2+Math.random()*3),vy:Math.sin(a)*(2+Math.random()*3),life:3,max:3,r:1})}sfx('fanfare')}
+  if(t>=31.5&&!M.dead){M.hp=0}
+  const hp=$('#cutHp'),hb=$('#cutHpB'),shl=$('#cutSh');if(hp){hp.hidden=t<12;hb.style.width=(M.hp*100)+'%'}if(shl){shl.hidden=t<12;shl.textContent=`Shells fired ${C.fired.toLocaleString()} / ${SHELLS_NEED.toLocaleString()}`}}
+function tqEnd(){const C=CUT;CUT=null;TQ_TEST=C.tester;cutUI(false);cam.x=C.cam0.x;cam.y=C.cam0.y;cam.z=C.cam0.z;clampCam();
+  if(C.kind===1){
+    if(!C.tester&&tqState()<1)setTq(1);
+    tqLost()}
+  else{
+    if(!C.tester){setTq(2);for(const b of S.bs.values())if(b.t==='artillery')b.n=Math.max(0,(b.n||0)-100)}
+    S.relics=S.relics||[];const fang=!C.tester&&!S.relics.includes('slayer');if(fang)S.relics.push('slayer');
+    const spot=C.tester?null:tqRemainsSpot(C.mon.x,C.mon.y);if(spot&&!C.tester){const r=place('remains',spot[0],spot[1],0,true);if(r&&typeof r==='object')r.bp=false}
+    save();openModal(`<span class="eyebrow">Victory</span><h1>The Tarrasque is slain</h1><p>Ten thousand shells, and it finally fell.</p>${spot?'<p>Its <strong>remains</strong> lie where it fell. Every Drill touching them mines Starseeds and Nova shards straight to the Core.</p>':''}${fang?`<p>And for the slayer, a Relic like no other:</p><div class="ms-list">${relicCard('slayer','')}</div>`:''}${C.tester?'<p class="desc">Tester run: nothing was spent or given.</p>':''}<button class="btn primary" data-tq="win">Onward</button>`);
+    if(!C.tester)setTimeout(heartReward,600)}}
+function tqLost(){openModal(`<span class="eyebrow">Deep Core Bore</span><h1>The moon is lost</h1><p>The Tarrasque crushed the Core and slid back into the deep. Nothing we built could stop it.</p><p>You can <strong>Ascend</strong> and start fresh on a new moon, with your Starseeds as usual. There, we’ll have artillery ready to develop.</p><p>Or you can <strong>turn back time</strong> to just before the Bore reached the heart and keep this moon. The Bore drops back a stage, and Artillery is yours to build right here.</p>
+      <div class="actions">${TQ_TEST?'<button class="btn primary" data-tq="win">Back to the game (tester run)</button>':'<button class="btn primary" data-tq="asc">Ascend</button><button class="btn" data-tq="back">Turn back time</button>'}</div>`);TQ_PEND=TQ_TEST?0:1}
+function tqRemainsSpot(x,y){for(let r=0;r<30;r++)for(let a=0;a<Math.max(1,r*6);a++){const an=a/Math.max(1,r*6)*6.283,px=Math.round(x+Math.cos(an)*r-2.5),py=Math.round(y+Math.sin(an)*r-2.5);let ok=true;
+  for(let j=0;j<5&&ok;j++)for(let i=0;i<5;i++){const xx=px+i,yy=py+j;if(!inLim(xx,yy)||S.grid[yy*W+xx]){ok=false;break}}if(ok)return [px,py]}return null}
+function tqChoice(k){closeModal();
+  if(k==='back'){const G=S.mega&&S.mega.bore;if(G&&G.st>=MEGA.bore.stages){G.st=MEGA.bore.stages-1;G.have={}}save();artilleryNews();showToast('Time turned back. The Bore is a stage short of the heart.')}
+  else if(k==='asc'){showAscension()}}
+// the Remains: Drills touching it mine Starseeds and Nova shards straight to the Core
+function remainsTick(b,dt){b.acc=(b.acc||0)+dt;if(b.acc<1)return;const t=b.acc;b.acc=0;let n=0;
+  for(const q of S.bs.values()){if((q.t!=='drill'&&q.t!=='deepdrill')||q.bp)continue;const w=q.w||1;if(q.x+w>=b.x&&q.x<=b.x+5&&q.y+w>=b.y&&q.y<=b.y+5&&!(q.x+w<=b.x&&q.y+w<=b.y))n+=q.t==='deepdrill'?4:1}
+  b.dn2=n;if(!n)return;S.asc=S.asc||{n:0,seeds:0,total:0};const sd=.5*n*t;S.asc.seeds+=sd;b.sd=(b.sd||0)+sd;b.nv=(b.nv||0)+n*t/600;if(b.nv>=1){const k=Math.floor(b.nv);b.nv-=k;addInv('nova',k)}}
+// the beast itself, drawn from above: armoured shell, spined back, heavy tail, four stamping legs and a horned head
+function drawTarr(g,z){const C=CUT;if(!C)return;const M=C.mon;if(M.sc<=0)return;
+  const sx=w2sx(M.x),sy=w2sy(M.y),u=z*1.25*M.sc,T=C.t,dying=M.dead?Math.min(1,(T-M.dead)/2.5):0;
+  g.save();g.translate(sx,sy);g.rotate(M.ang);
+  if(dying){g.globalAlpha=1-dying*.4;g.scale(1,1-dying*.25)}
+  // shadow
+  g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(u*.4,u*.5,u*4.6,u*2.6,0,0,7);g.fill();
+  // tail: a curving chain of plates
+  const tw=Math.sin(T*2+M.step*.3)*.35;let px=-u*2.6,py=0,pa=Math.PI;
+  for(let k=0;k<7;k++){pa+=tw*.18;px+=Math.cos(pa)*u*.75;py+=Math.sin(pa)*u*.75;const r=u*(.85-k*.1);g.fillStyle=k%2?'#3e3122':'#4b3b28';g.beginPath();g.ellipse(px,py,r*1.1,r,pa,0,7);g.fill();g.strokeStyle='#1c140c';g.lineWidth=u*.08;g.stroke();
+    g.fillStyle='#d9ccb2';g.beginPath();g.moveTo(px+Math.cos(pa+1.571)*r*.2,py+Math.sin(pa+1.571)*r*.2);g.lineTo(px-Math.cos(pa+1.571)*r*.2,py-Math.sin(pa+1.571)*r*.2);g.lineTo(px+Math.cos(pa)*r*.9,py+Math.sin(pa)*r*.9);g.fill()}
+  // legs, stamping in turn
+  for(const [lx,side,ph] of [[1.6,1,0],[1.6,-1,Math.PI],[-1.5,1,Math.PI],[-1.5,-1,0]]){const st=Math.sin(M.step+ph)*.45,ly=side*u*2.1;
+    g.fillStyle='#35291c';g.beginPath();g.ellipse(u*(lx+st),ly,u*.85,u*.6,0,0,7);g.fill();g.strokeStyle='#1c140c';g.lineWidth=u*.08;g.stroke();
+    g.fillStyle='#d9ccb2';for(const c of [-.35,0,.35]){g.beginPath();g.moveTo(u*(lx+st+.6),ly+u*c);g.lineTo(u*(lx+st+1.05),ly+u*c*1.2);g.lineTo(u*(lx+st+.6),ly+u*(c+.12));g.fill()}}
+  // body: a great domed carapace
+  const gr=g.createRadialGradient(-u*.6,-u*.6,u*.4,0,0,u*3.4);gr.addColorStop(0,'#7a6244');gr.addColorStop(.6,'#55432e');gr.addColorStop(1,'#2e2418');
+  g.fillStyle=gr;g.beginPath();g.ellipse(0,0,u*3.3,u*2.2,0,0,7);g.fill();g.strokeStyle='#1c140c';g.lineWidth=u*.12;g.stroke();
+  // overlapping plates
+  g.strokeStyle='rgba(28,20,12,.75)';g.lineWidth=u*.07;for(let k=-2;k<=2;k++){g.beginPath();g.ellipse(u*k*1.05,0,u*.9,u*1.9-Math.abs(k)*u*.3,0,-1.4,1.4);g.stroke()}
+  // spines down the back
+  for(let k=-3;k<=3;k++){const x0=u*k*.85,h=u*(.75-Math.abs(k)*.08);for(const sd of [-1,1]){g.fillStyle='#e6dcc6';g.beginPath();g.moveTo(x0-u*.25,sd*u*.25);g.lineTo(x0+u*.25,sd*u*.25);g.lineTo(x0+u*.05,sd*(u*.25+h));g.closePath();g.fill();g.strokeStyle='#5b4c36';g.lineWidth=u*.05;g.stroke()}}
+  // head: wedge, horns, glowing eyes, jaw that opens when it roars
+  const roar=(T>12.5&&T<15)||(C.kind===1&&T>60)||(M.dead&&dying<.6)?.6:.15+.1*Math.sin(T*3);
+  g.fillStyle='#4b3b28';g.beginPath();g.moveTo(u*2.9,-u*1.05);g.quadraticCurveTo(u*4.9,-u*.9,u*5.4,-u*roar*.4);g.lineTo(u*5.4,u*roar*.4);g.quadraticCurveTo(u*4.9,u*.9,u*2.9,u*1.05);g.closePath();g.fill();g.strokeStyle='#1c140c';g.lineWidth=u*.1;g.stroke();
+  if(roar>.3){g.fillStyle='#2a0f0a';g.beginPath();g.moveTo(u*4.3,0);g.lineTo(u*5.4,-u*roar*.38);g.lineTo(u*5.4,u*roar*.38);g.fill()}
+  g.fillStyle='#e6dcc6';for(const sd of [-1,1]){g.beginPath();g.moveTo(u*3.4,sd*u*.75);g.quadraticCurveTo(u*3.3,sd*u*1.9,u*2.4,sd*u*2.3);g.lineTo(u*3.0,sd*u*.95);g.closePath();g.fill();g.strokeStyle='#5b4c36';g.lineWidth=u*.06;g.stroke()}
+  const ey=dying?Math.max(0,1-dying*1.5):1;for(const sd of [-1,1]){const ex=u*4.25,eyy=sd*u*.48;g.globalCompositeOperation='lighter';const R=u*.7;g.globalAlpha=.8*ey;g.drawImage(glowSpr('#ff5a2a'),ex-R,eyy-R,R*2,R*2);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.fillStyle=`rgba(255,${180*ey|0},90,${ey})`;g.beginPath();g.ellipse(ex,eyy,u*.2,u*.12,0,0,7);g.fill()}
+  // hit flashes and burning from the lens
+  if(M.hit>0||M.burn>0){g.globalCompositeOperation='lighter';g.globalAlpha=Math.min(.45,M.hit*.4+M.burn*.35);g.fillStyle=M.burn>M.hit?'#ff6a2a':'#ffffff';g.beginPath();g.ellipse(0,0,u*3.3,u*2.2,0,0,7);g.fill();g.globalAlpha=1;g.globalCompositeOperation='source-over'}
+  g.restore();
+  // barges (encounter 1)
+  for(const [i,B0] of C.barges.entries()){const o=B0.o;if(!o||o.boom&&Math.hypot(o.vx,o.vy)<5)continue;drawShuttle(g,z*1.7,w2sx(o.x),w2sy(o.y),o.dead?o.spin:Math.atan2(M.y-o.y,M.x-o.x),i,!o.dead,false)}
+  // capacitor banks
+  for(const c of C.caps){if(c.p<=0)continue;g.globalAlpha=Math.min(1,c.p*1.5);drawMachine(g,{t:'capacitor',x:c.x,y:c.y,w:2,d:0},w2sx(c.x),w2sy(c.y),z);if(C.t>37){const R=z*(1+((C.t-37)/1.6)*1.4);g.globalCompositeOperation='lighter';g.globalAlpha=.25+.5*Math.random();g.drawImage(glowSpr('#7ff0d0'),w2sx(c.x+1)-R,w2sy(c.y+1)-R,R*2,R*2);g.globalCompositeOperation='source-over'}g.globalAlpha=1}
+  // short-lived effects: tracers and pulses
+  g.globalCompositeOperation='lighter';for(let i=C.fx.length-1;i>=0;i--){const e=C.fx[i];e.life-=1/60;if(e.life<=0){C.fx.splice(i,1);continue}
+    if(e.k==='tracer'){g.strokeStyle='rgba(255,220,140,.9)';g.lineWidth=Math.max(1,z*.08);g.beginPath();g.moveTo(w2sx(e.x),w2sy(e.y));g.lineTo(w2sx(e.tx),w2sy(e.ty));g.stroke()}
+    else{const R=z*.35;g.drawImage(glowSpr('#7ff0d0'),w2sx(e.x)-R,w2sy(e.y)-R,R*2,R*2)}}
+  // the lens and its beam
+  if(C.lens>0){const lx=w2sx(M.x),ly=w2sy(M.y-7),R=z*2.6*C.lens;g.globalAlpha=.3*C.lens;g.drawImage(glowSpr('#fff0c0'),lx-R,ly-R,R*2,R*2);g.globalAlpha=1;
+    g.strokeStyle=`rgba(255,240,200,${.6*C.lens})`;g.lineWidth=z*.15;g.beginPath();g.ellipse(lx,ly,z*2.4,z*.8,0,0,7);g.stroke();
+    if(M.burn>0){g.strokeStyle=`rgba(255,200,120,${.45+.4*Math.random()})`;g.lineWidth=z*(.3+.5*M.burn);g.beginPath();g.moveTo(lx,ly);g.lineTo(sx,sy);g.stroke();g.strokeStyle='rgba(255,255,240,.9)';g.lineWidth=z*.12;g.stroke()}}
+  // shells arcing in (encounter 2)
+  for(const s0 of C.shells){if(s0.t<0)continue;const k=s0.t/s0.T,x=s0.x0+(M.x+s0.ox-s0.x0)*k,y=s0.y0+(M.y+s0.oy-s0.y0)*k-Math.sin(k*Math.PI)*12,R=z*.8;g.drawImage(glowSpr('#ffd27a'),w2sx(x)-R,w2sy(y)-R,R*2,R*2);const k2=Math.max(0,k-.06),x2=s0.x0+(M.x+s0.ox-s0.x0)*k2,y2=s0.y0+(M.y+s0.oy-s0.y0)*k2-Math.sin(k2*Math.PI)*12;g.strokeStyle='rgba(255,210,140,.5)';g.lineWidth=Math.max(1.5,z*.12);g.beginPath();g.moveTo(w2sx(x2),w2sy(y2));g.lineTo(w2sx(x),w2sy(y));g.stroke()}
+  g.globalCompositeOperation='source-over';
+  // flash and fade
+  if(C.flash>0){g.fillStyle=`rgba(255,250,235,${C.flash*.7})`;g.fillRect(0,0,VW,VH)}
+  if(C.fade>0){g.fillStyle=`rgba(6,4,12,${C.fade})`;g.fillRect(0,0,VW,VH)}}
+
 // ================= boot =================
-let lastT=performance.now(),acc=0,hudAcc=0,orAcc=0,saveAcc=0;
+let lastT=performance.now(),acc=0,hudAcc=0,orAcc=0,saveAcc=0,playAcc=0;
+// play time: real seconds with the game open and visible, per save slot (offline time isn't counted)
+function playTick(rdt){if(document.hidden)return;playAcc+=rdt;if(playAcc>=15){META.play=META.play||{};META.play[CUR]=(META.play[CUR]||0)+playAcc;playAcc=0;saveMeta()}}
+function playTime(k){const P=META.play||{};return k?(P[k]||0)+(k===CUR?playAcc:0):Object.values(P).reduce((a,b)=>a+b,0)+playAcc}
 function frame(now){
   if(STOPPED)return;
-  const rdt=Math.min(.1,(now-lastT)/1000);lastT=now;
+  const rdt=Math.min(.1,(now-lastT)/1000);lastT=now;playTick(rdt);
   if(DEF.isOpen){DEF.frame(rdt);requestAnimationFrame(frame);return}
+  if(CUT){try{cutStep(rdt);if(CUT)render(rdt)}catch(e){CUT=null;cutUI(false);crashed(e)}requestAnimationFrame(frame);return}
   acc+=rdt*speed*paceMul();const STEP=STEP_DT;let n=0;
   try{while(acc>=STEP&&n<15){sim(STEP);acc-=STEP;n++}if(n>=15)acc=0}catch(e){acc=0;crashed(e)}
   try{
@@ -4156,7 +4352,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 // Test hook, only on a local dev server
-if(/^(localhost|127\.)/.test(location.hostname))window.__hf={get DEF(){return DEF},gridMul,relicOffer,baneN,deliver,get TIN(){return TIN},refRatio,costOf,solarMul,isUnl,doVoyage,showStarPick,astTick,landfall,get ORE(){return ORE},voyCharts,batIn:(b,t)=>accept(b,t,3),sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
+if(/^(localhost|127\.)/.test(location.hostname))window.__hf={tq:(k,real)=>tqStart(k,!real),get tqS(){return tqState()},get DEF(){return DEF},gridMul,relicOffer,baneN,deliver,get TIN(){return TIN},refRatio,costOf,solarMul,isUnl,doVoyage,showStarPick,astTick,landfall,get ORE(){return ORE},voyCharts,batIn:(b,t)=>accept(b,t,3),sim,removeB,get BV(){return BV},dVal,get PW(){return PW},showHalo,selIds:ids=>{SELB=ids;openSelSheet()},padNeed,padLaunch,padAccept,swarmUp,cargoN,showAscension,openSheet,padFuel,megaAccept,megaLv,showGalaxy,galNodes,galReach,galPerk,modSeedMul,showCandyShop,showTitle,saveBlueprint,captureLayout,showBlueprints,dailyToday,VAL,get META(){return META},get CUR(){return CUR},relStat,get S(){return S},place,cam,at,novaFound,doAscend,refRatio,refreshSeeds,growCore,get SEEDS(){return SEEDS},get RES(){return RES},get RES0(){return RES0},get ORE(){return ORE},dupP,veinMul,coreKW,cmdPts,drillR,setSpeed:v=>{speed=v},TECH,showResearch,showAscension,showDailyEnd,claimDaily,readSlot,startRun:(k,d)=>startRun(k,d),dailyData:()=>dailyData(),padLoad,ringUp,labRate,grantTech,setTool,buildDock,railRoutes,showMilestones,showRelicPick,orbDone,late,openSheet,renderSheet,recalc,MISSIONS};
 const DEF=makeDefense({quiet:on=>defAudio(on),sfx:k=>sfx(k),sfxV:(k,v,p)=>sfxV(k,v,p),toast:t=>showToast(t),META,saveMeta,cmdLv:k=>(META.cmd||{})[k]||0,candyFor:evCandy,onExit:()=>{lastT=performance.now();showTitle()},showCandyShop:()=>showCandyShop()});
 // If something throws, stop autosaving (so a half-loaded game never overwrites a good save), keep the game
 // drawing, and show what went wrong with a way to copy the save as it was on this device.

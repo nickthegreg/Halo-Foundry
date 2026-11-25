@@ -1,6 +1,9 @@
 # The Tarrasque (design draft)
 
-Owner's idea, 2026-11-25. Not built yet. Open questions are at the bottom.
+Owner's idea, 2026-11-25. Built in update 91 (main.js, "the Tarrasque" block). Decisions: normal Starseeds on the forced
+Ascension plus a "turn back time" option; final Bore stage locked until 10,000 shells; 100 batteries × 100 shells;
+campaign only; state per save slot in META.tq (0 asleep, 1 woke, 2 slain); tester menu can play either encounter.
+Remains: 0.5 Starseeds/s per touching Drill (Deep Drill ×4), 1 Nova shard per 10 min per Drill.
 
 ## Encounter 1: the Bore wakes something
 Trigger: the Deep Core Bore reaches the heart (final stage) on a campaign moon, the first time ever (account-wide flag).

@@ -33,6 +33,8 @@ Mag-rail,1×1,"4 Magnet, 2 Slagcrete",–,
 Pylon,1×1,"10 Slagcrete, 10 Steel",–,
 Space Elevator,5×5,"4000 Slagcrete, 1000 Magnet, 1500 Composite plate, 800 Frame",uses 200 MW,
 Matrioshka Core,5×5,"1200 Composite plate, 40 Quantum chip, 600 Frame, 800 Processor",uses 150 MW,
+Artillery,3×3,"400 Steel, 60 Composite plate, 60 Frame, 40 Motor",–,
+Tarrasque remains,5×5,,–,
 Deep Core Bore,5×5,"5000 Steel, 3000 Slagcrete, 800 Motor, 500 Servo",uses 300 MW,
 Barge Dock,3×3,"300 Steel, 60 Motor, 40 Frame, 200 Circuit",uses 2 MW,
 Starship,5×5,"3000 Composite plate, 3000 Slagcrete, 1500 Frame, 800 Processor",uses 500 MW,
@@ -81,6 +83,7 @@ Void lens,4 Void glass + 1 Prism,10 s,"Fabricator, Mk II",0.1/s,0.25/s,–
 Void cell,4 Void glass + 2 Copper coil + 1 Processor,12 s,Assembler,–,–,0.08/s
 Gyro,2 Magnet + 1 Servo + 1 Void lens,8 s,Assembler,–,–,0.13/s
 Hull plate,4 Composite plate + 6 Slagcrete + 2 Frame,6 s,Assembler,–,–,0.17/s
+Artillery shell,4 Steel + 2 Slagcrete + 1 Heavy metal + 1 Iridium,4 s,Assembler,–,–,0.25/s
 Guidance unit,1 Gyro + 2 Photonic chip + 1 Void cell,10 s,Assembler,–,–,0.1/s
 Field kit,2 Circuit + 2 Gear + 1 Magnet,4 s,"Fabricator, Mk II",0.25/s,0.63/s,–
 Void kit,1 Void lens + 1 Processor + 2 Slagcrete,6 s,Assembler,–,–,0.17/s

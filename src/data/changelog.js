@@ -1,6 +1,11 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:91,date:'2026-11-25',title:'Something under the Bore',items:[
+    'Dig the Deep Core Bore all the way to the heart and you may find out what’s been sleeping down there.',
+    'New: Artillery, Artillery shells and a very special Relic, for those who live through it.',
+    'Settings now shows your play time: this save, all saves, and how long the current moon has run. It counts from this update on, only while the game is open.'
+  ]},
   {n:90,date:'2026-11-25',title:'Long-range barges',items:[
     'Barge Docks open from your first Ascension; no need to finish every goal first. Asteroids start passing once you build one.',
     'Long-range runs: switch a dock to send its barges far past the asteroids. About ten minutes a trip and five times the fuel, but they come home with ten holds of mixed ore, need no asteroid and never run out.',
