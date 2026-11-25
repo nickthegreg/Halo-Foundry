@@ -4198,7 +4198,9 @@ function tqStart(kind,tester){
   else{const a=Math.random()*6.283;sx=cx+Math.cos(a)*26;sy=cy+Math.sin(a)*26}
   if(Math.hypot(sx-cx,sy-cy)<14){const a=Math.atan2(sy-cy,sx-cx)||1;sx=cx+Math.cos(a)*16;sy=cy+Math.sin(a)*16}
   const guns=[...S.bs.values()].filter(b=>b.t==='artillery'&&!b.bp).map(b=>[b.x+1.5,b.y+1.5,b]);
-  if(!guns.length&&kind===2)for(let k=0;k<40;k++){const a=k/40*6.283,r=30+(k%5)*6;guns.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r,null])}
+  // no batteries yet (tester runs): stand up a temporary gun line beside the Core so there's something to watch
+  if(!guns.length&&kind===2){const a0=Math.atan2(sy-cy,sx-cx)+2.2,bx=cx+Math.cos(a0)*16,by=cy+Math.sin(a0)*16;
+    for(let k=0;k<12;k++){const gx=Math.round(bx+(k%4)*4-6),gy=Math.round(by+Math.floor(k/4)*4-4),fb={t:'artillery',x:gx,y:gy,w:3,d:0,n:100,id:'ghost'+k,ghost:1};guns.push([gx+1.5,gy+1.5,fb])}}
   const barges=[];for(const b of S.bs.values())if(b.t==='dock'&&!b.bp)for(let i=0;i<Math.max(1,(b.bar||[]).length);i++)if(barges.length<14)barges.push({x:b.x+1.5,y:b.y+1.5,ph:i});
   if(tester&&!barges.length&&kind===1)for(let k=0;k<5;k++){const a=k*1.3;barges.push({x:cx+Math.cos(a)*40,y:cy+Math.sin(a)*40,ph:k})}
   CUT={kind,tester:!!tester,t:0,sx,sy,cx,cy,coreId:core?core.id:-1,mon:{x:sx,y:sy,ang:Math.atan2(cy-sy,cx-sx),sc:0,hp:1,hit:0,burn:0,dead:0,step:0},
@@ -4302,6 +4304,7 @@ function drawTarr(g,z){const C=CUT;if(!C)return;const M=C.mon;
   // rubble where buildings stood, and the beast's three-toed prints
   for(const r of C.rub){const x0=w2sx(r.x),y0=w2sy(r.y),W0=r.w*z;if(x0>VW||y0>VH||x0+W0<0||y0+W0<0)continue;g.fillStyle='rgba(18,12,10,.45)';g.fillRect(x0+W0*.05,y0+W0*.05,W0*.9,W0*.9);
     const n=r.belt?2:3+r.w*2;for(let k=0;k<n;k++){const a=((r.sd*31+k*97)%100)/100,b0=((r.sd*17+k*53)%100)/100,q=W0*(.12+.18*(((r.sd+k*13)%10)/10));g.fillStyle=k%3===0?'#6a6380':k%3===1?'#4a4560':'#8a7a68';g.save();g.translate(x0+W0*(.15+.7*a),y0+W0*(.15+.7*b0));g.rotate(a*6);g.fillRect(-q/2,-q/2,q,q*.7);g.restore()}}
+  for(const q of C.guns)if(q[2]&&q[2].ghost)drawMachine(g,q[2],w2sx(q[2].x),w2sy(q[2].y),z);
   for(const p of C.prints){const x0=w2sx(p.x),y0=w2sy(p.y);if(x0<-z*2||y0<-z*2||x0>VW+z*2||y0>VH+z*2)continue;g.save();g.translate(x0,y0);g.rotate(p.a);g.fillStyle='rgba(14,10,8,.5)';g.beginPath();g.ellipse(0,0,z*.55,z*.4,0,0,7);g.fill();for(const c of [-.4,0,.4]){g.beginPath();g.ellipse(z*.7,z*c,z*.18,z*.1,c*.6,0,7);g.fill()}g.restore()}
   if(M.sc<=0)return;
   const sx=w2sx(M.x),sy=w2sy(M.y),u=z*1.25*M.sc,T=C.t,dying=M.dead?Math.min(1,(T-M.dead)/2.5):0;
