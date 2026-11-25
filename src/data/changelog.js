@@ -1,6 +1,12 @@
 // Player-facing update notes, newest first. Bump `n` for every update worth announcing:
 // players who have seen an older `n` get a "What's new" card the next time they open the game.
 export const CHANGELOG=[
+  {n:93,date:'2026-11-25',title:'A bigger show',items:[
+    'Whatever it crushes now leaves rubble behind, and it leaves a trail of footprints.',
+    'It swats the barges away with a sweep of its tail.',
+    'When the artillery opens up, the camera pans to your batteries: they swing round, take aim and fire, then you follow the shells back.',
+    'Shells streak in with fiery trails and burst into fireballs with shock rings.'
+  ]},
   {n:92,date:'2026-11-25',title:'Better seats for the show',items:[
     'The Bore’s big moment now keeps its star in the middle of the screen on wide screens and computers too.',
     'Fixed a ring of capacitors that rebuilt itself after exploding, flooding the screen with light.'
